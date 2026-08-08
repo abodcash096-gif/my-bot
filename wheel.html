@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>عجلة الحظ التفاعلية</title>
+    <style>
+        body { 
+            background: #0f172a; 
+            color: #fff; 
+            font-family: Tahoma, sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        h1 { color: #38bdf8; }
+        #wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+        }
+        #wheel { 
+            width: 100%; 
+            height: 100%; 
+            border-radius: 50%; 
+            border: 10px solid #38bdf8; 
+            position: relative; 
+            overflow: hidden; 
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); 
+        }
+        .sector { 
+            position: absolute; 
+            width: 50%; 
+            height: 50%; 
+            transform-origin: 100% 100%; 
+            left: 0; 
+            top: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start; 
+            padding-left: 20px; 
+            font-weight: bold; 
+            font-size: 14px; 
+        }
+        button { 
+            background: #0284c7; 
+            color: #fff; 
+            border: none; 
+            padding: 12px 30px; 
+            font-size: 18px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-top: 20px; 
+        }
+        button:hover { background: #0369a1; }
+    </style>
+</head>
+<body>
+    <h1>🎡 عجلة الحظ الكبرى</h1>
+    <p>اضغط على زر الدوران واربح جوائز قيمة مباشرة!</p>
+    
+    <div id="wheel-container">
+        <div id="wheel"></div>
+    </div>
+    
+    <button onclick="spinWheel()">دوران العجلة 🚀</button>
+    <h2 id="result"></h2>
+
+    <script>
+        const prizes = [0, 5, 10, 15, 20, 25, 50, 100, 200];
+        const wheel = document.getElementById('wheel');
+        const angle = 360 / prizes.length;
+        
+        prizes.forEach((prize, index) => {
+            const sec = document.createElement('div');
+            sec.className = 'sector';
+            sec.style.transform = `rotate(${index * angle}deg) skewY(-45deg)`;
+            sec.style.background = index % 2 === 0 ? '#1e293b' : '#334155';
+            sec.innerHTML = `<span style="transform: skewY(45deg) rotate(20deg); display:inline-block;">${prize}</span>`;
+            wheel.appendChild(sec);
+        });
+
+        let currentRotation = 0;
+        function spinWheel() {
+            const randomPrizeIndex = Math.floor(Math.random() * prizes.length);
+            const extraSpins = 5 * 360;
+            const deg = extraSpins + (randomPrizeIndex * angle) + (angle / 2);
+            currentRotation += deg;
+            wheel.style.transform = `rotate(-${currentRotation}deg)`;
+            
+            setTimeout(() => {
+                document.getElementById('result').innerText = `🎉 مبروك! ربحت: ${prizes[randomPrizeIndex]} نقطة`;
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
