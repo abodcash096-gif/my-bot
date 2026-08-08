@@ -167,12 +167,13 @@ async def check_channel_subscription(user_id, context):
     conn = sqlite3.connect('bot_data.db')
     cursor = conn.cursor()
     cursor.execute("SELECT value FROM settings WHERE key = 'required_channel'")
-    channel = cursor.fetchone()[0]
+    channel_row = cursor.fetchone()
     conn.close()
     
-    if not channel:
+    if not channel_row or not channel_row[0]:
         return True
         
+    channel = channel_row[0]
     try:
         member = await context.bot.get_chat_member(chat_id=f"@{channel.replace('@','')}", user_id=user_id)
         if member.status in ['creator', 'administrator', 'member']:
@@ -482,7 +483,14 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = sqlite3.connect('bot_data.db')
     cursor = conn.cursor()
     
-    if data == "my_points":
+    if data == "check_sub":
+        is_subbed = await check_channel_subscription(user_id, context)
+        if is_subbed:
+            await query.message.reply_text("✅ شكراً لاشتراكك! يمكنك استخدام البوت الآن عبر /start")
+        else:
+            await query.message.reply_text("❌ لم يتم التحقق من اشتراكك، يرجى الاشتراك ثم الضغط مجدداً.")
+            
+    elif data == "my_points":
         cursor.execute("SELECT points, spins FROM users WHERE user_id = ?", (user_id,))
         p, s = cursor.fetchone()
         await query.message.reply_text(f"💳 رصيدك الحالي:\n- النقاط: {p}\n- لفات العجلة: {s}")
@@ -567,6 +575,11 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "adm_add_admin":
         context.user_data['adm_add_admin'] = True
         await query.message.reply_text("👑 أرسل الـ User ID للشخص المراد رفعه كأدمن:")
+
+    elif data == "reset_all_balances":
+        cursor.execute("UPDATE users SET points = 0, spins = 0")
+        conn.commit()
+        await query.message.reply_text("⚠️ تم تصفير جميع أرصدة ولفات المستخدمين بنجاح.")
 
     elif data.startswith("reply_to_"):
         target_id = data.replace("reply_to_", "")
