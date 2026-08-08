@@ -107,3 +107,4 @@ if __name__ == '__main__':
         application.add_handler(CallbackQueryHandler(buttons_handler))
         print("Bot is starting via Polling...")
         application.run_polling()
+    
