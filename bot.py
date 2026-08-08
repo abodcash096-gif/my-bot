@@ -171,7 +171,7 @@ async def main_menu(user_id, context, text="🌟 القائمة الرئيسية
         [InlineKeyboardButton("🎮 صالة الألعاب (4 ألعاب)", callback_data="games_menu"), InlineKeyboardButton("🔗 رابط إحالتي", callback_data="my_ref")],
         [InlineKeyboardButton("💳 سحب الرصيد", callback_data="withdraw"), InlineKeyboardButton("🎟️ تفعيل كود", callback_data="enter_code")],
         [InlineKeyboardButton("🛍️ طلب بوت خاص", callback_data="buy_bot"), InlineKeyboardButton("💬 الدعم الفني", callback_data="support_msg")],
-        [InlineKeyboardButton("📢 القناة الرسمية", url="https://t.me/lerafree")]
+        [InlineKeyboardButton("📢 القناة الرسمية", url="https://t.me/cashinsher")]
     ]
     
     if is_admin(user_id):
