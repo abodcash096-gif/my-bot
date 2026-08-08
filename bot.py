@@ -16,8 +16,8 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"أنت أرسلت: {user_text}")
 
 if __name__ == '__main__':
-    # جلب التوكن من إعدادات السيرفر
-    TOKEN = os.environ.get("BOT_TOKEN"8802444714:AAFoaN82TuPv3wqf6RwHFgS7yFyd0ZMhToY
+    # جلب التوكن بأمان من إعدادات Render
+    TOKEN = os.environ.get("BOT_TOKEN")
     
     app = ApplicationBuilder().token(TOKEN).build()
     
