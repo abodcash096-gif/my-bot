@@ -105,14 +105,7 @@ if __name__ == '__main__':
         application = ApplicationBuilder().token(TOKEN).build()
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CallbackQueryHandler(buttons_handler))
-        if __name__ == '__main__':
-    if TOKEN:
-        application = ApplicationBuilder().token(TOKEN).build()
-        application.add_handler(CommandHandler("start", start))
-        application.add_handler(CallbackQueryHandler(buttons_handler))
         print("Bot is starting via Polling...")
-        
-        # استبدل application.run_polling() بهذا السطر الآمن لإنشاء حلقة عمل (Event Loop) يدوية:
         import asyncio
         asyncio.run(application.run_polling())
         
