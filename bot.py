@@ -1,16 +1,10 @@
 from flask import Flask, render_template_string, request, jsonify
 import os
-import threading
 import sqlite3
 import random
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -23,7 +17,7 @@ def init_db():
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                         user_id INTEGER PRIMARY KEY, 
                         balance REAL DEFAULT 0, 
-                        spins INTEGER DEFAULT 0, 
+                        spins INTEGER DEFAULT 3, 
                         referred_by INTEGER, 
                         is_banned INTEGER DEFAULT 0
                     )''')
@@ -45,7 +39,7 @@ WHEEL_HTML = """
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>عجلة الحظ</title>
+    <title>عجلة الحظ الكبرى</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { background: #0f172a; color: white; font-family: Tahoma, sans-serif; text-align: center; margin: 0; padding: 20px; }
@@ -138,49 +132,9 @@ WHEEL_HTML = """
 </html>
 """
 
-# إعداد التطبيق والـ Webhook لاستقبال الرسائل عبر سيرفر الويب مباشرة
-TOKEN = os.environ.get("BOT_TOKEN")
-application = ApplicationBuilder().token(TOKEN).build()
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    user_id = user.id
-    conn = sqlite3.connect('bot_full_database.db')
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
-    conn.commit()
-    cursor.execute("SELECT balance, spins FROM users WHERE user_id = ?", (user_id,))
-    data = cursor.fetchone()
-    conn.close()
-
-    render_url = os.environ.get("RENDER_EXTERNAL_URL", "https://my-bot-j658.onrender.com")
-    keyboard = [
-        [InlineKeyboardButton("🎡 عجلة الحظ", web_app={"url": f"{render_url}/wheel"}), InlineKeyboardButton("💰 رصيدي", callback_data="my_balance")],
-        [InlineKeyboardButton("🔗 رابط إحالتي", callback_data="ref_link")]
-    ]
-    await update.message.reply_text(f"مرحباً بك في البوت 🚀\n\nرصيدك: {data[0]} | اللفات: {data[1]}", reply_markup=InlineKeyboardMarkup(keyboard))
-
-async def buttons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if query.data == "my_balance":
-        user_id = query.from_user.id
-        conn = sqlite3.connect('bot_full_database.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT balance, spins FROM users WHERE user_id = ?", (user_id,))
-        res = cursor.fetchone()
-        conn.close()
-        await query.answer(f"💰 رصيدك: {res[0]}\n🎡 اللفات: {res[1]}", show_alert=True)
-    elif query.data == "ref_link":
-        ref_url = f"https://t.me/{context.bot.username}?start={query.from_user.id}"
-        await query.message.reply_text(f"🔗 رابط إحالتك:\n{ref_url}")
-
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CallbackQueryHandler(buttons_handler))
-
 @app.route('/')
 def home():
-    return "Bot & Web App are running successfully!"
+    return "Professional Bot Server is running!"
 
 @app.route('/wheel')
 def wheel_page():
@@ -212,30 +166,132 @@ def api_spin():
     conn.close()
     return jsonify({"prize": won_prize})
 
-# ربط التيليجرام بـ Flask Webhook لتفادي مشاكل التوافقية كلياً
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    application.update_queue.put_nowait(update)
-    return "OK"
+TOKEN = os.environ.get("BOT_TOKEN")
+application = ApplicationBuilder().token(TOKEN).build() if TOKEN else None
 
-@app.before_first_request_func if hasattr(app, 'before_first_request') else app.before_request
-def setup_webhook():
-    # تعيين الويب هوك تلقائياً عند الإقلاع
-    pass
+async def check_channels(user_id, context):
+    conn = sqlite3.connect('bot_full_database.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT channel_username FROM channels")
+    channels = cursor.fetchall()
+    conn.close()
+    for ch in channels:
+        try:
+            member = await context.bot.get_chat_member(chat_id=ch[0], user_id=user_id)
+            if member.status not in ['member', 'administrator', 'creator']:
+                return False
+        except Exception:
+            return False
+    return True
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    conn = sqlite3.connect('bot_full_database.db')
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT is_banned FROM users WHERE user_id = ?", (user_id,))
+    ban = cursor.fetchone()
+    if ban and ban[0] == 1:
+        await update.message.reply_text("🚫 أنت محظور من استخدام البوت.")
+        conn.close()
+        return
+
+    if context.args:
+        try:
+            referrer_id = int(context.args[0])
+            if referrer_id != user_id:
+                cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+                if not cursor.fetchone():
+                    cursor.execute("INSERT OR IGNORE INTO users (user_id, referred_by, spins) VALUES (?, ?, 3)", (user_id, referrer_id))
+                    conn.commit()
+                    cursor.execute("UPDATE users SET spins = spins + 1 WHERE user_id = ?", (referrer_id,))
+                    conn.commit()
+                    try:
+                        await context.bot.send_message(referrer_id, "🎉 انضم شخص جديد عبر رابط إحالتك وحصلت على لفة مجانية!")
+                    except Exception:
+                        pass
+        except ValueError:
+            pass
+
+    cursor.execute("INSERT OR IGNORE INTO users (user_id, spins) VALUES (?, 3)", (user_id,))
+    conn.commit()
+    
+    if not await check_channels(user_id, context):
+        cursor.execute("SELECT channel_username FROM channels")
+        ch_list = cursor.fetchall()
+        conn.close()
+        kb = [[InlineKeyboardButton(f"اشترك في {c[0]} 📢", url=f"https://t.me/{c[0].replace('@', '')}")] for c in ch_list]
+        kb.append([InlineKeyboardButton("تحقق من الاشتراك ✅", callback_data="verify_sub")])
+        await update.message.reply_text("⚠️ يجب عليك الاشتراك في القنوات الموصولة أولاً لاستخدام البوت:", reply_markup=InlineKeyboardMarkup(kb))
+        return
+
+    cursor.execute("SELECT balance, spins FROM users WHERE user_id = ?", (user_id,))
+    data = cursor.fetchone()
+    conn.close()
+
+    render_url = os.environ.get("RENDER_EXTERNAL_URL", "https://my-bot-j658.onrender.com")
+    keyboard = [
+        [InlineKeyboardButton("🎡 عجلة الحظ", web_app={"url": f"{render_url}/wheel"}), InlineKeyboardButton("💰 رصيدي", callback_data="my_balance")],
+        [InlineKeyboardButton("🔗 رابط إحالتي", callback_data="ref_link"), InlineKeyboardButton("💳 طلب سحب", callback_data="withdraw")],
+        [InlineKeyboardButton("🛠️ الدعم الفني", callback_data="support")]
+    ]
+    if user_id == ADMIN_ID:
+        keyboard.append([InlineKeyboardButton("👑 لوحة الإدارة", callback_data="admin_panel")])
+
+    await update.message.reply_text(f"مرحباً بك يا عبود في البوت الاحترافي 🚀\n\nرصيدك: {data[0]} نقطة | اللفات المتاحة: {data[1]}", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def buttons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+    data = query.data
+
+    if data == "verify_sub":
+        if await check_channels(user_id, context):
+            await query.edit_message_text("✅ تم التحقق بنجاح! أرسل /start للمتابعة.")
+        else:
+            await query.answer("❌ لم تقم بالاشتراك في جميع القنوات بعد!", show_alert=True)
+    elif data == "my_balance":
+        conn = sqlite3.connect('bot_full_database.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance, spins FROM users WHERE user_id = ?", (user_id,))
+        res = cursor.fetchone()
+        conn.close()
+        await query.answer(f"💰 رصيدك: {res[0]} نقطة\n🎡 اللفات: {res[1]}", show_alert=True)
+    elif data == "ref_link":
+        ref_url = f"https://t.me/{context.bot.username}?start={user_id}"
+        await query.message.reply_text(f"🔗 رابط إحالتك الشخصي:\n{ref_url}\n\nشارك الرابط وكل شخص يدخل تكسب لفة مجانية!")
+    elif data == "withdraw":
+        await query.message.reply_text("💳 أرسل عنوان محفظتك أو وسيلة السحب مع المبلغ ليتم مراجعته من الإدارة.")
+    elif data == "support":
+        await query.message.reply_text("🛠️ للإبلاغ عن مشكلة أو الاستفسار، تواصل مع الإدارة عبر المعرف الأساسي.")
+    elif data == "admin_panel" and user_id == ADMIN_ID:
+        kb = [
+            [InlineKeyboardButton("📊 إحصائيات البوت", callback_data="adm_stats")],
+            [InlineKeyboardButton("🔙 رجوع", callback_data="adm_back")]
+        ]
+        await query.edit_message_text("👑 لوحة تحكم الإدارة:", reply_markup=InlineKeyboardMarkup(kb))
+    elif data == "adm_stats" and user_id == ADMIN_ID:
+        conn = sqlite3.connect('bot_full_database.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+        conn.close()
+        await query.answer(f"👥 إجمالي المستخدمين: {count}", show_alert=True)
+    elif data == "adm_back":
+        await start(update, context)
+
+if application:
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(buttons_handler))
+
+    @app.route(f"/{TOKEN}", methods=["POST"])
+    def webhook():
+        update = Update.de_json(request.get_json(force=True), application.bot)
+        application.update_queue.put_nowait(update)
+        return "OK"
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    # تشغيل البوت عبر Webhook ضمن سيرفر فلاسك
-    async def set_wh():
-        render_url = os.environ.get("RENDER_EXTERNAL_URL")
-        if render_url:
-            await application.bot.set_webhook(url=f"{render_url}/{TOKEN}")
-    
-    import asyncio
-    try:
-        asyncio.run(set_wh())
-    except Exception:
-        pass
-        
     app.run(host="0.0.0.0", port=port)
