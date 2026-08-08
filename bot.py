@@ -1,9 +1,8 @@
 import os
 import sqlite3
-import random
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -100,12 +99,17 @@ async def buttons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "support":
         await query.message.reply_text("🛠️ للإبلاغ عن مشكلة، تواصل مع الإدارة.")
 
-if __name__ == '__main__':
+def main():
     if TOKEN:
-        application = ApplicationBuilder().token(TOKEN).build()
+        # استخدام Application بدلاً من ApplicationBuilder القديم المسبب للمشاكل
+        application = Application.builder().token(TOKEN).build()
+        
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CallbackQueryHandler(buttons_handler))
+        
         print("Bot is starting via Polling...")
-        import asyncio
-        asyncio.run(application.run_polling())
+        application.run_polling()
+
+if __name__ == '__main__':
+    main()
         
