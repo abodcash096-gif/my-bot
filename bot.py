@@ -2,7 +2,7 @@ import os
 import sqlite3
 import random
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -33,6 +33,7 @@ def init_db():
         'min_withdraw': '100',
         'ref_spins': '1',
         'welcome_spins': '3',
+        'welcome_enabled': '1',
         'maintenance': '0'
     }
     for k, v in defaults.items():
@@ -42,7 +43,7 @@ def init_db():
     if cursor.fetchone()[0] == 0:
         default_probs = {0: 40, 5: 25, 10: 15, 15: 10, 20: 5, 25: 3, 50: 1.5, 100: 0.5, 200: 0.2}
         for p, w in default_probs.items():
-            cursor.execute("INSERT INTO wheel_probs (prize, weight) VALUES (?, ?)", (p, int(w * 10)))
+            cursor.execute("INSERT OR IGNORE INTO wheel_probs (prize, weight) VALUES (?, ?)", (p, int(w * 10)))
             
     conn.commit()
     conn.close()
@@ -50,6 +51,7 @@ def init_db():
 init_db()
 
 TOKEN = os.environ.get("BOT_TOKEN")
+WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://your-webapp-url.com/wheel.html") # ضع رابط استضافتك لصفحة الويب الخاصة بالعجلة هنا
 
 async def check_subscription(user_id, bot):
     conn = sqlite3.connect('bot_full_database.db')
@@ -71,6 +73,16 @@ async def check_subscription(user_id, bot):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
+    
+    # تعيين زر القائمة على اليسار (Menu Button) ليفتح صفحة الويب الخاصة بالعجلة أو الواجهة
+    try:
+        await context.bot.set_chat_menu_button(
+            chat_id=user_id,
+            menu_button=MenuButtonWebApp(text="🎡 تشغيل البوت", web_app=WebAppInfo(url=WEBAPP_URL))
+        )
+    except Exception:
+        pass
+
     conn = sqlite3.connect('bot_full_database.db')
     cursor = conn.cursor()
     
@@ -110,10 +122,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ref_id = ref_row[0]
         is_sub = await check_subscription(user_id, context.bot)
         if is_sub:
-            # التأكد من عدم احتسابها مسبقاً
             cursor.execute("UPDATE users SET referred_by = NULL WHERE user_id = ?", (user_id,))
             conn.commit()
-            cursor.execute("SELECT value FROM settings WHERE key='ref_spins'", ( ))
+            cursor.execute("SELECT value FROM settings WHERE key='ref_spins'")
             r_spins = int(cursor.fetchone()[0])
             cursor.execute("UPDATE users SET spins = spins + ? WHERE user_id = ?", (r_spins, ref_id))
             conn.commit()
@@ -138,7 +149,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("💰 رصيدي", callback_data="my_balance"), InlineKeyboardButton("🔗 رابط إحالتي", callback_data="ref_link")],
         [InlineKeyboardButton("💳 طلب سحب", callback_data="withdraw"), InlineKeyboardButton("🛠️ الدعم", callback_data="support")],
-        [InlineKeyboardButton("🎡 العجلة (تليجرام)", callback_data="spin_wheel"), InlineKeyboardButton("🎁 كود هدية", callback_data="redeem_code")],
+        [InlineKeyboardButton("🎡 عجلة الحظ (Web)", web_app=WebAppInfo(url=WEBAPP_URL)), InlineKeyboardButton("🎁 كود هدية", callback_data="redeem_code")],
         [InlineKeyboardButton("🛒 شراء بوت", callback_data="buy_bot"), InlineKeyboardButton("📢 قناة المبرمج", url="https://t.me/lerafree")]
     ]
     if user_id == ADMIN_ID:
@@ -196,33 +207,6 @@ async def buttons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['waiting_code'] = True
         await query.message.reply_text("🎁 أرسل كود الهدية الآن:")
 
-    elif data == "spin_wheel":
-        cursor.execute("SELECT spins FROM users WHERE user_id = ?", (user_id,))
-        spins = cursor.fetchone()[0]
-        if spins <= 0:
-            conn.close()
-            await query.answer("❌ لا تملك لفات كافية! قم بدعوة أصدقائك للحصول على لفات جديدة.", show_alert=True)
-            return
-
-        cursor.execute("UPDATE users SET spins = spins - 1 WHERE user_id = ?", (user_id,))
-        
-        # خوارزمية الأوزان للعجلة
-        cursor.execute("SELECT prize, weight FROM wheel_probs")
-        probs = cursor.fetchall()
-        conn.close()
-
-        prizes = [p[0] for p in probs]
-        weights = [p[1] for p in probs]
-        won_prize = random.choices(prizes, weights=weights)[0]
-
-        conn = sqlite3.connect('bot_full_database.db')
-        cursor = conn.cursor()
-        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (won_prize, user_id))
-        conn.commit()
-        conn.close()
-
-        await query.message.reply_text(f"🎡 تدور العجلة...\n\n🎉 مبروك! لقد ربحت من العجلة مبلغ: {won_prize} نقطة!")
-
     elif data == "admin_panel":
         conn.close()
         if user_id != ADMIN_ID:
@@ -232,13 +216,19 @@ async def buttons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer("لست مديراً!", show_alert=True)
                 return
         
+        cursor = sqlite3.connect('bot_full_database.db').cursor()
+        cursor.execute("SELECT value FROM settings WHERE key='maintenance'")
+        m_status = "🟢 البوت يعمل" if cursor.fetchone()[0] == '0' else "🔴 البوت في الصيانة"
+        conn.close()
+
         kb = [
-            [InlineKeyboardButton("👥 المستخدمين", callback_data="adm_users"), InlineKeyboardButton("📊 الإحصائيات", callback_data="adm_stats")],
+            [InlineKeyboardButton("👥 المستخدمين والبحث", callback_data="adm_users"), InlineKeyboardButton("📊 الإحصائيات", callback_data="adm_stats")],
             [InlineKeyboardButton("💳 طلبات السحب", callback_data="adm_withdraws"), InlineKeyboardButton("📢 القنوات الإجبارية", callback_data="adm_channels")],
-            [InlineKeyboardButton("🎁 إدارة الكودات والمنح", callback_data="adm_gifts"), InlineKeyboardButton("⚙️ الإعدادات والبونص", callback_data="adm_settings")],
+            [InlineKeyboardButton("🎁 توليد أكواد الهدايا", callback_data="adm_create_code"), InlineKeyboardButton("⚙️ تحكم البونص والإعدادات", callback_data="adm_settings")],
+            [InlineKeyboardButton("🚫 حظر / فك حظر", callback_data="adm_ban_menu"), InlineKeyboardButton(m_status, callback_data="adm_toggle_maint")],
             [InlineKeyboardButton("🛠️ رسائل الدعم", callback_data="adm_support"), InlineKeyboardButton("📢 الإذاعة", callback_data="adm_broadcast")]
         ]
-        await query.message.reply_text("👑 لوحة تحكم الإدارة:", reply_markup=InlineKeyboardMarkup(kb))
+        await query.message.reply_text("👑 لوحة تحكم الإدارة الاحترافية:", reply_markup=InlineKeyboardMarkup(kb))
 
     elif data == "adm_stats":
         cursor.execute("SELECT COUNT(*) FROM users")
@@ -247,13 +237,72 @@ async def buttons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(f"📊 عدد المستخدمين الكلي في البوت: {u_count}")
 
     elif data == "adm_users":
-        cursor.execute("SELECT user_id, balance, spins FROM users")
-        all_u = cursor.fetchall()
         conn.close()
-        text = "👥 قائمة اللاعبين:\n\n"
-        for u in all_u[:30]:
-            text += f"🆔 `{u[0]}` | الرصيد: {u[1]} | اللفات: {u[2]}\n"
-        await query.message.reply_text(text, parse_mode="Markdown")
+        await query.message.reply_text("🔍 لعرض تفاصيل لاعب أو حظره، أرسل الأمر:\n`/user_info الأيدي`")
+
+    elif data == "adm_ban_menu":
+        conn.close()
+        await query.message.reply_text("🚫 لحظر مستخدم أرسل:\n`/ban الأيدي`\n\nولفك الحظر أرسل:\n`/unban الأيدي`")
+
+    elif data == "adm_toggle_maint":
+        cursor.execute("SELECT value FROM settings WHERE key='maintenance'")
+        m_val = cursor.fetchone()[0]
+        new_val = '1' if m_val == '0' else '0'
+        cursor.execute("UPDATE settings SET value=? WHERE key='maintenance'", (new_val,))
+        conn.commit()
+        conn.close()
+        status_text = "🔴 تم تفعيل وضع الصيانة بنجاح." if new_val == '1' else "🟢 تم إيقاف الصيانة وتشغيل البوت."
+        await query.answer(status_text, show_alert=True)
+        await query.message.edit_text(status_text)
+
+    elif data == "adm_create_code":
+        conn.close()
+        kb = [
+            [InlineKeyboardButton("🎁 كود لفات عشوائي", callback_data="gen_code_spin"), InlineKeyboardButton("🎁 كود رصيد عشوائي", callback_data="gen_code_balance")],
+            [InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]
+        ]
+        await query.message.reply_text("🎁 اختر نوع الكود التلقائي المراد توليده:", reply_markup=InlineKeyboardMarkup(kb))
+
+    elif data in ["gen_code_spin", "gen_code_balance"]:
+        c_type = "spin" if "spin" in data else "balance"
+        code = "GIFT-" + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", k=6))
+        amount = random.randint(5, 20) if c_type == "spin" else random.randint(50, 200)
+        uses = 1
+        cursor.execute("INSERT OR REPLACE INTO gift_codes (code, type, amount, uses) VALUES (?, ?, ?, ?)", (code, c_type, amount, uses))
+        conn.commit()
+        conn.close()
+        await query.message.edit_text(f"✅ تم توليد كود الهدية بنجاح!\n\n🎁 الكود: `{code}`\n النوع: {c_type}\n القيمة: {amount}\n الاستخدامات: {uses}", parse_mode="Markdown")
+
+    elif data == "adm_settings":
+        cursor.execute("SELECT value FROM settings WHERE key='welcome_enabled'")
+        w_en = cursor.fetchone()[0]
+        w_status = "🟢 البونص مفعل" if w_en == '1' else "🔴 البونص معطل"
+        
+        cursor.execute("SELECT value FROM settings WHERE key='welcome_spins'")
+        w_val = cursor.fetchone()[0]
+        conn.close()
+
+        kb = [
+            [InlineKeyboardButton(w_status, callback_data="toggle_welcome")],
+            [InlineKeyboardButton("🔄 تغيير قيمة البونص الترحيبي", callback_data="change_welcome_val")],
+            [InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]
+        ]
+        await query.message.reply_text(f"⚙️ إعدادات البونص الترحيبي:\n- القيمة الحالية: {w_val} لفات", reply_markup=InlineKeyboardMarkup(kb))
+
+    elif data == "toggle_welcome":
+        cursor.execute("SELECT value FROM settings WHERE key='welcome_enabled'")
+        val = cursor.fetchone()[0]
+        new_v = '0' if val == '1' else '1'
+        cursor.execute("UPDATE settings SET value=? WHERE key='welcome_enabled'", (new_v,))
+        conn.commit()
+        conn.close()
+        await query.answer("✅ تم تحديث حالة البونص.", show_alert=True)
+        await admin_panel_refresh(query, context)
+
+    elif data == "change_welcome_val":
+        conn.close()
+        context.user_data['waiting_new_welcome'] = True
+        await query.message.reply_text("أرسل القيمة الجديدة لعدد لفات البونص الترحيبي (رقم فقط):")
 
     elif data == "adm_withdraws":
         cursor.execute("SELECT id, user_id, method, amount FROM withdrawals WHERE status='pending'")
@@ -292,20 +341,9 @@ async def buttons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = "📢 القنوات الإجبارية الحالية:\n" + "\n".join([c[0] for c in chs]) + "\n\nلإضافة قناة أرسل: `/addchan @username`\nلإلغاء قناة أرسل: `/delchan @username`"
         await query.message.reply_text(text)
 
-    elif data == "adm_gifts":
-        conn.close()
-        await query.message.reply_text("🎁 لإنشاء كود هدية أرسل الأمر:\n`/createcode الكود النوع(spin/balance) القيمة العدد`")
-
-    elif data == "adm_settings":
-        cursor.execute("SELECT key, value FROM settings")
-        sets = cursor.fetchall()
-        conn.close()
-        text = "⚙️ الإعدادات الحالية:\n" + "\n".join([f"{s[0]}: {s[1]}" for s in sets]) + "\n\nلتعديل حد السحب أرسل: `/setminval الرقم`"
-        await query.message.reply_text(text)
-
     elif data == "adm_support":
         conn.close()
-        await query.message.reply_text("🛠️ لتلقي رسائل الدعم والرد، تظهر الرسائل مباشرة مع زر الرد عند إرسال المستخدمين.")
+        await query.message.reply_text("🛠️ لتلقي رسائل الدعم والرد، تظهر رسائل المستخدمين هنا مع زر الرد المباشر.")
 
     elif data == "adm_broadcast":
         conn.close()
@@ -316,6 +354,25 @@ async def buttons_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
         await start(update, context)
 
+async def admin_panel_refresh(query, context):
+    conn = sqlite3.connect('bot_full_database.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT value FROM settings WHERE key='welcome_enabled'")
+    w_en = cursor.fetchone()[0]
+    w_status = "🟢 البونص مفعل" if w_en == '1' else "🔴 البونص معطل"
+    cursor.execute("SELECT value FROM settings WHERE key='welcome_spins'")
+    w_val = cursor.fetchone()[0]
+    conn.close()
+    kb = [
+        [InlineKeyboardButton(w_status, callback_data="toggle_welcome")],
+        [InlineKeyboardButton("🔄 تغيير قيمة البونص الترحيبي", callback_data="change_welcome_val")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="admin_panel")]
+    ]
+    try:
+        await query.message.edit_text(f"⚙️ إعدادات البونص الترحيبي:\n- القيمة الحالية: {w_val} لفات", reply_markup=InlineKeyboardMarkup(kb))
+    except:
+        pass
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
@@ -324,15 +381,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = sqlite3.connect('bot_full_database.db')
     cursor = conn.cursor()
 
-    # فحص الكابتشا
+    if context.user_data.get('waiting_new_welcome') and user_id == ADMIN_ID:
+        context.user_data['waiting_new_welcome'] = False
+        try:
+            val = int(text)
+            cursor.execute("UPDATE settings SET value=? WHERE key='welcome_spins'", (str(val),))
+            conn.commit()
+            conn.close()
+            await update.message.reply_text(f"✅ تم تحديث قيمة البونص الترحيبي إلى: {val} لفات.")
+        except:
+            conn.close()
+            await update.message.reply_text("❌ يرجى إرسال رقم صحيح.")
+        return
+
     cursor.execute("SELECT verified, captcha_ans FROM users WHERE user_id = ?", (user_id,))
     u_row = cursor.fetchone()
     if u_row and u_row[0] == 0:
         try:
             ans = int(text)
             if ans == u_row[1]:
-                cursor.execute("SELECT value FROM settings WHERE key='welcome_spins'")
-                w_spins = int(cursor.fetchone()[0])
+                cursor.execute("SELECT value FROM settings WHERE key='welcome_enabled'")
+                w_en = cursor.fetchone()[0]
+                w_spins = 0
+                if w_en == '1':
+                    cursor.execute("SELECT value FROM settings WHERE key='welcome_spins'")
+                    w_spins = int(cursor.fetchone()[0])
+                
                 cursor.execute("UPDATE users SET verified = 1, spins = ? WHERE user_id = ?", (w_spins, user_id))
                 conn.commit()
                 conn.close()
@@ -344,7 +418,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ يرجى إرسال رقم صحيح كإجابة:")
         return
 
-    # إدخال كود الهدية
     if context.user_data.get('waiting_code'):
         context.user_data['waiting_code'] = False
         cursor.execute("SELECT type, amount, uses FROM gift_codes WHERE code = ?", (text,))
@@ -359,13 +432,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if g_type == 'spin':
             cursor.execute("UPDATE users SET spins = spins + ? WHERE user_id = ?", (g_amt, user_id))
             msg = f"🎉 مبروك! استمتعت بكود الهدية وحصلت على {g_amt} لفات."
+            try:
+                await context.bot.send_message(user_id, f"🎁 تم منحك {g_amt} لفات مجانية عبر كود الهدية!")
+            except:
+                pass
         else:
             cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (g_amt, user_id))
             msg = f"🎉 مبروك! استمتعت بكود الهدية وحصلت على {g_amt} نقطة رصيد."
+            try:
+                await context.bot.send_message(user_id, f"🎁 تم منحك {g_amt} نقطة رصيد عبر كود الهدية!")
+            except:
+                pass
         conn.commit()
         conn.close()
         
-        # إشعار لمن استخدم الكود
         await update.message.reply_text(msg)
         try:
             await context.bot.send_message(ADMIN_ID, f"🔔 المستخدم `{user_id}` استخدم كود الهدية `{text}` بنجاح وحصل على {g_amt}.")
@@ -373,7 +453,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
         return
 
-    # رسائل الدعم
     if context.user_data.get('waiting_support') or update.message.photo:
         context.user_data['waiting_support'] = False
         conn.close()
@@ -383,10 +462,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_photo(ADMIN_ID, photo=photo_file, caption=f"🛠️ رسالة دعم من المستخدم: `{user_id}`", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
         else:
             await context.bot.send_message(ADMIN_ID, f"🛠️ رسالة دعم من المستخدم `{user_id}`:\n\n{text}", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
-        await update.message.reply_text("✅ تم إرسال رسالتك إلى الدعم الفني بنجاح وستم الرد قريباً.")
+        await update.message.reply_text("✅ تم إرسال رسالتك إلى الدعم الفني بنجاح وسيتم الرد قريباً.")
         return
 
-    # الإذاعة
     if context.user_data.get('waiting_broadcast') and user_id == ADMIN_ID:
         context.user_data['waiting_broadcast'] = False
         cursor.execute("SELECT user_id FROM users")
@@ -424,17 +502,26 @@ async def admin_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute("DELETE FROM channels WHERE channel_username = ?", (ch,))
         conn.commit()
         await update.message.reply_text(f"❌ تم حذف القناة {ch}.")
-    elif command == "/setminval" and len(cmd) > 1:
-        val = cmd[1]
-        cursor.execute("UPDATE settings SET value=? WHERE key='min_withdraw'", (val,))
+    elif command == "/ban" and len(cmd) > 1:
+        target_id = int(cmd[1])
+        cursor.execute("UPDATE users SET is_banned=1 WHERE user_id=?", (target_id,))
         conn.commit()
-        await update.message.reply_text(f"✅ تم تحديث الحد الأدنى للسحب إلى {val}.")
-    elif command == "/createcode" and len(cmd) > 4:
-        # /createcode CODE type amount uses
-        code, c_type, amt, uses = cmd[1], cmd[2], float(cmd[3]), int(cmd[4])
-        cursor.execute("INSERT OR REPLACE INTO gift_codes (code, type, amount, uses) VALUES (?, ?, ?, ?)", (code, c_type, amt, uses))
+        await update.message.reply_text(f"🚫 تم حظر المستخدم `{target_id}` بنجاح.")
+    elif command == "/unban" and len(cmd) > 1:
+        target_id = int(cmd[1])
+        cursor.execute("UPDATE users SET is_banned=0 WHERE user_id=?", (target_id,))
         conn.commit()
-        await update.message.reply_text(f"🎁 تم إنشاء كود الهدية `{code}` بنجاح!")
+        await update.message.reply_text(f"✅ تم فك الحظر عن المستخدم `{target_id}` بنجاح.")
+    elif command == "/user_info" and len(cmd) > 1:
+        target_id = int(cmd[1])
+        cursor.execute("SELECT balance, spins, is_banned FROM users WHERE user_id=?", (target_id,))
+        u = cursor.fetchone()
+        cursor.execute("SELECT COUNT(*) FROM users WHERE referred_by=?", (target_id,))
+        refs = cursor.fetchone()[0]
+        if u:
+            await update.message.reply_text(f"👤 معلومات اللاعب `{target_id}`:\n💰 الرصيد: {u[0]}\n🎡 اللفات: {u[1]}\n👥 الإحالات: {refs}\n🚫 محظور: {'نعم' if u[2]==1 else 'لا'}")
+        else:
+            await update.message.reply_text("❌ المستخدم غير موجود.")
     
     conn.close()
 
@@ -443,7 +530,7 @@ def main():
         application = Application.builder().token(TOKEN).build()
         
         application.add_handler(CommandHandler("start", start))
-        application.add_handler(CommandHandler(["addchan", "delchan", "setminval", "createcode"], admin_commands))
+        application.add_handler(CommandHandler(["addchan", "delchan", "ban", "unban", "user_info"], admin_commands))
         application.add_handler(CallbackQueryHandler(buttons_handler))
         application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_message))
         
