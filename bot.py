@@ -104,7 +104,7 @@ def init_db():
         ('welcome_bonus', 20.0),
         ('welcome_bonus_active', 1.0),
         ('maintenance_mode', 0.0),
-        ('bot_start_price', 100000.0)
+        ('bot_start_price', 1000.0)  # تم تعديل السعر من 100,000 إلى 1,000 ليرة
     ]
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
@@ -527,6 +527,15 @@ async def text_and_contact_handler(update: Update, context: ContextTypes.DEFAULT
             except: await update.message.reply_text("❌ قيمة غير صالحة.")
             return
 
+        elif state == 'waiting_min_withdraw':
+            context.user_data['state'] = None
+            try:
+                val = float(update.message.text)
+                set_setting('min_withdraw', val)
+                await update.message.reply_text(f"✅ تم تعديل الحد الأدنى للسحب إلى `{val}` ليرة.")
+            except: await update.message.reply_text("❌ قيمة غير صالحة.")
+            return
+
         elif state == 'waiting_daily_bonus':
             context.user_data['state'] = None
             try:
@@ -889,7 +898,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("📢 إذاعة جماعية", callback_data="adm_broadcast"), InlineKeyboardButton("✉️ رسالة خاصة", callback_data="adm_private_msg")],
                 [InlineKeyboardButton("💳 طلبات السحب", callback_data="adm_withdraws"), InlineKeyboardButton("🛍️ طلبات شراء البوتات", callback_data="adm_bot_orders")],
                 [InlineKeyboardButton("🎲 خوارزمية ربح الألعاب", callback_data="adm_edit_winrate"), InlineKeyboardButton("🎁 تعديل الهدية اليومية", callback_data="adm_edit_daily")],
-                [InlineKeyboardButton("🔗 تعديل سعر الإحالة", callback_data="adm_edit_refprice"), InlineKeyboardButton("💥 تصفير الأرصدة", callback_data="adm_reset_balances_conf")],
+                [InlineKeyboardButton("🔗 تعديل سعر الإحالة", callback_data="adm_edit_refprice"), InlineKeyboardButton("🔻 تعديل أدنى حد للسحب", callback_data="adm_edit_min_withdraw")],
+                [InlineKeyboardButton("💥 تصفير الأرصدة", callback_data="adm_reset_balances_conf")],
                 [InlineKeyboardButton("🚫 حظر مستخدم", callback_data="adm_ban_user_btn"), InlineKeyboardButton("🟢 رفع حظر مستخدم", callback_data="adm_unban_user_btn")],
                 [InlineKeyboardButton("🔙 العودة للقائمة الرئيسية", callback_data="back_main")]
             ])
@@ -990,7 +1000,14 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text(f"🔗 **سعر الإحالة الحالي:** `{curr}` ليرة\n\nأرسل السعر الجديد لكل إحالة:", parse_mode="Markdown")
             return
 
-        # 10. تصفير الأرصدة
+        # 10. تعديل الحد الأدنى للسحب
+        if data == "adm_edit_min_withdraw":
+            curr = get_setting('min_withdraw')
+            context.user_data['state'] = 'waiting_min_withdraw'
+            await query.message.edit_text(f"🔻 **الحد الأدنى للسحب الحالي:** `{curr}` ليرة\n\nأرسل القيمة الجديدة للحد الأدنى للسحب:", parse_mode="Markdown")
+            return
+
+        # 11. تصفير الأرصدة
         if data == "adm_reset_balances_conf":
             kb = InlineKeyboardMarkup([
                 [InlineKeyboardButton("💥 نعم، أكد تصفير جميع الأرصدة", callback_data="adm_do_reset_balances")],
@@ -1008,7 +1025,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await callback_router(update, context)
             return
 
-        # 11. حظر / رفع حظر
+        # 12. حظر / رفع حظر
         if data == "adm_ban_user_btn":
             context.user_data['state'] = 'waiting_ban_user_id'
             await query.message.edit_text("🚫 **أرسل أيدي (ID) المستخدم المراد حظره:**", parse_mode="Markdown")
@@ -1037,7 +1054,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("🟢 تم رفع الحظر بنجاح!", show_alert=True)
             return
 
-        # 12. الإذاعة والرسائل
+        # 13. الإذاعة والرسائل
         if data == "adm_broadcast":
             context.user_data['state'] = 'waiting_broadcast_msg'
             await query.message.edit_text("📢 **أرسل نص الرسالة للإذاعة الجماعية:**", parse_mode="Markdown")
@@ -1048,13 +1065,13 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("✉️ **أرسل الأيدي ثم النص (مثال: `7255100997 نص الرسالة`):**", parse_mode="Markdown")
             return
 
-        # 13. إنشئ كود هدية
+        # 14. إنشاء كود هدية
         if data == "adm_create_gift":
             context.user_data['state'] = 'waiting_create_gift'
             await query.message.edit_text("🎟️ **أرسل الكود بالتنسيق التالية:**\n`الكود المبلغ عدد_الاستخدامات`", parse_mode="Markdown")
             return
 
-        # 14. طلبات السحب وشراء البوتات
+        # 15. طلبات السحب وشراء البوتات
         if data == "adm_withdraws":
             conn = get_db_connection()
             reqs = conn.execute("SELECT * FROM withdraw_requests WHERE status='pending' LIMIT 10").fetchall()
