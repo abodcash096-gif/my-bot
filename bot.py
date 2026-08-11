@@ -19,11 +19,20 @@ from telegram.ext import (
 WEBAPP_URL = "https://my-bot-j658.onrender.com/index.html"
 
 # --- 1. سيرفر الاستضافة الحية (Health Check) ---
-class HealthCheckHandler(BaseHTTPRequestHandler):
+class class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith('/index.html') or self.path == '/':
+            if os.path.exists('index.html'):
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.end_headers()
+                with open('index.html', 'rb') as f:
+                    self.wfile.write(f.read())
+                return
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Professional VIP Bot Engine Running")
+
 
     def log_message(self, format, *args): return
 
@@ -206,9 +215,9 @@ async def open_golden_bull_game(update_or_query, user_id, context):
     ])
     text = (
         "🎰 **مرحباً بك في لعبة GOLDEN BULL**\n\n"
-        "🍒 طابق 3 فواكه متتالية لتربح **نفس سعر الرهان (1x)**\n"
-        "🍇 طابق 4 فواكه متتالية لتربح **ضعف سعر الرهان (2x)**\n"
-        "🔥 طابق 5 فواكه متتالية لتربح **10 أضعاف سعر الرهان (10x)**!\n\n"
+        "ممكن ضربة تغير حياتك 👑 (1x)**\n"
+        "🍇 استغل الفرصة وكن انت الملك (2x)**\n"
+        "🔥 لاتجعل الفرصة مجرد حظ بل اصنع الحظ انت (10000x)**!\n\n"
         "اضغط الزر أدناه لبدء اللعب برصيدك مباشرة:"
     )
     if hasattr(update_or_query, 'message') and update_or_query.message:
