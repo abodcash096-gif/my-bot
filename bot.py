@@ -4,15 +4,19 @@ import random
 import asyncio
 import threading
 import time
+import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, 
-    KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
+    KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, WebAppInfo
 )
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler, 
     MessageHandler, ContextTypes, filters
 )
+
+# --- إعدادات اللعبة ورابط الاستضافة ---
+WEBAPP_URL = "https://my-bot-j658.onrender.com/index.html"
 
 # --- 1. سيرفر الاستضافة الحية (Health Check) ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
@@ -104,7 +108,8 @@ def init_db():
         ('welcome_bonus', 20.0),
         ('welcome_bonus_active', 1.0),
         ('maintenance_mode', 0.0),
-        ('bot_start_price', 1000.0)  # تم تعديل السعر من 100,000 إلى 1,000 ليرة
+        ('bot_start_price', 1000.0),
+        ('game_algo_mode', 1.0)  # 0: loss, 1: normal, 2: medium, 3: high
     ]
     for key, val in defaults:
         cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, val))
@@ -124,7 +129,7 @@ def get_setting(key):
 
 def set_setting(key, value):
     conn = get_db_connection()
-    conn.execute("UPDATE settings SET value=? WHERE key=?", (value, key))
+    conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
     conn.commit()
     conn.close()
 
@@ -133,6 +138,17 @@ def is_admin(user_id):
     res = conn.execute("SELECT user_id FROM admins WHERE user_id=?", (user_id,)).fetchone()
     conn.close()
     return res is not None
+
+def add_new_admin(admin_id):
+    conn = get_db_connection()
+    conn.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (admin_id,))
+    conn.commit()
+    conn.close()
+
+def get_algo_mode_str():
+    val = get_setting('game_algo_mode')
+    modes = {0.0: "loss", 1.0: "normal", 2.0: "medium", 3.0: "high"}
+    return modes.get(val, "normal")
 
 def add_xp(user_id, amount):
     conn = get_db_connection()
@@ -144,7 +160,7 @@ def add_xp(user_id, amount):
         conn.commit()
     conn.close()
 
-# --- 3. نظام الاشتراك الإجباري ---
+# --- 3. نظام الاشتراك الإجباري (يفحص القنوات لحظياً للجميع) ---
 async def check_sub(user_id, context):
     conn = get_db_connection()
     channels = conn.execute("SELECT channel_username, channel_title FROM channels").fetchall()
@@ -180,7 +196,45 @@ async def enforce_subscription(user_id, context, update_or_query):
         return False
     return True
 
-# --- 4. إنهاء الإحالة وإرسال التنبيهات ---
+# --- 4. فتح لعبة Golden Bull وتحديث الرصيد ---
+async def open_golden_bull_game(update_or_query, user_id, context):
+    algo_mode = get_algo_mode_str()
+    game_url = f"{WEBAPP_URL}?mode={algo_mode}"
+    
+    kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎰 افتح لعبة Golden Bull (شجرة الفواكه)", web_app=WebAppInfo(url=game_url))]
+    ])
+    text = (
+        "🎰 **مرحباً بك في لعبة GOLDEN BULL**\n\n"
+        "🍒 طابق 3 فواكه متتالية لتربح **نفس سعر الرهان (1x)**\n"
+        "🍇 طابق 4 فواكه متتالية لتربح **ضعف سعر الرهان (2x)**\n"
+        "🔥 طابق 5 فواكه متتالية لتربح **10 أضعاف سعر الرهان (10x)**!\n\n"
+        "اضغط الزر أدناه لبدء اللعب برصيدك مباشرة:"
+    )
+    if hasattr(update_or_query, 'message') and update_or_query.message:
+        await update_or_query.message.reply_text(text, reply_markup=kb, parse_mode="Markdown")
+    elif hasattr(update_or_query, 'edit_message_text'):
+        await update_or_query.edit_message_text(text, reply_markup=kb, parse_mode="Markdown")
+    else:
+        await context.bot.send_message(chat_id=user_id, text=text, reply_markup=kb, parse_mode="Markdown")
+
+async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    try:
+        web_data = update.effective_message.web_app_data.data
+        data = json.loads(web_data)
+        
+        if data.get("action") == "spin_result":
+            new_balance = float(data.get("new_balance", 0))
+            
+            conn = get_db_connection()
+            conn.execute("UPDATE users SET balance=? WHERE user_id=?", (new_balance, user_id))
+            conn.commit()
+            conn.close()
+    except Exception as e:
+        print(f"Error updating game balance: {e}")
+
+# --- 5. إنهاء الإحالة وإرسال التنبيهات ---
 async def finalize_verification_and_ref(user_id, context):
     conn = get_db_connection()
     user = conn.execute("SELECT ref_by, ref_rewarded, full_name FROM users WHERE user_id=?", (user_id,)).fetchone()
@@ -212,7 +266,7 @@ async def finalize_verification_and_ref(user_id, context):
             pass
     conn.close()
 
-# --- 5. مسار البدء وتأكيد الأمان ---
+# --- 6. مسار البدء وتأكيد الأمان ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     full_name = update.effective_user.full_name
@@ -286,7 +340,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await finalize_verification_and_ref(user_id, context)
     await main_menu(user_id, context, update.message)
 
-# --- 6. معالج النصوص والرسائل الشامل ---
+# --- 7. معالج النصوص والرسائل الشامل (مدمج بالكامل) ---
 async def text_and_contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     conn = get_db_connection()
@@ -297,6 +351,18 @@ async def text_and_contact_handler(update: Update, context: ContextTypes.DEFAULT
         return
 
     state = context.user_data.get('state')
+
+    # إضافة أدمن جديد
+    if state == 'waiting_add_admin' and is_admin(user_id):
+        txt = update.message.text.strip() if update.message.text else ''
+        context.user_data['state'] = None
+        if txt.isdigit():
+            new_admin_id = int(txt)
+            add_new_admin(new_admin_id)
+            await update.message.reply_text(f"👑 **تم إضافة الأدمن الجديد بنجاح!**\nID: `{new_admin_id}`", parse_mode="Markdown")
+        else:
+            await update.message.reply_text("❌ **يرجى إرسال ID عددي صحيح للآدمن!**")
+        return
 
     # مشاركة رقم الهاتف
     if update.message.contact:
@@ -470,161 +536,160 @@ async def text_and_contact_handler(update: Update, context: ContextTypes.DEFAULT
             await update.message.reply_text("❌ حدث خطأ أثناء إرسال رسالة الدعم.")
         return
 
-    # --- مدخلات الإدارة الحصرية ---
-    if is_admin(user_id):
-        if state == 'waiting_find_user':
-            context.user_data['state'] = None
-            if update.message.text.isdigit():
-                target_id = int(update.message.text)
-                conn = get_db_connection()
-                u = conn.execute("SELECT * FROM users WHERE user_id=?", (target_id,)).fetchone()
-                conn.close()
-                if u:
-                    txt = (
-                        f"👤 **تفاصيل اللاعب (`{u['user_id']}`):**\n\n"
-                        f"🔹 **الاسم:** `{u['full_name']}`\n"
-                        f"🔹 **المعرف:** @{u['username']}\n"
-                        f"📱 **الهاتف:** `{u['phone']}`\n"
-                        f"💰 **الرصيد:** `{u['balance']:.2f}` ليرة\n"
-                        f"👥 **عدد الإحالات:** `{u['ref_count']}`\n"
-                        f"🏅 **المستوى:** `{u['level']}`\n"
-                        f"🚫 **محظور:** {'نعم' if u['is_banned'] else 'لا'}"
-                    )
-                    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🚫 حظر", callback_data=f"adm_do_ban_{u['user_id']}"), InlineKeyboardButton("🟢 رفع حظر", callback_data=f"adm_do_unban_{u['user_id']}")], [InlineKeyboardButton("🔙 لوحة التحكم", callback_data="admin_panel")]])
-                    await update.message.reply_text(txt, reply_markup=kb, parse_mode="Markdown")
-                else:
-                    await update.message.reply_text("❌ لم يتم العثور على مستخدم بهذا الأيدي.")
-            return
-
-        elif state == 'waiting_ban_user_id':
-            context.user_data['state'] = None
-            if update.message.text.isdigit():
-                t_id = int(update.message.text)
-                conn = get_db_connection()
-                conn.execute("UPDATE users SET is_banned=1 WHERE user_id=?", (t_id,))
-                conn.commit()
-                conn.close()
-                await update.message.reply_text(f"🚫 تم حظر المستخدم `{t_id}` بنجاح!")
-            return
-
-        elif state == 'waiting_unban_user_id':
-            context.user_data['state'] = None
-            if update.message.text.isdigit():
-                t_id = int(update.message.text)
-                conn = get_db_connection()
-                conn.execute("UPDATE users SET is_banned=0 WHERE user_id=?", (t_id,))
-                conn.commit()
-                conn.close()
-                await update.message.reply_text(f"🟢 تم رفع الحظر عن المستخدم `{t_id}` بنجاح!")
-            return
-
-        elif state == 'waiting_ref_price':
-            context.user_data['state'] = None
-            try:
-                val = float(update.message.text)
-                set_setting('ref_price', val)
-                await update.message.reply_text(f"✅ تم تعديل سعر الإحالة إلى `{val}` ليرة.")
-            except: await update.message.reply_text("❌ قيمة غير صالحة.")
-            return
-
-        elif state == 'waiting_min_withdraw':
-            context.user_data['state'] = None
-            try:
-                val = float(update.message.text)
-                set_setting('min_withdraw', val)
-                await update.message.reply_text(f"✅ تم تعديل الحد الأدنى للسحب إلى `{val}` ليرة.")
-            except: await update.message.reply_text("❌ قيمة غير صالحة.")
-            return
-
-        elif state == 'waiting_daily_bonus':
-            context.user_data['state'] = None
-            try:
-                val = float(update.message.text)
-                set_setting('daily_bonus', val)
-                await update.message.reply_text(f"✅ تم تعديل الهدية اليومية إلى `{val}` ليرة.")
-            except: await update.message.reply_text("❌ قيمة غير صالحة.")
-            return
-
-        elif state == 'waiting_win_rate':
-            context.user_data['state'] = None
-            try:
-                val = float(update.message.text)
-                set_setting('game_win_rate', val)
-                await update.message.reply_text(f"✅ تم تعديل نسبة ربح الألعاب إلى `{val}%`")
-            except: await update.message.reply_text("❌ قيمة غير صالحة.")
-            return
-
-        elif state == 'waiting_admin_reply_user':
-            target_user = context.user_data.get('target_reply_user')
-            reply_txt = update.message.text
-            context.user_data['state'] = None
-            try:
-                await context.bot.send_message(chat_id=target_user, text=f"💬 **رد من الدعم الفني:**\n\n{reply_txt}", parse_mode="Markdown")
-                await update.message.reply_text("✅ تم إرسال الرد بنجاح!")
-            except Exception:
-                await update.message.reply_text("❌ تعذر إرسال الرد للمستخدم.")
-            return
-
-        elif state == 'waiting_add_channel':
-            ch_data = update.message.text.split()
-            if len(ch_data) >= 1:
-                ch_user = ch_data[0].replace('@', '')
-                ch_title = ' '.join(ch_data[1:]) if len(ch_data) > 1 else ch_user
-                conn = get_db_connection()
-                conn.execute("INSERT OR REPLACE INTO channels (channel_username, channel_title) VALUES (?, ?)", (ch_user, ch_title))
-                conn.commit()
-                conn.close()
-                context.user_data['state'] = None
-                await update.message.reply_text(f"✅ تم إضافة القناة `@ {ch_user}` بنجاح!")
-            return
-
-        elif state == 'waiting_broadcast_msg':
-            msg = update.message.text
+    # --- مدخلات الإدارة ---
+    if state == 'waiting_find_user':
+        context.user_data['state'] = None
+        if update.message.text.isdigit():
+            target_id = int(update.message.text)
             conn = get_db_connection()
-            users = conn.execute("SELECT user_id FROM users").fetchall()
+            u = conn.execute("SELECT * FROM users WHERE user_id=?", (target_id,)).fetchone()
+            conn.close()
+            if u:
+                txt = (
+                    f"👤 **تفاصيل اللاعب (`{u['user_id']}`):**\n\n"
+                    f"🔹 **الاسم:** `{u['full_name']}`\n"
+                    f"🔹 **المعرف:** @{u['username']}\n"
+                    f"📱 **الهاتف:** `{u['phone']}`\n"
+                    f"💰 **الرصيد:** `{u['balance']:.2f}` ليرة\n"
+                    f"👥 **عدد الإحالات:** `{u['ref_count']}`\n"
+                    f"🏅 **المستوى:** `{u['level']}`\n"
+                    f"🚫 **محظور:** {'نعم' if u['is_banned'] else 'لا'}"
+                )
+                kb = InlineKeyboardMarkup([[InlineKeyboardButton("🚫 حظر", callback_data=f"adm_do_ban_{u['user_id']}"), InlineKeyboardButton("🟢 رفع حظر", callback_data=f"adm_do_unban_{u['user_id']}")], [InlineKeyboardButton("🔙 لوحة التحكم", callback_data="admin_panel")]])
+                await update.message.reply_text(txt, reply_markup=kb, parse_mode="Markdown")
+            else:
+                await update.message.reply_text("❌ لم يتم العثور على مستخدم بهذا الأيدي.")
+        return
+
+    elif state == 'waiting_ban_user_id':
+        context.user_data['state'] = None
+        if update.message.text.isdigit():
+            t_id = int(update.message.text)
+            conn = get_db_connection()
+            conn.execute("UPDATE users SET is_banned=1 WHERE user_id=?", (t_id,))
+            conn.commit()
+            conn.close()
+            await update.message.reply_text(f"🚫 تم حظر المستخدم `{t_id}` بنجاح!")
+        return
+
+    elif state == 'waiting_unban_user_id':
+        context.user_data['state'] = None
+        if update.message.text.isdigit():
+            t_id = int(update.message.text)
+            conn = get_db_connection()
+            conn.execute("UPDATE users SET is_banned=0 WHERE user_id=?", (t_id,))
+            conn.commit()
+            conn.close()
+            await update.message.reply_text(f"🟢 تم رفع الحظر عن المستخدم `{t_id}` بنجاح!")
+        return
+
+    elif state == 'waiting_ref_price':
+        context.user_data['state'] = None
+        try:
+            val = float(update.message.text)
+            set_setting('ref_price', val)
+            await update.message.reply_text(f"✅ تم تعديل سعر الإحالة إلى `{val}` ليرة.")
+        except: await update.message.reply_text("❌ قيمة غير صالحة.")
+        return
+
+    elif state == 'waiting_min_withdraw':
+        context.user_data['state'] = None
+        try:
+            val = float(update.message.text)
+            set_setting('min_withdraw', val)
+            await update.message.reply_text(f"✅ تم تعديل الحد الأدنى للسحب إلى `{val}` ليرة.")
+        except: await update.message.reply_text("❌ قيمة غير صالحة.")
+        return
+
+    elif state == 'waiting_daily_bonus':
+        context.user_data['state'] = None
+        try:
+            val = float(update.message.text)
+            set_setting('daily_bonus', val)
+            await update.message.reply_text(f"✅ تم تعديل الهدية اليومية إلى `{val}` ليرة.")
+        except: await update.message.reply_text("❌ قيمة غير صالحة.")
+        return
+
+    elif state == 'waiting_win_rate':
+        context.user_data['state'] = None
+        try:
+            val = float(update.message.text)
+            set_setting('game_win_rate', val)
+            await update.message.reply_text(f"✅ تم تعديل نسبة ربح الألعاب إلى `{val}%`")
+        except: await update.message.reply_text("❌ قيمة غير صالحة.")
+        return
+
+    elif state == 'waiting_admin_reply_user':
+        target_user = context.user_data.get('target_reply_user')
+        reply_txt = update.message.text
+        context.user_data['state'] = None
+        try:
+            await context.bot.send_message(chat_id=target_user, text=f"💬 **رد من الدعم الفني:**\n\n{reply_txt}", parse_mode="Markdown")
+            await update.message.reply_text("✅ تم إرسال الرد بنجاح!")
+        except Exception:
+            await update.message.reply_text("❌ تعذر إرسال الرد للمستخدم.")
+        return
+
+    elif state == 'waiting_add_channel':
+        ch_data = update.message.text.split()
+        if len(ch_data) >= 1:
+            ch_user = ch_data[0].replace('@', '')
+            ch_title = ' '.join(ch_data[1:]) if len(ch_data) > 1 else ch_user
+            conn = get_db_connection()
+            conn.execute("INSERT OR REPLACE INTO channels (channel_username, channel_title) VALUES (?, ?)", (ch_user, ch_title))
+            conn.commit()
             conn.close()
             context.user_data['state'] = None
-            
-            s, f = 0, 0
-            for u in users:
-                try:
-                    await context.bot.send_message(chat_id=u['user_id'], text=msg, parse_mode="Markdown")
-                    s += 1
-                except Exception: f += 1
-            await update.message.reply_text(f"📢 **نتيجة الإذاعة الجماعية:**\n✅ تم إرسال: {s}\n❌ فشل: {f}")
-            return
+            await update.message.reply_text(f"✅ تم إضافة القناة `@{ch_user}` بنجاح!")
+        return
 
-        elif state == 'waiting_private_msg':
-            txt = update.message.text.split(maxsplit=1)
-            context.user_data['state'] = None
-            if len(txt) == 2 and txt[0].isdigit():
-                t_id, t_msg = int(txt[0]), txt[1]
-                try:
-                    await context.bot.send_message(chat_id=t_id, text=f"🔔 **إشعار خاص من الإدارة:**\n\n{t_msg}", parse_mode="Markdown")
-                    await update.message.reply_text("✅ تم إرسال الرسالة الخاصة!")
-                except Exception:
-                    await update.message.reply_text("❌ تعذر إرسال الرسالة للمستخدم.")
-            else:
-                await update.message.reply_text("❌ صيغة غير صحيحة! التنسيق: `الأيدي الرسالة`")
-            return
+    elif state == 'waiting_broadcast_msg':
+        msg = update.message.text
+        conn = get_db_connection()
+        users = conn.execute("SELECT user_id FROM users").fetchall()
+        conn.close()
+        context.user_data['state'] = None
+        
+        s, f = 0, 0
+        for u in users:
+            try:
+                await context.bot.send_message(chat_id=u['user_id'], text=msg, parse_mode="Markdown")
+                s += 1
+            except Exception: f += 1
+        await update.message.reply_text(f"📢 **نتيجة الإذاعة الجماعية:**\n✅ تم إرسال: {s}\n❌ فشل: {f}")
+        return
 
-        elif state == 'waiting_create_gift':
-            data = update.message.text.split()
-            context.user_data['state'] = None
-            if len(data) >= 2:
-                g_code = data[0]
-                g_amt = float(data[1])
-                g_uses = int(data[2]) if len(data) > 2 else 1
-                conn = get_db_connection()
-                conn.execute("INSERT OR REPLACE INTO gift_codes (code, amount, max_uses) VALUES (?, ?, ?)", (g_code, g_amt, g_uses))
-                conn.commit()
-                conn.close()
-                await update.message.reply_text(f"✅ تم إنشاء كود الهدية `{g_code}` بقيمة `{g_amt}` ليرة والاستخدامات `{g_uses}`.")
-            else:
-                await update.message.reply_text("❌ صيغة خاطئة! الإدخال: `الكود المبلغ عدد_الاستخدامات`")
-            return
+    elif state == 'waiting_private_msg':
+        txt = update.message.text.split(maxsplit=1)
+        context.user_data['state'] = None
+        if len(txt) == 2 and txt[0].isdigit():
+            t_id, t_msg = int(txt[0]), txt[1]
+            try:
+                await context.bot.send_message(chat_id=t_id, text=f"🔔 **إشعار خاص من الإدارة:**\n\n{t_msg}", parse_mode="Markdown")
+                await update.message.reply_text("✅ تم إرسال الرسالة الخاصة!")
+            except Exception:
+                await update.message.reply_text("❌ تعذر إرسال الرسالة للمستخدم.")
+        else:
+            await update.message.reply_text("❌ صيغة غير صحيحة! التنسيق: `الأيدي الرسالة`")
+        return
 
-# --- 7. القائمة الرئيسية ---
+    elif state == 'waiting_create_gift':
+        data = update.message.text.split()
+        context.user_data['state'] = None
+        if len(data) >= 2:
+            g_code = data[0]
+            g_amt = float(data[1])
+            g_uses = int(data[2]) if len(data) > 2 else 1
+            conn = get_db_connection()
+            conn.execute("INSERT OR REPLACE INTO gift_codes (code, amount, max_uses) VALUES (?, ?, ?)", (g_code, g_amt, g_uses))
+            conn.commit()
+            conn.close()
+            await update.message.reply_text(f"✅ تم إنشاء كود الهدية `{g_code}` بقيمة `{g_amt}` ليرة والاستخدامات `{g_uses}`.")
+        else:
+            await update.message.reply_text("❌ صيغة خاطئة! الإدخال: `الكود المبلغ عدد_الاستخدامات`")
+        return
+
+# --- 8. القائمة الرئيسية ---
 async def main_menu(user_id, context, message_obj=None, text="🌟 **القائمة الرئيسية:**"):
     if not await enforce_subscription(user_id, context, message_obj or user_id):
         return
@@ -641,7 +706,7 @@ async def main_menu(user_id, context, message_obj=None, text="🌟 **القائ�
     )
     
     kb = [
-        [InlineKeyboardButton("🎮 صالة الألعاب الحية 🔥", callback_data="games_menu")],
+        [InlineKeyboardButton("🎰 لعبة Golden Bull 🔥", callback_data="play_golden_bull"), InlineKeyboardButton("🎲 الألعاب التفاعلية", callback_data="games_menu")],
         [InlineKeyboardButton("👤 حسابي", callback_data="my_account"), InlineKeyboardButton("🎁 المكافأة اليومية", callback_data="daily_bonus")],
         [InlineKeyboardButton("🔗 رابط الإحالة", callback_data="my_ref"), InlineKeyboardButton("💳 سحب الرصيد", callback_data="withdraw_start")],
         [InlineKeyboardButton("🎟️ إدخال كود هدية", callback_data="enter_gift_code"), InlineKeyboardButton("🛍️ طلب شراء بوت", callback_data="buy_bot_request")],
@@ -657,7 +722,7 @@ async def main_menu(user_id, context, message_obj=None, text="🌟 **القائ�
     else:
         await context.bot.send_message(chat_id=user_id, text=f"{msg}\n\n{text}", reply_markup=markup, parse_mode="Markdown")
 
-# --- 8. صالة الألعاب التفاعلية ---
+# --- 9. صالة الألعاب التفاعلية ---
 async def games_section(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
@@ -671,13 +736,14 @@ async def games_section(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "games_menu":
         kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🎰 لعبة Golden Bull (الشجرة)", callback_data="play_golden_bull")],
             [InlineKeyboardButton("🎲 النرد الملكي", callback_data="play_dice"), InlineKeyboardButton("🎰 ماكينة السلوت", callback_data="play_slot")],
             [InlineKeyboardButton("🎯 رمي الأسهم", callback_data="play_dart")],
             [InlineKeyboardButton("🔙 العودة للقائمة", callback_data="back_main")]
         ])
         await query.message.edit_text(
             f"🎰 **صالة الألعاب التفاعلية:**\n\n"
-            f"🎯 تكلفة الجولة: `{cost}` ليرة.\n"
+            f"🎯 تكلفة الجولة (للألعاب العادية): `{cost}` ليرة.\n"
             f"💰 اختر اللعبة لتجربة حظك:",
             reply_markup=kb, parse_mode="Markdown"
         )
@@ -735,7 +801,7 @@ async def games_section(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn.close()
 
-# --- 9. موجّه الاستدعاءات الأوتوماتيكي (Callback Router) ---
+# --- 10. موجّه الاستدعاءات الأوتوماتيكي (Callback Router) ---
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
@@ -760,6 +826,10 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "back_main":
         await main_menu(user_id, context, query.message)
+        return
+
+    if data == "play_golden_bull":
+        await open_golden_bull_game(query, user_id, context)
         return
 
     if data == "my_account":
@@ -889,10 +959,10 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- 👑 لوحة التحكم الإدارية الكاملة 👑 ---
     if is_admin(user_id):
-        # 1. القائمة الرئيسية للوحة الإدارة
         if data == "admin_panel":
             kb = InlineKeyboardMarkup([
                 [InlineKeyboardButton("📊 جميع اللاعبين والإحصائيات", callback_data="adm_all_users"), InlineKeyboardButton("🔍 تفاصيل لاعب معين", callback_data="adm_find_user")],
+                [InlineKeyboardButton("⚙️ خوارزمية Golden Bull", callback_data="adm_golden_algo_menu"), InlineKeyboardButton("👑 إضافة أدمن جديد", callback_data="adm_add_admin_btn")],
                 [InlineKeyboardButton("🎁 تفعيل/إلغاء البونص الترحيبي", callback_data="adm_toggle_welcome"), InlineKeyboardButton("🛠️ تفعيل/إلغاء الصيانة", callback_data="adm_toggle_maint")],
                 [InlineKeyboardButton("🎟️ إنشاء كود هدية", callback_data="adm_create_gift"), InlineKeyboardButton("📢 القنوات الإجبارية", callback_data="adm_channels_menu")],
                 [InlineKeyboardButton("📢 إذاعة جماعية", callback_data="adm_broadcast"), InlineKeyboardButton("✉️ رسالة خاصة", callback_data="adm_private_msg")],
@@ -906,7 +976,36 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("⚙️ **لوحة التحكم الشاملة والاحترافية للإدارة:**", reply_markup=kb, parse_mode="Markdown")
             return
 
-        # 2. جميع اللاعبين والإحصائيات
+        # التحكم بخوارزمية Golden Bull
+        if data == "adm_golden_algo_menu":
+            curr_mode = get_algo_mode_str()
+            kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔴 خسارة دائمة (0x)", callback_data="set_slot_algo_0")],
+                [InlineKeyboardButton("🟢 ربح عادي (1x)", callback_data="set_slot_algo_1")],
+                [InlineKeyboardButton("🟡 ربح متوسط (1x / 2x)", callback_data="set_slot_algo_2")],
+                [InlineKeyboardButton("🔥 ربح عالي (10x / متوسط)", callback_data="set_slot_algo_3")],
+                [InlineKeyboardButton("🔙 لوحة التحكم", callback_data="admin_panel")]
+            ])
+            await query.message.edit_text(
+                f"🎰 **إدارة خوارزمية لعبة Golden Bull:**\nالوضع الحالي المفعل: `{curr_mode}`\n\nاختر الوضع الجديد:",
+                reply_markup=kb, parse_mode="Markdown"
+            )
+            return
+
+        if data.startswith("set_slot_algo_"):
+            mode_num = float(data.replace("set_slot_algo_", ""))
+            set_setting('game_algo_mode', mode_num)
+            curr_mode = get_algo_mode_str()
+            await query.answer(f"✅ تم تغيير خوارزمية اللعبة إلى: {curr_mode}", show_alert=True)
+            await callback_router(update, context)
+            return
+
+        # إضافة أدمن جديد
+        if data == "adm_add_admin_btn":
+            context.user_data['state'] = 'waiting_add_admin'
+            await query.message.edit_text("👑 **أرسل أيدي (ID) الأدمن الجديد للتعيين:**", parse_mode="Markdown")
+            return
+
         if data == "adm_all_users":
             conn = get_db_connection()
             total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
@@ -924,13 +1023,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text(txt, reply_markup=kb, parse_mode="Markdown")
             return
 
-        # 3. تفاصيل لاعب
         if data == "adm_find_user":
             context.user_data['state'] = 'waiting_find_user'
             await query.message.edit_text("🔍 **أرسل أيدي (ID) اللاعب للبحث عنه وعرض تفاصيله:**", parse_mode="Markdown")
             return
 
-        # 4. تفعيل / إلغاء بونص ترحيبي
         if data == "adm_toggle_welcome":
             curr = get_setting('welcome_bonus_active')
             new_val = 0.0 if curr == 1.0 else 1.0
@@ -940,7 +1037,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await callback_router(update, context)
             return
 
-        # 5. تفعيل / إلغاء وضع الصيانة
         if data == "adm_toggle_maint":
             curr = get_setting('maintenance_mode')
             new_val = 0.0 if curr == 1.0 else 1.0
@@ -950,7 +1046,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await callback_router(update, context)
             return
 
-        # 6. القنوات الإجبارية (إضافة / الغاء)
         if data == "adm_channels_menu":
             conn = get_db_connection()
             chs = conn.execute("SELECT channel_username, channel_title FROM channels").fetchall()
@@ -979,35 +1074,30 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await callback_router(update, context)
             return
 
-        # 7. تعديل خوارزمية ربح الألعاب
         if data == "adm_edit_winrate":
             curr = get_setting('game_win_rate')
             context.user_data['state'] = 'waiting_win_rate'
             await query.message.edit_text(f"🎲 **نسبة الفوز الحالية:** `{curr}%`\n\nأرسل النسبة المئوية الجديدة لربح الألعاب (مثال: `40` أو `60`):", parse_mode="Markdown")
             return
 
-        # 8. تعديل الهدية اليومية
         if data == "adm_edit_daily":
             curr = get_setting('daily_bonus')
             context.user_data['state'] = 'waiting_daily_bonus'
             await query.message.edit_text(f"🎁 **الهدية اليومية الحالية:** `{curr}` ليرة\n\nأرسل القيمة الجديدة للهدية اليومية:", parse_mode="Markdown")
             return
 
-        # 9. تعديل سعر الإحالة
         if data == "adm_edit_refprice":
             curr = get_setting('ref_price')
             context.user_data['state'] = 'waiting_ref_price'
             await query.message.edit_text(f"🔗 **سعر الإحالة الحالي:** `{curr}` ليرة\n\nأرسل السعر الجديد لكل إحالة:", parse_mode="Markdown")
             return
 
-        # 10. تعديل الحد الأدنى للسحب
         if data == "adm_edit_min_withdraw":
             curr = get_setting('min_withdraw')
             context.user_data['state'] = 'waiting_min_withdraw'
             await query.message.edit_text(f"🔻 **الحد الأدنى للسحب الحالي:** `{curr}` ليرة\n\nأرسل القيمة الجديدة للحد الأدنى للسحب:", parse_mode="Markdown")
             return
 
-        # 11. تصفير الأرصدة
         if data == "adm_reset_balances_conf":
             kb = InlineKeyboardMarkup([
                 [InlineKeyboardButton("💥 نعم، أكد تصفير جميع الأرصدة", callback_data="adm_do_reset_balances")],
@@ -1025,7 +1115,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await callback_router(update, context)
             return
 
-        # 12. حظر / رفع حظر
         if data == "adm_ban_user_btn":
             context.user_data['state'] = 'waiting_ban_user_id'
             await query.message.edit_text("🚫 **أرسل أيدي (ID) المستخدم المراد حظره:**", parse_mode="Markdown")
@@ -1054,7 +1143,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("🟢 تم رفع الحظر بنجاح!", show_alert=True)
             return
 
-        # 13. الإذاعة والرسائل
         if data == "adm_broadcast":
             context.user_data['state'] = 'waiting_broadcast_msg'
             await query.message.edit_text("📢 **أرسل نص الرسالة للإذاعة الجماعية:**", parse_mode="Markdown")
@@ -1065,13 +1153,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("✉️ **أرسل الأيدي ثم النص (مثال: `7255100997 نص الرسالة`):**", parse_mode="Markdown")
             return
 
-        # 14. إنشاء كود هدية
         if data == "adm_create_gift":
             context.user_data['state'] = 'waiting_create_gift'
             await query.message.edit_text("🎟️ **أرسل الكود بالتنسيق التالية:**\n`الكود المبلغ عدد_الاستخدامات`", parse_mode="Markdown")
             return
 
-        # 15. طلبات السحب وشراء البوتات
         if data == "adm_withdraws":
             conn = get_db_connection()
             reqs = conn.execute("SELECT * FROM withdraw_requests WHERE status='pending' LIMIT 10").fetchall()
@@ -1110,7 +1196,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             return
 
-        # معالجة قَبول أو رفض طلبات السحب
         if data.startswith("adm_acc_w_"):
             req_id = int(data.replace("adm_acc_w_", ""))
             conn = get_db_connection()
@@ -1145,12 +1230,13 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text(f"💬 **أدخل الرد الموجه للمستخدم (`{target_user}`):**")
             return
 
-# --- 10. التشغيل النهائي للبوت ---
+# --- 11. التشغيل النهائي للبوت ---
 def main():
     app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(callback_router))
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, text_and_contact_handler))
 
     print("VIP Telegram Bot is online and listening...")
