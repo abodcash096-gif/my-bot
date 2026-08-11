@@ -18,8 +18,8 @@ from telegram.ext import (
 # --- إعدادات اللعبة ورابط الاستضافة ---
 WEBAPP_URL = "https://my-bot-j658.onrender.com/index.html"
 
-# --- 1. سيرفر الاستضافة الحية (Health Check) ---
-class class HealthCheckHandler(BaseHTTPRequestHandler):
+# --- 1. سيرفر الاستضافة الحية وتقديم صفحة اللعبة ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith('/index.html') or self.path == '/':
             if os.path.exists('index.html'):
@@ -32,7 +32,6 @@ class class HealthCheckHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Professional VIP Bot Engine Running")
-
 
     def log_message(self, format, *args): return
 
