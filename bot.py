@@ -988,10 +988,12 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if data == "adm_golden_algo_menu":
             curr_mode = get_algo_mode_str()
             kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔴 خسارة دائمة (0x)", callback_data="set_slot_algo_0")],
-                [InlineKeyboardButton("🟢 ربح عادي (1x)", callback_data="set_slot_algo_1")],
-                [InlineKeyboardButton("🟡 ربح متوسط (1x / 2x)", callback_data="set_slot_algo_2")],
-                [InlineKeyboardButton("🔥 ربح عالي (10x / متوسط)", callback_data="set_slot_algo_3")],
+             
+InlineKeyboardButton("🔴 خسارة دائمة (0x)", callback_data="ask_rate_loss"),
+InlineKeyboardButton("🟢 ربح عادي (1x)", callback_data="ask_rate_normal"),
+InlineKeyboardButton("🟡 ربح متوسط (1x / 2x)", callback_data="ask_rate_medium"),
+InlineKeyboardButton("🔥 ربح عالي (10x / متوسط)", callback_data="ask_rate_high"),
+
                 [InlineKeyboardButton("🔙 لوحة التحكم", callback_data="admin_panel")]
             ])
             await query.message.edit_text(
@@ -1000,13 +1002,19 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        if data.startswith("set_slot_algo_"):
-            mode_num = float(data.replace("set_slot_algo_", ""))
-            set_setting('game_algo_mode', mode_num)
-            curr_mode = get_algo_mode_str()
-            await query.answer(f"✅ تم تغيير خوارزمية اللعبة إلى: {curr_mode}", show_alert=True)
-            await callback_router(update, context)
-            return
+         if data.startswith("ask_rate_"):
+    mode = data.replace("ask_rate_", "")
+    context.user_data["selected_mode"] = mode
+    context.user_data["waiting_for_percent"] = True
+    
+    await query.edit_message_text(
+        f"⚙️ **تعديل الوضع ({mode})**\n\n"
+        f"📥 أرسل الآن النسبة المئوية للربح (أرسل رقم فقط من 0 إلى 100):\n"
+        f"مثال: أرسل `50` ليكون احتمال الربح %50",
+        parse_mode="Markdown"
+    )
+    return
+
 
         # إضافة أدمن جديد
         if data == "adm_add_admin_btn":
@@ -1237,7 +1245,28 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['state'] = 'waiting_admin_reply_user'
             await query.message.reply_text(f"💬 **أدخل الرد الموجه للمستخدم (`{target_user}`):**")
             return
+async def handle_percent_input(update, context):
+    if context.user_data.get("waiting_for_percent"):
+        text = update.message.text.strip()
 
+        if text.isdigit() and 0 <= int(text) <= 100:
+            percent = int(text)
+            mode = context.user_data.get("selected_mode", "normal")
+
+            save_setting(f"algo_rate_{mode}", percent)
+            context.user_data["waiting_for_percent"] = False
+
+            await update.message.reply_text(
+                f"✅ **تم حفظ النسبة المئوية بنجاح!**\n\n"
+                f"الوضع: **{mode}**\n"
+                f"النسبة المعتمدة: **%{percent}**",
+                parse_mode="Markdown",
+            )
+        else:
+            await update.message.reply_text(
+                "❌ يرجى إرسال رقم صحيح بين 0 و 100 فقط."
+            )
+            
 # --- 11. التشغيل النهائي للبوت ---
 def main():
     app = Application.builder().token(TOKEN).build()
@@ -1246,6 +1275,11 @@ def main():
     app.add_handler(CallbackQueryHandler(callback_router))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, text_and_contact_handler))
+        app.add_handler(
+            MessageHandler(
+                filters.TEXT & (~filters.COMMAND), handle_percent_input
+            )
+    )
 
     print("VIP Telegram Bot is online and listening...")
     app.run_polling(drop_pending_updates=True)
