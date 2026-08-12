@@ -996,26 +996,24 @@ InlineKeyboardButton("🔥 ربح عالي (10x / متوسط)", callback_data="a
 
                 [InlineKeyboardButton("🔙 لوحة التحكم", callback_data="admin_panel")]
             ])
-            await query.message.edit_text(
-                f"🎰 **إدارة خوارزمية لعبة Golden Bull:**\nالوضع الحالي المفعل: `{curr_mode}`\n\nاختر الوضع الجديد:",
-                reply_markup=kb, parse_mode="Markdown"
-            )
-                return
+        await query.message.edit_text(
+            f"🎰 **إدارة خوارزمية لعبة Golden Bull:**\nالوضع الحالي المفعل: `{curr_mode}`\n\nاختر الوضع الجديد:",
+            reply_markup=kb, parse_mode="Markdown"
+        )
+        return
 
-if data.startswith("ask_rate_"):
-    mode = data.replace("ask_rate_", "")
-    context.user_data["selected_mode"] = mode
-    context.user_data["waiting_for_percent"] = True
-    
-    await query.edit_message_text(
-        f"⚙️ **تعديل الوضع ({mode})**\n\n"
-        f"📥 أرسل الآن النسبة المئوية للربح (أرسل رقم فقط من 0 إلى 100):\n"
-        f"مثال: أرسل `50` ليكون احتمال الربح %50",
-        parse_mode="Markdown"
-    )
-    return
+    if data.startswith("ask_rate_"):
+        mode = data.replace("ask_rate_", "")
+        context.user_data["selected_mode"] = mode
+        context.user_data["waiting_for_percent"] = True
 
-
+        await query.edit_message_text(
+            f"⚙️ **تعديل الوضع ({mode})**\n\n"
+            f"📥 أرسل الآن النسبة المئوية للربح (أرسل رقم فقط من 0 إلى 100):\n"
+            f"مثال: أرسل `50` ليكون احتمال الربح %50",
+            parse_mode="Markdown"
+        )
+        return
 
         # إضافة أدمن جديد
         if data == "adm_add_admin_btn":
