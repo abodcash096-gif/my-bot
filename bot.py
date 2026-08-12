@@ -43,13 +43,23 @@ RAW_SERVER_URL = os.getenv("SERVER_URL", "https://my-bot-j658.onrender.com")
 extracted_urls = re.findall(r'https?://[^\s\)\]]+', RAW_SERVER_URL)
 SERVER_URL = extracted_urls[0].rstrip('/') if extracted_urls else "https://my-bot-j658.onrender.com"
 
+# أسعار الضربات المسموح بها والمضاعفات المعتمدة
+ALLOWED_STRIKE_PRICES = [3, 6, 9, 12, 15, 20, 50, 100]
+MULTIPLIERS = [2, 3, 5, 10, 15, 20, 50, 100]
+MULTIPLIER_WEIGHTS = [50, 25, 12, 7, 4, 1.8, 0.2]
+
 # ----------------------------------------------------
 # 2. إعداد قاعدة البيانات (SQLite)
 # ----------------------------------------------------
 DB_NAME = "bot_database.db"
 
+def get_db():
+    conn = sqlite3.connect(DB_NAME, timeout=20)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_db()
     cursor = conn.cursor()
     
     # جدول المستخدمين
@@ -71,25 +81,16 @@ def init_db():
         )
     ''')
     
-    # التأكد من وجود عمود custom_boost للحسابات القديمة
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN custom_boost REAL DEFAULT 0.0")
     except sqlite3.OperationalError:
         pass
 
-    # جدول المسؤولين
     cursor.execute('CREATE TABLE IF NOT EXISTS admins (user_id INTEGER PRIMARY KEY)')
-    
-    # جدول قنوات الاشتراك الإجباري
     cursor.execute('CREATE TABLE IF NOT EXISTS compulsory_channels (channel_id TEXT PRIMARY KEY, channel_link TEXT)')
-    
-    # جدول الإعدادات العامة
     cursor.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
-    
-    # جدول أكواد الهدايا
     cursor.execute('CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, amount REAL, uses_left INTEGER)')
     
-    # جدول سجلات العمليات
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,7 +101,6 @@ def init_db():
         )
     ''')
     
-    # جدول طلبات السحب
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS withdrawals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,29 +113,23 @@ def init_db():
         )
     ''')
 
-    # إدخال البيانات الافتراضية
+    # إدخال الإعدادات الافتراضية
     cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (DEFAULT_ADMIN_ID,))
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus', '100')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus_enabled', '1')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_withdraw', '1000')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('game_algorithm', 'normal')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('game_algorithm', '35')") # نسبة الفوز 35% افتراضياً
 
     conn.commit()
     conn.close()
 
 init_db()
 
-def get_db():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 # ----------------------------------------------------
-# 3. خادم Flask + محرك الخوارزمية الذكي
+# 3. خادم Flask + محرك الخوارزمية الذكي للضربات
 # ----------------------------------------------------
 flask_app = Flask(__name__, template_folder="templates")
-MULTIPLIERS = [3, 6, 9, 15, 20, 50, 100]
 
 @flask_app.route("/")
 def home():
@@ -170,73 +164,84 @@ def api_play_game():
     data = request.json or {}
     user_id = data.get("user_id")
     bet = float(data.get("bet", 0))
+    game_type = data.get("game", "wheel")
 
     if not user_id or bet <= 0:
         return jsonify({"error": "بيانات الرهان غير صحيحة"}), 400
 
+    if int(bet) not in ALLOWED_STRIKE_PRICES:
+        return jsonify({"error": "سعر الضربة المختار غير مسموح به"}), 400
+
     conn = get_db()
     user = conn.execute("SELECT balance, is_banned, games_played, custom_boost FROM users WHERE user_id = ?", (user_id,)).fetchone()
+    
     if not user or user["is_banned"]:
         conn.close()
         return jsonify({"error": "الحساب محظور أو غير موجود"}), 403
 
     if user["balance"] < bet:
         conn.close()
-        return jsonify({"error": "رصيدك غير كافٍ لتغطية الرهان"}), 400
+        return jsonify({"error": "رصيدك غير كافٍ لتغطية هذه الضربة"}), 400
 
-    # خصم الرهان وزيادة عدد مرات اللعب
+    # خصم سعر الضربة وزيادة عداد الألعاب
     new_balance = user["balance"] - bet
     conn.execute("UPDATE users SET balance = ?, games_played = games_played + 1 WHERE user_id = ?", (new_balance, user_id))
 
     # --------------------------------------------------------
-    # محرك خوارزمية التحكم بالربح والخسارة
+    # خوارزمية التحكم بالربح والخسارة (Dynamic Profit Algorithm)
     # --------------------------------------------------------
     algo_setting = conn.execute("SELECT value FROM settings WHERE key = 'game_algorithm'").fetchone()
-    mode = algo_setting["value"] if algo_setting else "normal"
+    algo_val = algo_setting["value"] if algo_setting else "35"
 
-    # النسب الأساسية العامة
-    chances = {
-        "loss": 0.05,      # 5% فوز
-        "normal": 0.25,    # 25% فوز
-        "medium": 0.45,    # 45% فوز
-        "high": 0.65,      # 65% فوز
-        "huge": 0.85       # 85% فوز
+    # حساب نسبة الفوز الأساسية (RTP Rate)
+    preset_rates = {
+        "forced_loss": 0.0,
+        "very_low": 0.10,
+        "low": 0.20,
+        "normal": 0.35,
+        "balanced": 0.50,
+        "high": 0.70,
+        "forced_win": 1.00
     }
-    base_chance = chances.get(mode, 0.25)
 
-    # دمج التعديل الخاص باللاعب (Custom Boost) إن وجد
+    if algo_val in preset_rates:
+        base_chance = preset_rates[algo_val]
+    else:
+        try:
+            base_chance = float(algo_val) / 100.0
+        except ValueError:
+            base_chance = 0.35
+
+    # دمج التعديل الخاص باللاعب (Custom Player Boost)
     user_boost = user["custom_boost"] or 0.0
     final_win_chance = max(0.0, min(1.0, base_chance + (user_boost / 100.0)))
 
-    # تحديد الفوز أو الخسارة
-    win = random.random() < final_win_chance
+    # إجراء الضربة
+    is_win = random.random() < final_win_chance
     chosen_multiplier = 0
-    target_index = -1
+    win_amount = 0
 
-    if win:
-        # أوزان ظهور المضاعفات عند الفوز (تفضيل الأرقام الصغرى لضمان سلامة الخزينة)
-        weights = [50, 25, 12, 7, 4, 1.8, 0.2]
-        target_index = random.choices(range(len(MULTIPLIERS)), weights=weights)[0]
-        chosen_multiplier = MULTIPLIERS[target_index]
+    if is_win:
+        chosen_multiplier = random.choices(MULTIPLIERS, weights=MULTIPLIER_WEIGHTS)[0]
         win_amount = round(bet * chosen_multiplier, 2)
         new_balance += win_amount
+        
         conn.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
         conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)",
-                     (user_id, f"ربح في لعبة العجلة (x{chosen_multiplier})", win_amount))
+                     (user_id, f"فوز في لعبة {game_type} (x{chosen_multiplier})", win_amount))
     else:
-        win_amount = 0
         conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)",
-                     (user_id, f"خسارة في لعبة العجلة", -bet))
+                     (user_id, f"خسارة ضربة في لعبة {game_type}", -bet))
 
     conn.commit()
     conn.close()
 
     return jsonify({
-        "win": win,
-        "target_index": target_index,
-        "multiplier": chosen_multiplier,
+        "win": is_win,
+        "multiplier": chosen_multiplier if is_win else 0,
         "win_amount": win_amount,
-        "new_balance": new_balance
+        "new_balance": new_balance,
+        "game": game_type
     })
 
 def run_flask():
@@ -249,7 +254,7 @@ def run_flask():
 def main_menu_keyboard(is_admin=False):
     games_url = f"{SERVER_URL}/games"
     keyboard = [
-        [InlineKeyboardButton("🎮 صفحة الألعاب العالمية (Web App)", web_app=WebAppInfo(url=games_url))],
+        [InlineKeyboardButton("🎮 صالة الألعاب العشر (Web App)", web_app=WebAppInfo(url=games_url))],
         [InlineKeyboardButton("👤 حسابي ورصيدي", callback_data="btn_account"), InlineKeyboardButton("💸 سحب رصيدي", callback_data="btn_withdraw")],
         [InlineKeyboardButton("🔗 رابط إحالاتي", callback_data="btn_referral"), InlineKeyboardButton("🤖 شراء بوت", callback_data="btn_buy_bot")],
         [InlineKeyboardButton("💬 مراسلة الدعم", callback_data="btn_support"), InlineKeyboardButton("🎁 إدخال كود هدية", callback_data="btn_gift")],
@@ -261,7 +266,7 @@ def main_menu_keyboard(is_admin=False):
 
 def admin_panel_keyboard():
     keyboard = [
-        [InlineKeyboardButton("⚙️ الخوارزمية العامة", callback_data="adm_algo"), InlineKeyboardButton("🎯 حظ لاعب معين", callback_data="adm_user_boost")],
+        [InlineKeyboardButton("⚙️ خوارزمية أرباح البوت (RTP)", callback_data="adm_algo"), InlineKeyboardButton("🎯 حظ لاعب معين", callback_data="adm_user_boost")],
         [InlineKeyboardButton("➕ إضافة رصيد", callback_data="adm_add_bal"), InlineKeyboardButton("➖ خصم رصيد", callback_data="adm_sub_bal")],
         [InlineKeyboardButton("🎁 إنشاء كود هدية", callback_data="adm_make_gift"), InlineKeyboardButton("🔗 سعر الإحالة", callback_data="adm_set_ref")],
         [InlineKeyboardButton("💸 الحد الأدنى للسحب", callback_data="adm_set_min_w"), InlineKeyboardButton("🎁 البونص الترحيبي", callback_data="adm_set_welcome")],
@@ -275,7 +280,7 @@ def admin_panel_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
-# 5. التثبت وإرسال الإشعارات للإدارة
+# 5. الإشعارات ومعالجات الأوامر
 # ----------------------------------------------------
 async def notify_admins(context: ContextTypes.DEFAULT_TYPE, text: str, reply_markup=None):
     conn = get_db()
@@ -287,9 +292,6 @@ async def notify_admins(context: ContextTypes.DEFAULT_TYPE, text: str, reply_mar
         except Exception:
             pass
 
-# ----------------------------------------------------
-# 6. معالجة الأوامر /start و /admin
-# ----------------------------------------------------
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     conn = get_db()
@@ -314,7 +316,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
         return
 
-    # تسجيل مستخدم جديد
     if not u:
         ref_id = None
         if context.args and context.args[0].isdigit():
@@ -359,7 +360,7 @@ async def send_main_dashboard(chat_id, user_id, full_name, is_admin, context):
     
     bal = u["balance"] if u else 0.0
     text = (
-        f"👑 **مرحباً بك في البوت الأقوى على التلغرام**\n\n"
+        f"👑 **مرحباً بك في كازينو VIP العالمي**\n\n"
         f"👤 **الاسم:** {full_name}\n"
         f"🆔 **معرف الحساب (ID):** `{user_id}`\n"
         f"💰 **رصيدك الحالي:** `{bal:,.2f}` ليرة سورية جديدة\n\n"
@@ -368,7 +369,7 @@ async def send_main_dashboard(chat_id, user_id, full_name, is_admin, context):
     await context.bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown", reply_markup=main_menu_keyboard(is_admin))
 
 # ----------------------------------------------------
-# 7. توثيق رقم الهاتف والرموز الترحيبية والإحالات
+# 6. التوثيق ومعالجة الرسائل
 # ----------------------------------------------------
 async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -399,8 +400,6 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 await context.bot.send_message(u["referred_by"], f"🎉 قام المستخدم {user.full_name} بالتسجيل والتوثيق عبر رابطك! حصلت على `{ref_reward}` ليرة جديدة.")
             except Exception: pass
-            
-            await notify_admins(context, f"🔗 **إشعار إحالة جديدة:**\nقام المستخدم `{u['referred_by']}` بإحالة المستخدم الجديد `{user.id}` ({user.full_name}).")
 
     conn.commit()
     conn.close()
@@ -414,9 +413,6 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await send_main_dashboard(update.effective_chat.id, user.id, user.full_name, is_admin, context)
 
-# ----------------------------------------------------
-# 8. معالجة الرسائل النصية الموجهة
-# ----------------------------------------------------
 async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     text = update.message.text.strip() if update.message.text else ""
@@ -430,7 +426,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
 
     step = u["step"]
 
-    # حل الكابتشا
     if step == "captcha":
         if text.isdigit() and int(text) == u["captcha_answer"]:
             btn = ReplyKeyboardMarkup([[KeyboardButton("📱 مشاركة الرقم للتوثيق", request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
@@ -440,16 +435,15 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             await update.message.reply_text("✅ إجابة صحيحة! يرجى مشاركة رقم هاتفك للتأكيد:", reply_markup=btn)
         else:
             conn.close()
-            await update.message.reply_text("❌ إجابة خاطئة! يرجى حساب الجمع بدقة ومحاولة كتابة الرقم مجدداً.")
+            await update.message.reply_text("❌ إجابة خاطئة! يرجى كتابة الرقم المطلوب بدقة.")
         return
 
-    # نظام السحب
     if step == "withdraw_step_code":
         context.user_data["withdraw_code"] = text
         conn.execute("UPDATE users SET step = 'withdraw_step_amount' WHERE user_id = ?", (user.id,))
         conn.commit()
         conn.close()
-        await update.message.reply_text("✅ تم حفظ كود/رقم الحساب.\n\n✍️ **الآن يرجى إرسال المبلغ المراد سحبه (ليرة سورية جديدة):**")
+        await update.message.reply_text("✅ تم حفظ كود/رقم الحساب.\n\n✍️ **أدخل المبلغ المراد سحبه (ليرة جديدة):**")
         return
 
     if step == "withdraw_step_amount":
@@ -495,7 +489,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             f"💰 **المبلغ:** `{amt:,.2f}` ليرة جديدة", reply_markup=kb)
         return
 
-    # إدخال كود هدية
     if step == "enter_gift_code":
         gift = conn.execute("SELECT * FROM gift_codes WHERE code = ?", (text,)).fetchone()
         if not gift or gift["uses_left"] <= 0:
@@ -515,10 +508,8 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         conn.close()
 
         await update.message.reply_text(f"🎉 مبروك! تم إضافة `{amount}` ليرة سورية جديدة إلى حسابك.")
-        await notify_admins(context, f"🎁 **استخدام كود هدية:**\nقام المستخدم `{user.id}` ({user.full_name}) باستخدام الكود `{text}` ورابح `{amount}` ليرة جديدة.")
         return
 
-    # مراسلة الدعم
     if step == "support_msg":
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
         conn.commit()
@@ -529,7 +520,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text("✅ تم إرسال رسالتك إلى فريق الدعم، سيصلك الرد هنا قريباً.")
         return
 
-    # إدخالات لوحة الإدارة
     if step.startswith("adm_"):
         await handle_admin_text_inputs(update, context, u, step, text)
         return
@@ -537,12 +527,25 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     conn.close()
 
 # ----------------------------------------------------
-# 9. معالجة إدخالات الأدمن النصية
+# 7. إدخالات الأدمن النصية
 # ----------------------------------------------------
 async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT_TYPE, admin_user, step, text):
     conn = get_db()
     
-    if step == "adm_input_user_boost":
+    if step == "adm_input_custom_algo":
+        try:
+            val = float(text)
+            if 0 <= val <= 100:
+                conn.execute("UPDATE settings SET value = ? WHERE key = 'game_algorithm'", (str(val),))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+                conn.commit()
+                await update.message.reply_text(f"🎯 تم ضبط نسبة الفوز الإجمالية للكازينو على: `{val}%` بنجاح!")
+            else:
+                await update.message.reply_text("❌ يرجى إدخال نسبة بين 0 و 100.")
+        except ValueError:
+            await update.message.reply_text("❌ يرجى إدخال رقم صحيح.")
+
+    elif step == "adm_input_user_boost":
         try:
             parts = text.split()
             target_id = int(parts[0])
@@ -550,95 +553,89 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
             conn.execute("UPDATE users SET custom_boost = ? WHERE user_id = ?", (boost_val, target_id))
             conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
             conn.commit()
-            await update.message.reply_text(f"🎯 تم ضبط التعديل الخاص بحظ المستخدم `{target_id}` على: `{boost_val:+}%` بنجاح!")
-        except Exception as e:
-            await update.message.reply_text("❌ صيغة غير صحيحة! يرجى كتابتها بالشكل: `ID Boost`\nمثال: `7255100997 20` لزيادة الحظ أو `7255100997 -30` لتخفيضه.")
+            await update.message.reply_text(f"🎯 تم تعديل حظ اللاعب `{target_id}` بمقدار: `{boost_val:+}%` بنجاح!")
+        except Exception:
+            await update.message.reply_text("❌ الصيغة الصحيحة: `ID Boost` (مثال: `7255100997 25`)")
 
     elif step == "adm_input_add_bal":
-        parts = text.split()
-        target_id, amt = int(parts[0]), float(parts[1])
-        conn.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amt, target_id))
-        conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (target_id, "إضافة رصيد من الأدمن", amt))
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        await update.message.reply_text(f"✅ تم إضافة `{amt}` ليرة إلى حساب `{target_id}` بنجاح.")
-        try: await context.bot.send_message(target_id, f"🎉 تم إضافة `{amt}` ليرة سورية جديدة إلى حسابك من الإدارة.")
-        except Exception: pass
+        try:
+            parts = text.split()
+            target_id, amt = int(parts[0]), float(parts[1])
+            conn.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amt, target_id))
+            conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (target_id, "إضافة رصيد من الأدمن", amt))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+            conn.commit()
+            await update.message.reply_text(f"✅ تم إضافة `{amt}` ليرة إلى حساب `{target_id}` بنجاح.")
+        except Exception:
+            await update.message.reply_text("❌ اكتب بالشكل: `ID Amount`")
 
     elif step == "adm_input_sub_bal":
-        parts = text.split()
-        target_id, amt = int(parts[0]), float(parts[1])
-        conn.execute("UPDATE users SET balance = MAX(0, balance - ?) WHERE user_id = ?", (amt, target_id))
-        conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (target_id, "خصم رصيد من الأدمن", -amt))
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        await update.message.reply_text(f"✅ تم خصم `{amt}` ليرة من حساب `{target_id}` بنجاح.")
+        try:
+            parts = text.split()
+            target_id, amt = int(parts[0]), float(parts[1])
+            conn.execute("UPDATE users SET balance = MAX(0, balance - ?) WHERE user_id = ?", (amt, target_id))
+            conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (target_id, "خصم رصيد من الأدمن", -amt))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+            conn.commit()
+            await update.message.reply_text(f"✅ تم خصم `{amt}` ليرة من حساب `{target_id}` بنجاح.")
+        except Exception:
+            await update.message.reply_text("❌ اكتب بالشكل: `ID Amount`")
 
     elif step == "adm_input_make_gift":
-        parts = text.split()
-        amt, uses = float(parts[0]), int(parts[1])
-        code = "GIFT-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-        conn.execute("INSERT INTO gift_codes (code, amount, uses_left) VALUES (?, ?, ?)", (code, amt, uses))
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        await update.message.reply_text(f"🎁 تم إنشاء كود الهدية:\n`{code}`\nالقيمة: `{amt}` | مرات الاستخدام: `{uses}`")
+        try:
+            parts = text.split()
+            amt, uses = float(parts[0]), int(parts[1])
+            code = "GIFT-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            conn.execute("INSERT INTO gift_codes (code, amount, uses_left) VALUES (?, ?, ?)", (code, amt, uses))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+            conn.commit()
+            await update.message.reply_text(f"🎁 تم إنشاء كود الهدية:\n`{code}`\nالقيمة: `{amt}` | الاستخدامات: `{uses}`")
+        except Exception:
+            await update.message.reply_text("❌ اكتب بالشكل: `Amount Uses`")
 
     elif step == "adm_input_set_ref":
-        val = float(text)
-        conn.execute("UPDATE settings SET value = ? WHERE key = 'referral_reward'", (str(val),))
+        conn.execute("UPDATE settings SET value = ? WHERE key = 'referral_reward'", (str(float(text)),))
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
         conn.commit()
-        await update.message.reply_text(f"✅ تم تعديل مكافأة الإحالة إلى `{val}` ليرة.")
+        await update.message.reply_text(f"✅ تم تعديل سعر الإحالة إلى `{text}` ليرة.")
 
     elif step == "adm_input_set_min_w":
-        val = float(text)
-        conn.execute("UPDATE settings SET value = ? WHERE key = 'min_withdraw'", (str(val),))
+        conn.execute("UPDATE settings SET value = ? WHERE key = 'min_withdraw'", (str(float(text)),))
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
         conn.commit()
-        await update.message.reply_text(f"✅ تم تعديل الحد الأدنى للسحب إلى `{val}` ليرة.")
-
-    elif step == "adm_input_welcome_amt":
-        val = float(text)
-        conn.execute("UPDATE settings SET value = ? WHERE key = 'welcome_bonus'", (str(val),))
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        await update.message.reply_text(f"✅ تم تعديل قيمة البونص الترحيبي إلى `{val}` ليرة.")
+        await update.message.reply_text(f"✅ تم تعديل الحد الأدنى للسحب إلى `{text}` ليرة.")
 
     elif step == "adm_input_user_info":
-        target_id = int(text)
-        usr = conn.execute("SELECT * FROM users WHERE user_id = ?", (target_id,)).fetchone()
+        usr = conn.execute("SELECT * FROM users WHERE user_id = ?", (int(text),)).fetchone()
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
         conn.commit()
-        if not usr:
-            await update.message.reply_text("❌ لم يتم العثور على مستخدم بهذا المعرف.")
-        else:
-            boost_val = usr['custom_boost'] or 0.0
+        if usr:
             info = (
-                f"🔍 **تفاصيل العميل المفصلة:**\n\n"
+                f"🔍 **تفاصيل اللاعب:**\n\n"
                 f"👤 **الاسم:** {usr['full_name']}\n"
                 f"🆔 **ID:** `{usr['user_id']}`\n"
-                f"📱 **رقم الهاتف:** `{usr['phone']}`\n"
+                f"📱 **الهاتف:** `{usr['phone']}`\n"
                 f"💰 **الرصيد:** `{usr['balance']:,.2f}` ليرة\n"
-                f"🎯 **تعديل الحظ الخاص:** `{boost_val:+}%`\n"
-                f"👥 **عدد الإحالات:** `{usr['referrals_count']}`\n"
-                f"🎰 **عدد الألعاب:** `{usr['games_played']}` مرة\n"
-                f"🚫 **حالة الحظر:** {'محظور ❌' if usr['is_banned'] else 'نشط ✅'}"
+                f"🎯 **تعديل الحظ الخاص:** `{usr['custom_boost'] or 0.0:+}%`\n"
+                f"👥 **الإحالات:** `{usr['referrals_count']}`\n"
+                f"🎰 **الألعاب:** `{usr['games_played']}` مرة\n"
+                f"🚫 **الحظر:** {'محظور ❌' if usr['is_banned'] else 'نشط ✅'}"
             )
             await update.message.reply_text(info, parse_mode="Markdown")
+        else:
+            await update.message.reply_text("❌ المستخدم غير موجود.")
 
     elif step == "adm_input_ban":
-        target_id = int(text)
-        conn.execute("UPDATE users SET is_banned = 1 WHERE user_id = ?", (target_id,))
+        conn.execute("UPDATE users SET is_banned = 1 WHERE user_id = ?", (int(text),))
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
         conn.commit()
-        await update.message.reply_text(f"🚫 تم حظر المستخدم `{target_id}` بنجاح.")
+        await update.message.reply_text(f"🚫 تم حظر المستخدم `{text}` بنجاح.")
 
     elif step == "adm_input_unban":
-        target_id = int(text)
-        conn.execute("UPDATE users SET is_banned = 0 WHERE user_id = ?", (target_id,))
+        conn.execute("UPDATE users SET is_banned = 0 WHERE user_id = ?", (int(text),))
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
         conn.commit()
-        await update.message.reply_text(f"✅ تم إلغاء حظر المستخدم `{target_id}` بنجاح.")
+        await update.message.reply_text(f"✅ تم إلغاء حظر المستخدم `{text}` بنجاح.")
 
     elif step == "adm_input_bc_txt":
         users_list = conn.execute("SELECT user_id FROM users WHERE is_banned = 0").fetchall()
@@ -650,7 +647,7 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
                 await context.bot.send_message(u_item["user_id"], text, parse_mode="Markdown")
                 count += 1
             except Exception: pass
-        await update.message.reply_text(f"📢 تم إرسال الرسالة الجماعية لـ `{count}` مستخدم بنجاح.")
+        await update.message.reply_text(f"📢 تم إرسال الرسالة لـ `{count}` مستخدم.")
 
     elif step == "adm_input_pm_txt":
         parts = text.split("|")
@@ -658,16 +655,10 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
         conn.commit()
         try:
-            await context.bot.send_message(target_id, f"📩 **رسالة خاصة من الإدارة:**\n\n{msg}", parse_mode="Markdown")
-            await update.message.reply_text(f"✅ تم إرسال الرسالة الخاصة للمستخدم `{target_id}`.")
+            await context.bot.send_message(target_id, f"📩 **رسالة من الإدارة:**\n\n{msg}", parse_mode="Markdown")
+            await update.message.reply_text(f"✅ تم إرسال الرسالة للعميل `{target_id}`.")
         except Exception as e:
-            await update.message.reply_text(f"❌ فشل إرسال الرسالة: {e}")
-
-    elif step == "adm_input_pm_img_id":
-        context.user_data["target_pm_id"] = int(text)
-        conn.execute("UPDATE users SET step = 'adm_input_pm_img_photo' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        await update.message.reply_text("📸 الآن يرجى إرسال **الصورة** المراد إرسالها للعميل:")
+            await update.message.reply_text(f"❌ فشل الإرسال: {e}")
 
     elif step.startswith("reply_to_user_"):
         target_id = int(step.replace("reply_to_user_", ""))
@@ -675,14 +666,14 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
         conn.commit()
         try:
             await context.bot.send_message(target_id, f"💬 **رد الدعم الفني:**\n\n{text}")
-            await update.message.reply_text("✅ تم إرسال الرد للعميل بنجاح.")
+            await update.message.reply_text("✅ تم إرسال الرد بنجاح.")
         except Exception as e:
             await update.message.reply_text(f"❌ فشل إرسال الرد: {e}")
 
     conn.close()
 
 # ----------------------------------------------------
-# 10. معالجة إرسال الصور
+# 8. معالجة الصور و Callback Queries
 # ----------------------------------------------------
 async def handle_photo_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -707,23 +698,10 @@ async def handle_photo_messages(update: Update, context: ContextTypes.DEFAULT_TY
                 await context.bot.send_photo(u_item["user_id"], photo=photo_id, caption=caption, parse_mode="Markdown")
                 count += 1
             except Exception: pass
-        await update.message.reply_text(f"📸 تم إرسال الصورة الجماعية لـ `{count}` مستخدم بنجاح.")
-
-    elif step == "adm_input_pm_img_photo":
-        target_id = context.user_data.get("target_pm_id")
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
-        conn.commit()
-        try:
-            await context.bot.send_photo(target_id, photo=photo_id, caption=f"📩 **صورة من الإدارة:**\n\n{caption}", parse_mode="Markdown")
-            await update.message.reply_text(f"✅ تم إرسال الصورة للعميل `{target_id}` بنجاح.")
-        except Exception as e:
-            await update.message.reply_text(f"❌ فشل الإرسال: {e}")
+        await update.message.reply_text(f"📸 تم إرسال الصورة لـ `{count}` مستخدم.")
 
     conn.close()
 
-# ----------------------------------------------------
-# 11. معالجة الضغط على أزرار Callback Queries
-# ----------------------------------------------------
 async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -742,14 +720,13 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         await send_main_dashboard(query.message.chat_id, user.id, user.full_name, is_admin, context)
 
     elif data == "btn_account":
-        boost_val = u['custom_boost'] or 0.0
         text = (
             f"👤 **بيانات حسابك:**\n\n"
             f"🆔 **معرف الحساب:** `{u['user_id']}`\n"
             f"📱 **رقم الهاتف:** `{u['phone']}`\n"
             f"💰 **الرصيد الحالي:** `{u['balance']:,.2f}` ليرة جديدة\n"
             f"👥 **عدد الإحالات:** `{u['referrals_count']}`\n"
-            f"🎰 **عدد الألعاب:** `{u['games_played']}` لعبة"
+            f"🎰 **عدد الألعاب:** `{u['games_played']}` ضربة"
         )
         await query.message.reply_text(text, parse_mode="Markdown")
 
@@ -764,7 +741,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["withdraw_method"] = method_name
         conn.execute("UPDATE users SET step = 'withdraw_step_code' WHERE user_id = ?", (user.id,))
         conn.commit()
-        await query.message.reply_text(f"✍️ اخترت السحب عبر **({method_name})**.\n\nيرجى إرسال **رقم أو كود الحساب** الخاص بك لاستقبال الأموال عليه:")
+        await query.message.reply_text(f"✍️ اخترت السحب عبر **({method_name})**.\n\nيرجى إرسال **رقم أو كود الحساب** لاستقبال الأموال:")
 
     elif data == "btn_referral":
         bot_info = await context.bot.get_me()
@@ -781,7 +758,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     elif data == "btn_support":
         conn.execute("UPDATE users SET step = 'support_msg' WHERE user_id = ?", (user.id,))
         conn.commit()
-        await query.message.reply_text("💬 اكتب رسالتك أو مشكلتك الآن وسوف تصل فورا لوحة الدعم الفني:")
+        await query.message.reply_text("💬 اكتب رسالتك أو مشكلتك الآن وسوف تصل فوراً لوحة الدعم الفني:")
 
     elif data == "btn_gift":
         conn.execute("UPDATE users SET step = 'enter_gift_code' WHERE user_id = ?", (user.id,))
@@ -791,9 +768,9 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     elif data == "btn_logs":
         logs = conn.execute("SELECT action, amount, timestamp FROM logs WHERE user_id = ? ORDER BY id DESC LIMIT 10", (user.id,)).fetchall()
         if not logs:
-            await query.message.reply_text("📜 لا يوجد لديك سجلات عمليات سابقة حتى الآن.")
+            await query.message.reply_text("📜 لا يوجد لديك سجلات حركات سابقة.")
         else:
-            log_text = "📜 **أخر 10 عمليات في حسابك:**\n\n"
+            log_text = "📜 **أحدث 10 حركات في حسابك:**\n\n"
             for lg in logs:
                 log_text += f"▪️ {lg['action']} | `{lg['amount']}` ليرة | {lg['timestamp']}\n"
             await query.message.reply_text(log_text, parse_mode="Markdown")
@@ -821,7 +798,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
         target_id = int(data.replace("reply_sup_", ""))
         conn.execute("UPDATE users SET step = ? WHERE user_id = ?", (f"reply_to_user_{target_id}", user.id))
         conn.commit()
-        await query.message.reply_text(f"✍️ اكتب الرد الفوري الموجه للعميل `{target_id}` الآن:")
+        await query.message.reply_text(f"✍️ اكتب الرد الموجه للعميل `{target_id}` الآن:")
 
     elif data.startswith("adm_") and is_admin:
         await handle_admin_callbacks(query, context, user.id, data)
@@ -831,67 +808,68 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
 async def handle_admin_callbacks(query, context, admin_id, data):
     conn = get_db()
     
-    if data == "adm_user_boost":
-        conn.execute("UPDATE users SET step = 'adm_input_user_boost' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text(
-            "🎯 **التحكم بحظ لاعب معيّن:**\n\n"
-            "أرسل المعرف والنسبة المراد إضافتها أو خصمها بأسلوب (ID Boost):\n\n"
-            "• مثال لرفع نسبة حظ لاعب 30%:\n`7255100997 30`\n"
-            "• مثال لتخفيض نسبة حظ لاعب 50%:\n`7255100997 -50`"
-        )
-
-    elif data == "adm_algo":
+    if data == "adm_algo":
+        curr_algo = conn.execute("SELECT value FROM settings WHERE key = 'game_algorithm'").fetchone()["value"]
         kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton("خسارة عالية (5%)", callback_data="set_algo_loss"), InlineKeyboardButton("عادي (25%)", callback_data="set_algo_normal")],
-            [InlineKeyboardButton("متوسط (45%)", callback_data="set_algo_medium"), InlineKeyboardButton("عالي (65%)", callback_data="set_algo_high")],
-            [InlineKeyboardButton("كبير جداً (85%)", callback_data="set_algo_huge")]
+            [InlineKeyboardButton("🔴 خسارة محتمة (0%)", callback_data="set_algo_forced_loss"), InlineKeyboardButton("🟠 ربح ضئيل (10%)", callback_data="set_algo_very_low")],
+            [InlineKeyboardButton("🟡 ربح عادي (35%)", callback_data="set_algo_normal"), InlineKeyboardButton("🟢 ربح متوازن (50%)", callback_data="set_algo_balanced")],
+            [InlineKeyboardButton("🔥 ربح مرتفع (70%)", callback_data="set_algo_high"), InlineKeyboardButton("💎 فوز محتم (100%)", callback_data="set_algo_forced_win")],
+            [InlineKeyboardButton("✍️ تحديد نسبة مخصصة %", callback_data="set_algo_custom")]
         ])
-        await query.message.reply_text("⚙️ **تعديل نسبة الفوز الإجمالية لخوارزمية الموقع:**", reply_markup=kb)
+        await query.message.reply_text(f"⚙️ **التحكم بالخوارزمية العامة للألعاب (RTP):**\n\nالوضع الحالي: `{curr_algo}`\nاختر النسبة المباشرة للربح والخسارة لجميع اللاعبين:", reply_markup=kb, parse_mode="Markdown")
 
     elif data.startswith("set_algo_"):
         mode = data.replace("set_algo_", "")
-        conn.execute("UPDATE settings SET value = ? WHERE key = 'game_algorithm'", (mode,))
-        await query.message.reply_text(f"✅ تم ضبط الخوارزمية العامة بنجاح على الوضع: `{mode}`")
+        if mode == "custom":
+            conn.execute("UPDATE users SET step = 'adm_input_custom_algo' WHERE user_id = ?", (admin_id,))
+            await query.message.reply_text("✍️ أرسل نسبة الفوز المئوية المخصصة لكافة الألعاب (مثال: `42` لنسبة 42%):")
+        else:
+            conn.execute("UPDATE settings SET value = ? WHERE key = 'game_algorithm'", (mode,))
+            await query.message.reply_text(f"✅ تم تغيير الخوارزمية العامة للكازينو بنجاح إلى: `{mode}`")
+
+    elif data == "adm_user_boost":
+        conn.execute("UPDATE users SET step = 'adm_input_user_boost' WHERE user_id = ?", (admin_id,))
+        await query.message.reply_text(
+            "🎯 **التحكم بحظ لاعب معين:**\n\n"
+            "أرسل (ID Boost):\n"
+            "• لرفع نسبة حظ لاعب 30%: `7255100997 30`\n"
+            "• لتخفيض نسبة حظ لاعب 40%: `7255100997 -40`"
+        )
 
     elif data == "adm_add_bal":
         conn.execute("UPDATE users SET step = 'adm_input_add_bal' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("✍️ أرسل ID والمبلغ بأسلوب (ID Amount):\nمثال:\n7255100997 5000")
+        await query.message.reply_text("✍️ أرسل (ID Amount):\nمثال:\n7255100997 5000")
 
     elif data == "adm_sub_bal":
         conn.execute("UPDATE users SET step = 'adm_input_sub_bal' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("✍️ أرسل ID والمبلغ المراد خصمه بأسلوب (ID Amount):")
+        await query.message.reply_text("✍️ أرسل (ID Amount) المراد خصمه:")
 
     elif data == "adm_make_gift":
         conn.execute("UPDATE users SET step = 'adm_input_make_gift' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("🎁 أرسل قيمة الكود وعدد الاستخدامات بأسلوب (Amount Uses):\nمثال:\n1000 20")
+        await query.message.reply_text("🎁 أرسل (Amount Uses):\nمثال:\n1000 20")
 
     elif data == "adm_set_ref":
         conn.execute("UPDATE users SET step = 'adm_input_set_ref' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("🔗 أرسل القيمة الجديدة لمكافأة الإحالة (ليرة جديدة):")
+        await query.message.reply_text("🔗 أرسل القيمة الجديدة لمكافأة الإحالة:")
 
     elif data == "adm_set_min_w":
         conn.execute("UPDATE users SET step = 'adm_input_set_min_w' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("💸 أرسل حد السحب الأدنى الجديد (ليرة جديدة):")
+        await query.message.reply_text("💸 أرسل الحد الأدنى الجديد للسحب:")
 
     elif data == "adm_set_welcome":
         kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ تفعيل البونص", callback_data="toggle_welcome_1"), InlineKeyboardButton("❌ تعطيل البونص", callback_data="toggle_welcome_0")],
-            [InlineKeyboardButton("✍️ تغيير قيمة البونص", callback_data="change_welcome_amt")]
+            [InlineKeyboardButton("✅ تفعيل البونص", callback_data="toggle_welcome_1"), InlineKeyboardButton("❌ تعطيل البونص", callback_data="toggle_welcome_0")]
         ])
         await query.message.reply_text("🎁 **إعدادات البونص الترحيبي:**", reply_markup=kb)
 
     elif data.startswith("toggle_welcome_"):
         val = data.split("_")[2]
         conn.execute("UPDATE settings SET value = ? WHERE key = 'welcome_bonus_enabled'", (val,))
-        await query.message.reply_text("✅ تم تحديث حالة البونص الترحيبي بنجاح.")
-
-    elif data == "change_welcome_amt":
-        conn.execute("UPDATE users SET step = 'adm_input_welcome_amt' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("✍️ أدخل قيمة البونص الترحيبي الجديدة:")
+        await query.message.reply_text("✅ تم تحديث حالة البونص الترحيبي.")
 
     elif data == "adm_user_info":
         conn.execute("UPDATE users SET step = 'adm_input_user_info' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("🔍 أرسل ID العميل لاستعراض بياناته الكرتية وتفاصيل لعبه ورصيده:")
+        await query.message.reply_text("🔍 أرسل ID العميل لاستعراض بياناته:")
 
     elif data == "adm_ban":
         conn.execute("UPDATE users SET step = 'adm_input_ban' WHERE user_id = ?", (admin_id,))
@@ -903,19 +881,15 @@ async def handle_admin_callbacks(query, context, admin_id, data):
 
     elif data == "adm_bc_txt":
         conn.execute("UPDATE users SET step = 'adm_input_bc_txt' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("📢 أرسل النص المراد إرساله كرسالة جماعية لكافة المستخدمين:")
+        await query.message.reply_text("📢 أرسل النص المراد إرساله كرسالة جماعية:")
 
     elif data == "adm_bc_img":
         conn.execute("UPDATE users SET step = 'adm_input_bc_img' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("📸 أرسل **الصورة** المراد إرسالها لجميع المشتركين مع نص اختياري:")
+        await query.message.reply_text("📸 أرسل الصورة الجماعية مع نص اختياري:")
 
     elif data == "adm_pm_txt":
         conn.execute("UPDATE users SET step = 'adm_input_pm_txt' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("📩 أرسل المعرف والنص بأسلوب (ID|المحتوى):\nمثال:\n7255100997|مرحبا بك")
-
-    elif data == "adm_pm_img":
-        conn.execute("UPDATE users SET step = 'adm_input_pm_img_id' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("✍️ أرسل **معرف الحساب (ID)** للعميل المراد إرسال الصورة له:")
+        await query.message.reply_text("📩 أرسل (ID|المحتوى):\nمثال:\n7255100997|مرحباً بك")
 
     elif data == "adm_stats":
         total_users = conn.execute("SELECT COUNT(*) as c FROM users").fetchone()["c"]
@@ -925,7 +899,7 @@ async def handle_admin_callbacks(query, context, admin_id, data):
             f"📊 **إحصائيات المنصة الشاملة:**\n\n"
             f"👥 **إجمالي اللاعبين:** `{total_users}`\n"
             f"💰 **إجمالي أرصدة الحسابات:** `{total_bal:,.2f}` ليرة جديدة\n"
-            f"🎰 **إجمالي عدد مرات اللعب:** `{total_games}` لعبة"
+            f"🎰 **إجمالي عدد الضربات:** `{total_games}` ضربة"
         )
 
     elif data == "adm_all_logs":
@@ -942,16 +916,15 @@ async def handle_admin_callbacks(query, context, admin_id, data):
     conn.close()
 
 # ----------------------------------------------------
-# 12. تشغيل التطبيق بالكامل
+# 9. التشغيل الرئيسي
 # ----------------------------------------------------
 def main():
     threading.Thread(target=run_flask, daemon=True).start()
 
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # تسجيل الأوامر والروابط
     app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("admin", admin_command))  # إزالة خطأ NameError
+    app.add_handler(CommandHandler("admin", admin_command))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo_messages))
     app.add_handler(CallbackQueryHandler(handle_callback_query))
