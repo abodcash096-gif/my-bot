@@ -47,8 +47,8 @@ extracted_urls = re.findall(r'https?://[^\s\)\]]+', RAW_SERVER_URL)
 SERVER_URL = extracted_urls[0].rstrip('/') if extracted_urls else "https://my-bot-j658.onrender.com"
 
 ALLOWED_STRIKE_PRICES = [3, 6, 9, 12, 15, 20, 50, 100]
-MULTIPLIERS = [2, 3, 5, 10, 15, 20, 50, 100]
-MULTIPLIER_WEIGHTS = [45, 25, 15, 8, 4, 2, 0.8, 0.2]
+MULTIPLIERS = [1, 2, 4, 5, 8, 10, 20, 100]
+MULTIPLIER_WEIGHTS = [40, 25, 15, 10, 5, 3, 1.8, 0.2]
 
 ALLOWED_GAMES = [
     'wheel', 'aviator', 'mines', 'slots', 'chests', 
@@ -133,6 +133,7 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_withdraw', '1000')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('game_algorithm', 'normal')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('global_win_chance', '35')") # نسبة الربح العامة الافتراضية 35%
 
     conn.commit()
     conn.close()
@@ -192,7 +193,7 @@ def build_sub_keyboard(unsubscribed_channels: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
-# 5. خادم Flask API والألعاب
+# 5. خادم Flask API والألعاب والخوارزمية اليدوية العامة
 # ----------------------------------------------------
 flask_app = Flask(__name__, template_folder="templates")
 
@@ -268,36 +269,21 @@ def api_play_game():
         new_balance = user["balance"] - bet
         conn.execute("UPDATE users SET balance = ?, games_played = games_played + 1 WHERE user_id = ?", (new_balance, user_id))
 
-        algo_setting = conn.execute("SELECT value FROM settings WHERE key = 'game_algorithm'").fetchone()
-        algo_val = algo_setting["value"] if algo_setting else "normal"
+        # جلب نسبة الربح العامة المحددة يدوياً من الإدارة (مثلاً 35%)
+        global_setting = conn.execute("SELECT value FROM settings WHERE key = 'global_win_chance'").fetchone()
+        global_win_pct = float(global_setting["value"]) if global_setting else 35.0
 
-        # الخيارات الخمسة الجديدة للتحكم في الخوارزمية بنسب مئوية
-        algorithm_rates = {
-            "loss": 0.0,          # خسارة صريحة (0%)
-            "normal": 0.25,       # ربح عادي (25%)
-            "medium": 0.45,       # ربح متوسط (45%)
-            "high": 0.70,         # ربح عالي (70%)
-            "mega_seven": 0.95    # ربح سبعات ضخم (95%)
-        }
-
-        base_chance = algorithm_rates.get(algo_val, 0.25)
         user_boost = user["custom_boost"] or 0.0
-        final_win_chance = max(0.0, min(1.0, base_chance + (user_boost / 100.0)))
+        
+        # حساب النسبة النهائية مع مراعاة البوست الخاص إن وجد
+        final_win_chance = max(0.0, min(100.0, global_win_pct + user_boost)) / 100.0
 
         is_win = random.random() < final_win_chance
         chosen_multiplier = 0
         win_amount = 0
 
         if is_win:
-            # إذا كانت الخوارزمية "سبعات ضخم"، نرجح المضاعف الأكبر 100x
-            if algo_val == "mega_seven":
-                chosen_multiplier = random.choices([50, 100], weights=[20, 80])[0]
-            else:
-                chosen_multiplier = random.choices(MULTIPLIERS, weights=MULTIPLIER_WEIGHTS)[0]
-            
-            if chosen_multiplier > 100:
-                chosen_multiplier = 100
-            
+            chosen_multiplier = random.choices(MULTIPLIERS, weights=MULTIPLIER_WEIGHTS)[0]
             win_amount = round(bet * chosen_multiplier, 2)
             new_balance += win_amount
             
@@ -344,8 +330,8 @@ def main_menu_keyboard(is_admin=False):
 
 def admin_panel_keyboard():
     keyboard = [
-        [InlineKeyboardButton("⚙️ خوارزمية أرباح البوت (RTP)", callback_data="adm_algo"), InlineKeyboardButton("🎯 حظ لاعب معين", callback_data="adm_user_boost")],
-        [InlineKeyboardButton("📢 إعداد قنوات الاشتراك الإجباري", callback_data="adm_channels_menu")],
+        [InlineKeyboardButton("🎛️ نسبة الربح والخسارة العامة (%)", callback_data="adm_global_rtp")],
+        [InlineKeyboardButton("🎯 حظ لاعب معين", callback_data="adm_user_boost"), InlineKeyboardButton("📢 قنوات الاشتراك", callback_data="adm_channels_menu")],
         [InlineKeyboardButton("➕ إضافة رصيد", callback_data="adm_add_bal"), InlineKeyboardButton("➖ خصم رصيد", callback_data="adm_sub_bal")],
         [InlineKeyboardButton("🎁 إنشاء كود هدية", callback_data="adm_make_gift"), InlineKeyboardButton("🔗 سعر الإحالة", callback_data="adm_set_ref")],
         [InlineKeyboardButton("💸 الحد الأدنى للسحب", callback_data="adm_set_min_w"), InlineKeyboardButton("🎁 البونص الترحيبي", callback_data="adm_set_welcome")],
@@ -521,7 +507,7 @@ async def handle_photo_messages(update: Update, context: ContextTypes.DEFAULT_TY
     conn.close()
 
 # ----------------------------------------------------
-# 8. معالجة الرسائل النصية والمدخلات
+# 8. معالجة الرسائل النصية والمدخلات الإدارية والعامة
 # ----------------------------------------------------
 async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -644,6 +630,22 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
 
     is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
     if is_admin:
+        if step == "adm_input_global_rtp":
+            try:
+                pct = float(text)
+                if pct < 0 or pct > 100:
+                    raise ValueError("النسبة يجب أن تكون بين 0 و 100")
+                
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('global_win_chance', ?)", (str(pct),))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+                conn.commit()
+                conn.close()
+                await update.message.reply_text(f"✅ تم تحديث نسبة الربح العامة للعبة لتصبح بنسبة `{pct}%` لكل الدورات.")
+            except Exception as e:
+                conn.close()
+                await update.message.reply_text(f"❌ خطأ: يرجى إدخال رقم صحيح بين 0 و 100. (مثال: `35`)")
+            return
+
         if step == "adm_input_add_ch_id":
             context.user_data["new_ch_id"] = text
             conn.execute("UPDATE users SET step = 'adm_input_add_ch_title' WHERE user_id = ?", (user.id,))
@@ -903,7 +905,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"👤 **بيانات حسابك:**\n\n"
             f"✏️ **الاسم:** {u['full_name']}\n"
             f"🆔 **ID:** `{u['user_id']}`\n"
-            f"📱 **الهاتف:** `{u['phone'] or 'غير مرتيط'}`\n"
+            f"📱 **الهاتف:** `{u['phone'] or 'غير مرتبط'}`\n"
             f"💰 **الرصيد:** `{u['balance']:,.2f}` NSP\n"
             f"👥 **الإحالات:** `{u['referrals_count']}`\n"
             f"🎮 **الضربات:** `{u['games_played']}`"
@@ -999,27 +1001,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
 
-        # تعديل خيارات خوارزميات الأرباح الخمسة المطلوبة
-        if data == "adm_algo":
-            kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚫 خسارة (0%)", callback_data="set_algo_loss")],
-                [InlineKeyboardButton("📉 ربح عادي (25%)", callback_data="set_algo_normal")],
-                [InlineKeyboardButton("⚖️ ربح متوسط (45%)", callback_data="set_algo_medium")],
-                [InlineKeyboardButton("📈 ربح عالي (70%)", callback_data="set_algo_high")],
-                [InlineKeyboardButton("🔥 ربح سبعات ضخم (95%)", callback_data="set_algo_mega_seven")],
-                [InlineKeyboardButton("🔙 رجوع للوحة", callback_data="open_admin_panel")]
-            ])
-            cur_a = conn.execute("SELECT value FROM settings WHERE key='game_algorithm'").fetchone()["value"]
-            await query.message.edit_text(f"⚙️ **ضبط خوارزمية الربح (RTP):**\n\nالوضع الحالي: `{cur_a}`\n\nاختر أحد الخيارات الخمسة:", parse_mode="Markdown", reply_markup=kb)
-            conn.close()
-            return
-
-        if data.startswith("set_algo_"):
-            new_val = data.replace("set_algo_", "")
-            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('game_algorithm', ?)", (new_val,))
+        if data == "adm_global_rtp":
+            cur_rtp = conn.execute("SELECT value FROM settings WHERE key='global_win_chance'").fetchone()["value"]
+            conn.execute("UPDATE users SET step = 'adm_input_global_rtp' WHERE user_id = ?", (user.id,))
             conn.commit()
             conn.close()
-            await query.message.edit_text(f"✅ تم ضبط الخوارزمية بنجاح إلى: `{new_val}`", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="open_admin_panel")]]))
+            await query.message.edit_text(
+                f"🎛️ **التحكم بنسبة الربح والخسارة العامة للعبة:**\n\n"
+                f"📊 النسبة الحالية لفرصة الربح: `{cur_rtp}%`\n\n"
+                f"✍️ أرسل الآن النسبة المئوية الجديدة المطلوبة (أرقام من 0 إلى 100):\n"
+                f"*(مثال: أرسل `30` لتعيين نسبة الربح العامة 30% والخصارة 70%)*",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 إلغاء", callback_data="open_admin_panel")]])
+            )
             return
 
         if data == "adm_channels_menu":
