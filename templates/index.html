@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>goold Lera - VIP Slot</title>
+    <title>goold Lera - NextGen 2026</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --neon-blue: #00d2ff;
-            --neon-glow: rgba(0, 210, 255, 0.6);
-            --gold: #ffd700;
-            --orange: #ff8800;
-            --bg-dark: #030d18;
-            --card-bg: rgba(3, 20, 40, 0.95);
+            --neon-blue: #00f3ff;
+            --neon-glow: rgba(0, 243, 255, 0.75);
+            --gold: #ffdf00;
+            --bg-dark: #02060c;
+            --card-bg: rgba(5, 18, 35, 0.95);
         }
 
         * {
@@ -27,7 +26,7 @@
         }
 
         body {
-            background: radial-gradient(circle at center, #0a233c 0%, var(--bg-dark) 100%);
+            background: radial-gradient(circle at center, #071930 0%, var(--bg-dark) 100%);
             color: #fff;
             min-height: 100vh;
             display: flex;
@@ -42,8 +41,9 @@
             justify-content: space-between;
             align-items: center;
             padding: 8px 14px;
-            background: rgba(1, 15, 30, 0.95);
-            border-bottom: 1px solid rgba(0, 210, 255, 0.3);
+            background: rgba(2, 10, 20, 0.98);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+            backdrop-filter: blur(10px);
         }
 
         .user-info {
@@ -56,29 +56,29 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--gold), var(--orange));
+            background: linear-gradient(135deg, var(--gold), #ff8800);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 900;
             color: #000;
-            box-shadow: 0 0 12px rgba(255, 215, 0, 0.7);
+            box-shadow: 0 0 15px rgba(255, 223, 0, 0.8);
         }
 
         .logo {
             text-align: center;
             font-size: 20px;
             font-weight: 900;
-            background: linear-gradient(180deg, #fff 0%, #ffd700 50%, #b38f00 100%);
+            background: linear-gradient(180deg, #fff 0%, var(--gold) 60%, #cca300 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+            text-shadow: 0 0 15px rgba(255, 223, 0, 0.5);
             line-height: 1;
         }
 
         .balance-badge {
-            background: rgba(0, 210, 255, 0.12);
-            border: 1px solid var(--neon-blue);
+            background: rgba(0, 243, 255, 0.1);
+            border: 1.5px solid var(--neon-blue);
             color: var(--neon-blue);
             padding: 5px 12px;
             border-radius: 20px;
@@ -87,7 +87,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            box-shadow: 0 0 10px var(--neon-glow);
+            box-shadow: 0 0 12px var(--neon-glow);
         }
 
         /* Top Widgets */
@@ -99,32 +99,34 @@
 
         .mini-badge {
             border: 1px solid var(--neon-blue);
-            border-radius: 14px;
-            padding: 3px 8px;
+            border-radius: 12px;
+            padding: 4px 10px;
             font-size: 10px;
-            background: rgba(0,30,60,0.7);
+            background: rgba(0,30,60,0.8);
             color: var(--neon-blue);
             display: flex;
             flex-direction: column;
             align-items: center;
             cursor: pointer;
+            transition: 0.2s;
         }
+        .mini-badge:active { transform: scale(0.95); }
 
         /* Game Slots Grid Frame */
         .game-container {
             position: relative;
             width: 94%;
             max-width: 420px;
-            margin: 2px auto 0;
+            margin: 4px auto 0;
         }
 
         .slots-frame {
             display: flex;
-            gap: 3px;
-            background: rgba(1, 15, 30, 0.98);
+            gap: 4px;
+            background: rgba(2, 10, 20, 0.98);
             border: 2px solid var(--neon-blue);
-            box-shadow: 0 0 25px var(--neon-glow), inset 0 0 15px var(--neon-glow);
-            border-radius: 12px;
+            box-shadow: 0 0 30px var(--neon-glow), inset 0 0 20px var(--neon-glow);
+            border-radius: 14px;
             padding: 6px;
             position: relative;
             overflow: hidden;
@@ -132,10 +134,10 @@
 
         .reel {
             flex: 1;
-            height: 230px;
+            height: 234px;
             background: var(--card-bg);
-            border: 1px solid rgba(0, 210, 255, 0.4);
-            border-radius: 6px;
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 8px;
             overflow: hidden;
             position: relative;
         }
@@ -148,45 +150,46 @@
         }
 
         .symbol {
-            height: 76px;
+            height: 78px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 38px;
+            font-size: 40px;
             position: relative;
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 0 4px rgba(255,255,255,0.3));
         }
 
         .symbol:hover {
-            transform: scale(1.1);
+            transform: scale(1.12);
         }
 
-        /* تصميم الجرة النادرة والمميزة بصرياً */
+        /* انميشن الجرة النادرة الفاخرة */
         .symbol.jar-rare {
-            background: radial-gradient(circle, rgba(255,215,0,0.5) 0%, rgba(255,136,0,0.3) 75%);
+            background: radial-gradient(circle, rgba(255,223,0,0.6) 0%, rgba(255,136,0,0.3) 75%);
             border: 2px solid var(--gold);
-            box-shadow: inset 0 0 22px var(--gold), 0 0 18px var(--gold);
-            border-radius: 6px;
-            animation: jarGlowAnim 1s infinite alternate;
+            box-shadow: inset 0 0 25px var(--gold), 0 0 20px var(--gold);
+            border-radius: 8px;
+            animation: cyberJarPulse 0.8s infinite alternate;
         }
 
-        @keyframes jarGlowAnim {
-            0% { transform: scale(1); filter: drop-shadow(0 0 6px var(--gold)); }
-            100% { transform: scale(1.08); filter: drop-shadow(0 0 15px var(--gold)); }
+        @keyframes cyberJarPulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 8px var(--gold)); }
+            100% { transform: scale(1.1); filter: drop-shadow(0 0 20px var(--gold)); }
         }
 
         .symbol.seven {
-            color: #00f0ff;
-            text-shadow: 0 0 15px #00f0ff, 0 0 30px #00d2ff, 0 0 45px #0099ff;
+            color: var(--neon-blue);
+            text-shadow: 0 0 15px var(--neon-blue), 0 0 30px #0088ff, 0 0 45px #0044ff;
             font-weight: 900;
             font-style: italic;
-            animation: sevenPulse 1.2s infinite alternate;
+            animation: cyberSevenGlow 1s infinite alternate;
         }
 
-        @keyframes sevenPulse {
+        @keyframes cyberSevenGlow {
             0% { transform: scale(1); filter: brightness(1); }
-            100% { transform: scale(1.05); filter: brightness(1.2); }
+            100% { transform: scale(1.06); filter: brightness(1.3); }
         }
 
         #lineCanvas {
@@ -209,13 +212,14 @@
             color: var(--neon-blue);
             font-size: 13px;
             font-weight: 700;
+            text-shadow: 0 0 8px var(--neon-blue);
         }
 
         .win-display {
-            font-size: 21px;
+            font-size: 22px;
             font-weight: 900;
             color: #fff;
-            text-shadow: 0 0 12px var(--neon-blue);
+            text-shadow: 0 0 15px var(--neon-blue);
         }
 
         /* Bet Selection Chips */
@@ -228,23 +232,24 @@
         }
 
         .bet-chip {
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 16px;
-            border: 1px solid var(--neon-blue);
-            background: rgba(0, 30, 60, 0.75);
+            border: 1.5px solid var(--neon-blue);
+            background: rgba(0, 30, 60, 0.8);
             color: #fff;
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 0 6px var(--neon-glow);
+            box-shadow: 0 0 8px var(--neon-glow);
             transition: all 0.2s;
         }
 
         .bet-chip.active {
             background: var(--neon-blue);
             color: #000;
-            box-shadow: 0 0 15px var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
             font-weight: 900;
+            transform: scale(1.05);
         }
 
         /* Controls Bar */
@@ -257,54 +262,54 @@
         }
 
         .spin-btn {
-            width: 70px;
-            height: 70px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             border: 3px solid var(--neon-blue);
-            background: radial-gradient(circle, rgba(0,210,255,0.7) 0%, rgba(0,30,60,0.95) 100%);
-            box-shadow: 0 0 25px var(--neon-blue), inset 0 0 15px var(--neon-blue);
+            background: radial-gradient(circle, rgba(0,243,255,0.8) 0%, rgba(2,15,35,0.98) 100%);
+            box-shadow: 0 0 30px var(--neon-blue), inset 0 0 20px var(--neon-blue);
             color: #fff;
-            font-size: 32px;
+            font-size: 34px;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            transition: transform 0.1s;
+            transition: transform 0.15s;
         }
 
-        .spin-btn:active { transform: scale(0.92); }
+        .spin-btn:active { transform: scale(0.9); }
         .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .sub-btn {
-            width: 38px;
-            height: 38px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            border: 1px solid var(--neon-blue);
-            background: rgba(0, 20, 40, 0.8);
+            border: 1.5px solid var(--neon-blue);
+            background: rgba(2, 15, 35, 0.9);
             color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 14px;
+            font-size: 15px;
             cursor: pointer;
-            box-shadow: 0 0 5px var(--neon-glow);
+            box-shadow: 0 0 8px var(--neon-glow);
             transition: 0.2s;
         }
         .sub-btn.active-sub {
             background: var(--gold);
             color: #000;
             border-color: var(--gold);
-            box-shadow: 0 0 12px var(--gold);
+            box-shadow: 0 0 15px var(--gold);
         }
 
         /* Bottom Stats */
         .history-bar {
             display: flex;
             justify-content: space-around;
-            background: rgba(0, 15, 30, 0.95);
-            border-top: 1px solid rgba(0, 210, 255, 0.3);
-            border-bottom: 1px solid rgba(0, 210, 255, 0.3);
-            padding: 5px 0;
+            background: rgba(2, 10, 20, 0.98);
+            border-top: 1px solid rgba(0, 243, 255, 0.3);
+            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+            padding: 6px 0;
             font-size: 11px;
             font-weight: bold;
         }
@@ -313,9 +318,9 @@
         .footer-nav {
             display: flex;
             justify-content: space-around;
-            background: #020810;
+            background: #010408;
             padding: 8px 0;
-            border-top: 1px solid rgba(0,210,255,0.2);
+            border-top: 1px solid rgba(0,243,255,0.2);
         }
 
         .nav-item {
@@ -326,22 +331,23 @@
             font-size: 11px;
             color: #5d7a97;
             cursor: pointer;
+            transition: 0.2s;
         }
 
         .nav-item.active {
             color: var(--neon-blue);
-            text-shadow: 0 0 8px var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
         }
 
-        .blur-spin { filter: blur(5px); }
+        .blur-spin { filter: blur(6px); }
 
         /* Modal */
         .modal {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(6px);
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(8px);
             z-index: 200;
             align-items: center;
             justify-content: center;
@@ -349,25 +355,26 @@
         }
 
         .modal-body {
-            background: #091a2e;
+            background: #051426;
             border-radius: 20px;
-            border: 1px solid var(--neon-blue);
-            padding: 22px;
+            border: 2px solid var(--neon-blue);
+            padding: 24px;
             text-align: center;
             max-width: 320px;
             width: 100%;
-            box-shadow: 0 0 25px var(--neon-glow);
+            box-shadow: 0 0 35px var(--neon-glow);
         }
 
         .modal-btn {
             background: var(--neon-blue);
             color: #000;
             border: none;
-            padding: 9px 24px;
+            padding: 10px 26px;
             border-radius: 12px;
             font-weight: 900;
-            margin-top: 14px;
+            margin-top: 16px;
             cursor: pointer;
+            box-shadow: 0 0 15px var(--neon-blue);
         }
     </style>
 </head>
@@ -379,7 +386,7 @@
             <div class="avatar" id="u-avatar">U</div>
             <span id="u-name" style="font-weight: bold; font-size: 0.85rem;">اللاعب</span>
         </div>
-        <div class="logo">goold<br><span style="font-size: 13px; color: #a1e5ff;">Lera</span></div>
+        <div class="logo">goold<br><span style="font-size: 12px; color: #a1e5ff;">Lera 2026</span></div>
         <div class="balance-badge">
             <span id="u-balance">0.00</span>
             <span style="font-size: 10px;">NSP</span>
@@ -388,14 +395,14 @@
 
     <!-- Top Widgets -->
     <div class="top-widgets">
-        <div class="mini-badge" onclick="showModal('إعدادات اللعبة', 'خيارات اللعب النشطة.')">
+        <div class="mini-badge" onclick="showModal('إعدادات اللعبة', 'الجيل الجديد من ألعاب الكازينو 2026.')">
             <span>⚡ 3 3 3</span>
-            <span style="font-size: 8px; color: #8cf;">DD HH</span>
+            <span style="font-size: 8px; color: #8cf;">ULTRA HD</span>
         </div>
-        <div class="mini-badge" style="border-color: var(--gold); color: var(--gold);" onclick="showModal('مهام اللاعبين', 'أكمل المهام اليومية!')">
+        <div class="mini-badge" style="border-color: var(--gold); color: var(--gold);" onclick="showModal('مهام اللاعبين', 'أكمل المهام اليومية للحصول على مكافآت فورية!')">
             <span>🎁 المهام</span>
         </div>
-        <div class="mini-badge" onclick="showModal('خيارات النظام', 'النسخة الأصلية المتكاملة.')">
+        <div class="mini-badge" onclick="showModal('خيارات النظام', 'متصل آمن مع خوادم التيليجرام الذكية.')">
             <span>🔲 خيارات</span>
         </div>
     </div>
@@ -427,7 +434,7 @@
         <div class="sub-btn" id="turboBtn" onclick="toggleTurbo()" title="سريع">⚡</div>
         <button class="spin-btn" id="spinBtn" onclick="startSpin()">↻</button>
         <div class="sub-btn" id="x2Btn" onclick="doubleBet()" title="مضاعفة الرهان">x2</div>
-        <div class="sub-btn" onclick="showModal('الشحن والعملات', 'الرصيد مرتبط بمحفظة التيليجرام.')" title="عملات">🪙</div>
+        <div class="sub-btn" onclick="showModal('الشحن والعملات', 'الرصيد مرتبط فوري بمحفظتك.')" title="عملات">🪙</div>
     </div>
 
     <!-- Bottom Stats -->
@@ -442,11 +449,11 @@
             <span>🎰</span>
             <span>اللعبة</span>
         </div>
-        <div class="nav-item" onclick="showModal('لوحة الترتيب', 'أفضل اللاعبين.')">
+        <div class="nav-item" onclick="showModal('لوحة الترتيب', 'أفضل اللاعبين هذا الأسبوع.')">
             <span>🏆</span>
             <span>الترتيب</span>
         </div>
-        <div class="nav-item" onclick="showModal('حسابي', 'عرض تفاصيل الحساب.')">
+        <div class="nav-item" onclick="showModal('حسابي', 'عرض تفاصيل الحساب والمعرف الشخصي.')">
             <span>👤</span>
             <span>حسابي</span>
         </div>
@@ -455,8 +462,8 @@
     <!-- Modal -->
     <div class="modal" id="msg-modal">
         <div class="modal-body">
-            <div id="modal-status" style="font-size: 1.1rem; font-weight: 900; color: var(--gold); margin-bottom: 6px;">تنبيه</div>
-            <p id="modal-desc" style="color: #a1e5ff; font-size: 0.9rem;"></p>
+            <div id="modal-status" style="font-size: 1.15rem; font-weight: 900; color: var(--gold); margin-bottom: 8px;">تنبيه</div>
+            <p id="modal-desc" style="color: #a1e5ff; font-size: 0.95rem; line-height: 1.5;"></p>
             <button class="modal-btn" onclick="closeModal()">استمرار 🚀</button>
         </div>
     </div>
@@ -478,13 +485,13 @@
         const reelElements = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // نظام أصوات سينمائي فائق الاحترافية لتجنب الملل تماماً
+        // محرك أصوات الجيل الجديد 2026 (Cyber-HD Audio Engine)
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        function playMasterSound(type) {
+        function playNextGenSound(type) {
             initAudio();
             if (!audioCtx) return;
             let now = audioCtx.currentTime;
@@ -493,9 +500,9 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(850, now);
-                osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
-                gain.gain.setValueAtTime(0.18, now);
+                osc.frequency.setValueAtTime(1000, now);
+                osc.frequency.exponentialRampToValueAtTime(500, now + 0.05);
+                gain.gain.setValueAtTime(0.2, now);
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.05);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.05);
@@ -504,39 +511,39 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(220 + Math.random() * 130, now);
-                gain.gain.setValueAtTime(0.05, now);
+                osc.frequency.setValueAtTime(300 + Math.random() * 150, now);
+                gain.gain.setValueAtTime(0.06, now);
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.06);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.06);
             } 
             else if (type === 'jar_rare') {
-                // صوت رنين ذهبي ساحر عند ظهور الجرة النادرة
-                [659.25, 783.99, 987.77, 1318.51].forEach((freq, i) => {
+                // رنين ذهبي فضائي مذهل وعالي الوضوح عند ظهور الجرة
+                [783.99, 987.77, 1174.66, 1567.98, 2093.00].forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.07));
-                    gain.gain.setValueAtTime(0.3, now + (i * 0.07));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.07) + 0.3);
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.05));
+                    gain.gain.setValueAtTime(0.35, now + (i * 0.05));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.3);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.07));
-                    osc.stop(now + (i * 0.07) + 0.3);
+                    osc.start(now + (i * 0.05));
+                    osc.stop(now + (i * 0.05) + 0.3);
                 });
             }
             else if (type === 'win_epic') {
-                // نغمات كازينو ملكية فخمة جداً للربح الكبير
-                let notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51, 1760.00];
+                // ألحان فخمة جداً وحماسية تمنع الملل تماماً
+                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00, 2637.02];
                 notes.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = i % 2 === 0 ? 'sine' : 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.075));
-                    gain.gain.setValueAtTime(0.28, now + (i * 0.075));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.075) + 0.4);
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.06));
+                    gain.gain.setValueAtTime(0.32, now + (i * 0.06));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.06) + 0.4);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.075));
-                    osc.stop(now + (i * 0.075) + 0.4);
+                    osc.start(now + (i * 0.06));
+                    osc.stop(now + (i * 0.06) + 0.4);
                 });
             }
         }
@@ -574,7 +581,6 @@
 
         function getRandomSymbol(allowJar = true) {
             const rand = Math.random();
-            // ظهور الجرة نادراً جداً
             if (allowJar && rand < 0.01) return '🏺'; 
             if (rand < 0.25) return '7';
             return SYMBOLS[Math.floor(Math.random() * 4) + 1];
@@ -588,7 +594,7 @@
                 div.innerHTML = '7';
             } else if (sym === '🏺') {
                 div.classList.add('jar-rare');
-                div.innerHTML = '🏺'; // جرة فاخرة مع شعير
+                div.innerHTML = '🏺';
             } else {
                 div.innerHTML = sym;
             }
@@ -604,14 +610,14 @@
 
         function setBet(amount, el) {
             if (isSpinning) return;
-            playMasterSound('click');
+            playNextGenSound('click');
             currentBet = amount;
             document.querySelectorAll('.bet-chip').forEach(b => b.classList.remove('active'));
             if(el) el.classList.add('active');
         }
 
         function doubleBet() {
-            playMasterSound('click');
+            playNextGenSound('click');
             let bets = [3, 6, 9, 15, 50];
             let idx = bets.indexOf(currentBet);
             if (idx < bets.length - 1) {
@@ -629,7 +635,7 @@
         }
 
         function toggleAutoSpin() {
-            playMasterSound('click');
+            playNextGenSound('click');
             autoSpinActive = !autoSpinActive;
             let btn = document.getElementById('autoBtn');
             if (autoSpinActive) {
@@ -645,7 +651,7 @@
         }
 
         function toggleTurbo() {
-            playMasterSound('click');
+            playNextGenSound('click');
             turboActive = !turboActive;
             document.getElementById('turboBtn').classList.toggle('active-sub', turboActive);
         }
@@ -677,7 +683,7 @@
             }
 
             let finalGrid = [];
-            let speed = turboActive ? 300 : 800;
+            let speed = turboActive ? 250 : 750;
             let jarCount = 0;
 
             const spinPromises = reelElements.map((reelContainer, index) => {
@@ -685,46 +691,41 @@
                     setTimeout(() => {
                         reelContainer.classList.add('blur-spin');
                         let interval = setInterval(() => {
-                            playMasterSound('spin');
+                            playNextGenSound('spin');
                             fillReel(reelContainer, [getRandomSymbol(false), getRandomSymbol(false), getRandomSymbol(false)]);
-                        }, 50);
+                        }, 45);
 
                         setTimeout(() => {
                             clearInterval(interval);
                             reelContainer.classList.remove('blur-spin');
                             
                             let finalSyms = [getRandomSymbol(true), getRandomSymbol(false), getRandomSymbol(false)];
-                            
-                            if (finalSyms.includes('🏺')) {
-                                jarCount++;
-                            }
+                            if (finalSyms.includes('🏺')) jarCount++;
 
                             fillReel(reelContainer, finalSyms);
                             finalGrid.push(finalSyms);
                             resolve();
-                        }, speed + index * 150);
-                    }, index * 40);
+                        }, speed + index * 130);
+                    }, index * 35);
                 });
             });
 
             await Promise.all(spinPromises);
 
-            if (jarCount > 0) {
-                playMasterSound('jar_rare');
-            }
+            if (jarCount > 0) playNextGenSound('jar_rare');
 
             if (serverResponse && serverResponse.new_balance !== undefined) {
                 currentBalance = serverResponse.new_balance;
                 document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
             }
 
-            evaluateStrictLeftToRightWin(finalGrid, serverResponse);
+            evaluateAbsoluteStrictWin(finalGrid, serverResponse);
             isSpinning = false;
             document.getElementById('spinBtn').disabled = false;
         }
 
         // فحص الفوز الصارم جداً: البدء حصراً من العمود الأول (أقصى اليسار)
-        function evaluateStrictLeftToRightWin(grid, serverResponse) {
+        function evaluateAbsoluteStrictWin(grid, serverResponse) {
             let rows = [0, 1, 2].map(r => grid.map(reel => reel[r]));
             let totalMultiplier = 0;
             let matchedLines = [];
@@ -747,7 +748,7 @@
                     symbolsOnLine = [rows[2][0], rows[1][1], rows[0][2], rows[1][3], rows[2][4]];
                 }
 
-                // الشرط الحاسم: يجب أن يبدأ الخط حصراً من العمود الأول في أقصى اليسار
+                // الشرط الحاسم: البدء حصراً من العمود الأول (Index 0)
                 let first = symbolsOnLine[0];
                 if (!first || first === '🏺') return;
 
@@ -759,25 +760,23 @@
                     if (s === base || s === '🏺') {
                         count++;
                     } else {
-                        break; // يتوقف فوراً إذا انقطع التسلسل من اليسار
+                        break;
                     }
                 }
 
                 let mult = 0;
                 if (base === '7') {
-                    // السيبعات تربح فقط عند وجود اثنتين متجاورتين متتاليتين على الأقل من اليسار
                     if (count >= 5) mult = 100;
                     else if (count === 4) mult = 20;
                     else if (count === 3) mult = 5;
-                    else if (count === 2) mult = 2; // اثنتان متجاورتان من اليسار
+                    else if (count === 2) mult = 2;
                 } else {
-                    // الفواكه والأشكال الأخرى
                     if (count >= 5) {
                         mult = base === '🍇' ? 20 : 10;
                     } else if (count === 4) {
                         mult = base === '🍇' ? 8 : 4;
                     } else if (count === 3) {
-                        mult = base === '🍇' ? 2 : 1; // 3 عنب تريبح ضعف سعر الرهان، الفواكه 1x
+                        mult = base === '🍇' ? 2 : 1;
                     }
                 }
 
@@ -796,7 +795,7 @@
             }
 
             if (winAmount > 0) {
-                playMasterSound('win_epic');
+                playNextGenSound('win_epic');
                 document.getElementById('winAmount').innerText = winAmount.toFixed(2);
                 document.getElementById('lineInfo').innerText = `مبروك! ربحت ${winAmount.toFixed(2)} NSP`;
                 document.getElementById('lastWin').innerText = winAmount.toFixed(2);
@@ -804,7 +803,7 @@
                 let best = parseFloat(document.getElementById('bestWin').innerText);
                 if (winAmount > best) document.getElementById('bestWin').innerText = winAmount.toFixed(2);
 
-                confetti({ particleCount: 130, spread: 90, origin: { y: 0.6 } });
+                confetti({ particleCount: 140, spread: 95, origin: { y: 0.6 } });
                 drawWinningLines(matchedLines);
             } else {
                 document.getElementById('winAmount').innerText = '0.00';
@@ -831,10 +830,10 @@
                     ctx.moveTo(10, canvas.height / 2);
                     ctx.lineTo(canvas.width - 10, canvas.height / 2);
                 }
-                ctx.strokeStyle = '#00f0ff';
-                ctx.lineWidth = 4;
-                ctx.shadowColor = '#00f0ff';
-                ctx.shadowBlur = 15;
+                ctx.strokeStyle = '#00f3ff';
+                ctx.lineWidth = 4.5;
+                ctx.shadowColor = '#00f3ff';
+                ctx.shadowBlur = 18;
                 ctx.stroke();
             });
         }
@@ -846,14 +845,14 @@
         }
 
         function showModal(title, desc) {
-            playMasterSound('click');
+            playNextGenSound('click');
             document.getElementById('modal-status').innerText = title;
             document.getElementById('modal-desc').innerText = desc;
             document.getElementById('msg-modal').style.display = 'flex';
         }
 
         function closeModal() {
-            playMasterSound('click');
+            playNextGenSound('click');
             document.getElementById('msg-modal').style.display = 'none';
         }
     </script>
