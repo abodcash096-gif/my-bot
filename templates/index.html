@@ -14,7 +14,7 @@
             --gold: #ffd700;
             --orange: #ff8800;
             --bg-dark: #030d18;
-            --card-bg: rgba(3, 20, 40, 0.85);
+            --card-bg: rgba(3, 20, 40, 0.9);
         }
 
         * {
@@ -36,25 +36,25 @@
             overflow-x: hidden;
         }
 
-        /* Top Bar & User Header */
+        /* Top Bar matching your image */
         .top-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 16px;
-            background: rgba(1, 15, 30, 0.9);
+            padding: 8px 14px;
+            background: rgba(1, 15, 30, 0.95);
             border-bottom: 1px solid rgba(0, 210, 255, 0.3);
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .avatar {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--gold), var(--orange));
             display: flex;
@@ -62,12 +62,12 @@
             justify-content: center;
             font-weight: 900;
             color: #000;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
         }
 
         .logo {
             text-align: center;
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 900;
             background: linear-gradient(180deg, #fff 0%, #ffd700 50%, #b38f00 100%);
             -webkit-background-clip: text;
@@ -77,37 +77,37 @@
         }
 
         .balance-badge {
-            background: rgba(0, 210, 255, 0.1);
+            background: rgba(0, 210, 255, 0.12);
             border: 1px solid var(--neon-blue);
             color: var(--neon-blue);
-            padding: 6px 14px;
+            padding: 5px 12px;
             border-radius: 20px;
             font-weight: 900;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 6px;
             box-shadow: 0 0 10px var(--neon-glow);
         }
 
-        /* Top Mini Widgets matching Gold Lera Image */
+        /* Top Mini Widgets */
         .top-widgets {
             display: flex;
             justify-content: space-between;
-            padding: 6px 16px;
+            padding: 4px 14px;
         }
 
         .mini-badge {
             border: 1px solid var(--neon-blue);
-            border-radius: 16px;
-            padding: 4px 10px;
+            border-radius: 14px;
+            padding: 3px 8px;
             font-size: 10px;
-            background: rgba(0,30,60,0.6);
+            background: rgba(0,30,60,0.7);
             color: var(--neon-blue);
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-shadow: 0 0 8px var(--neon-glow);
+            cursor: pointer;
         }
 
         /* Game Slots Grid Frame */
@@ -115,24 +115,24 @@
             position: relative;
             width: 94%;
             max-width: 420px;
-            margin: 4px auto 0;
+            margin: 2px auto 0;
         }
 
         .slots-frame {
             display: flex;
-            gap: 4px;
-            background: rgba(1, 15, 30, 0.95);
+            gap: 3px;
+            background: rgba(1, 15, 30, 0.98);
             border: 2px solid var(--neon-blue);
-            box-shadow: 0 0 22px var(--neon-glow), inset 0 0 15px var(--neon-glow);
-            border-radius: 12px;
-            padding: 6px;
+            box-shadow: 0 0 20px var(--neon-glow), inset 0 0 15px var(--neon-glow);
+            border-radius: 10px;
+            padding: 5px;
             position: relative;
             overflow: hidden;
         }
 
         .reel {
             flex: 1;
-            height: 240px;
+            height: 230px;
             background: var(--card-bg);
             border: 1px solid rgba(0, 210, 255, 0.4);
             border-radius: 6px;
@@ -148,29 +148,42 @@
         }
 
         .symbol {
-            height: 80px;
+            height: 76px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 38px;
+            font-size: 36px;
             position: relative;
         }
 
-        .symbol.wild {
-            background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, transparent 75%);
-            border: 1px solid var(--gold);
-            box-shadow: inset 0 0 15px var(--gold);
+        /* Expanded Wild Jar styling */
+        .symbol.wild-expanded {
+            background: radial-gradient(circle, rgba(255,215,0,0.4) 0%, rgba(255,136,0,0.2) 80%);
+            border: 2px solid var(--gold);
+            box-shadow: inset 0 0 20px var(--gold), 0 0 15px var(--gold);
             border-radius: 6px;
+            height: 228px; /* يملأ البكرة بالكامل */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 5;
+            animation: wildGlow 1.5s infinite alternate;
+        }
+
+        @keyframes wildGlow {
+            0% { box-shadow: inset 0 0 10px var(--gold), 0 0 10px var(--gold); }
+            100% { box-shadow: inset 0 0 25px var(--gold), 0 0 20px var(--gold); }
         }
 
         .symbol.wild-text {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: 900;
             color: var(--gold);
-            text-shadow: 0 0 6px var(--gold);
-            margin-top: -4px;
-            letter-spacing: 1px;
+            text-shadow: 0 0 8px var(--gold);
+            letter-spacing: 2px;
+            margin-top: 4px;
         }
 
         .symbol.seven {
@@ -187,13 +200,13 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 10;
+            z-index: 15;
         }
 
-        /* Win & Stats Info Display */
+        /* Win Info Banner */
         .info-panel {
             text-align: center;
-            margin: 6px 0;
+            margin: 4px 0;
         }
 
         .line-info {
@@ -203,26 +216,26 @@
         }
 
         .win-display {
-            font-size: 22px;
+            font-size: 21px;
             font-weight: 900;
             color: #fff;
             text-shadow: 0 0 12px var(--neon-blue);
         }
 
-        /* Bet Selector */
+        /* Bet Selection Chips */
         .bets-container {
             display: flex;
             justify-content: center;
             gap: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             padding: 0 10px;
         }
 
         .bet-chip {
-            padding: 6px 10px;
-            border-radius: 18px;
+            padding: 5px 10px;
+            border-radius: 16px;
             border: 1px solid var(--neon-blue);
-            background: rgba(0, 30, 60, 0.7);
+            background: rgba(0, 30, 60, 0.75);
             color: #fff;
             font-size: 12px;
             font-weight: bold;
@@ -243,19 +256,19 @@
             display: flex;
             justify-content: space-around;
             align-items: center;
-            padding: 0 16px;
-            margin-bottom: 8px;
+            padding: 0 14px;
+            margin-bottom: 6px;
         }
 
         .spin-btn {
-            width: 72px;
-            height: 72px;
+            width: 68px;
+            height: 68px;
             border-radius: 50%;
             border: 3px solid var(--neon-blue);
-            background: radial-gradient(circle, rgba(0,210,255,0.45) 0%, rgba(0,30,60,0.95) 100%);
+            background: radial-gradient(circle, rgba(0,210,255,0.5) 0%, rgba(0,30,60,0.95) 100%);
             box-shadow: 0 0 20px var(--neon-blue), inset 0 0 15px var(--neon-blue);
             color: #fff;
-            font-size: 32px;
+            font-size: 30px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -263,43 +276,44 @@
             transition: transform 0.1s;
         }
 
-        .spin-btn:active {
-            transform: scale(0.92);
-        }
-
-        .spin-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .spin-btn:active { transform: scale(0.92); }
+        .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .sub-btn {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             border: 1px solid var(--neon-blue);
-            background: rgba(0, 20, 40, 0.75);
+            background: rgba(0, 20, 40, 0.8);
             color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 15px;
+            font-size: 14px;
             cursor: pointer;
             box-shadow: 0 0 5px var(--neon-glow);
+            transition: 0.2s;
+        }
+        .sub-btn.active-sub {
+            background: var(--gold);
+            color: #000;
+            border-color: var(--gold);
+            box-shadow: 0 0 12px var(--gold);
         }
 
-        /* Footer Stats */
+        /* Bottom Stats */
         .history-bar {
             display: flex;
             justify-content: space-around;
-            background: rgba(0, 15, 30, 0.9);
+            background: rgba(0, 15, 30, 0.95);
             border-top: 1px solid rgba(0, 210, 255, 0.3);
             border-bottom: 1px solid rgba(0, 210, 255, 0.3);
-            padding: 6px 0;
+            padding: 5px 0;
             font-size: 11px;
             font-weight: bold;
         }
 
-        /* Navigation Footer matching image names exactly */
+        /* Navigation Footer */
         .footer-nav {
             display: flex;
             justify-content: space-around;
@@ -323,11 +337,9 @@
             text-shadow: 0 0 8px var(--neon-blue);
         }
 
-        .blur-spin {
-            filter: blur(4px);
-        }
+        .blur-spin { filter: blur(4px); }
 
-        /* Dialog Modal */
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -344,7 +356,7 @@
             background: #091a2e;
             border-radius: 20px;
             border: 1px solid var(--neon-blue);
-            padding: 24px;
+            padding: 22px;
             text-align: center;
             max-width: 320px;
             width: 100%;
@@ -355,39 +367,39 @@
             background: var(--neon-blue);
             color: #000;
             border: none;
-            padding: 10px 25px;
+            padding: 9px 24px;
             border-radius: 12px;
             font-weight: 900;
-            margin-top: 15px;
+            margin-top: 14px;
             cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <!-- Header Section matching Gold Lera -->
+    <!-- Header -->
     <div class="top-bar">
         <div class="user-info">
             <div class="avatar" id="u-avatar">U</div>
             <span id="u-name" style="font-weight: bold; font-size: 0.85rem;">اللاعب</span>
         </div>
-        <div class="logo">goold<br><span style="font-size: 14px; color: #a1e5ff;">Lera</span></div>
+        <div class="logo">goold<br><span style="font-size: 13px; color: #a1e5ff;">Lera</span></div>
         <div class="balance-badge">
             <span id="u-balance">0.00</span>
-            <span style="font-size: 11px;">NSP</span>
+            <span style="font-size: 10px;">NSP</span>
         </div>
     </div>
 
-    <!-- Top Mini Widgets (DD, HH, المهام) -->
+    <!-- Top Widgets -->
     <div class="top-widgets">
-        <div class="mini-badge">
+        <div class="mini-badge" onclick="showModal('إعدادات اللعبة', 'خيارات اللعب النشطة وتوافق الحسابات.')">
             <span>⚡ 3 3 3</span>
             <span style="font-size: 8px; color: #8cf;">DD HH</span>
         </div>
-        <div class="mini-badge" style="border-color: var(--gold); color: var(--gold);">
+        <div class="mini-badge" style="border-color: var(--gold); color: var(--gold);" onclick="showModal('مهام اللاعبين', 'أكمل المهام اليومية للحصول على مكافآت مجانية!')">
             <span>🎁 المهام</span>
         </div>
-        <div class="mini-badge">
+        <div class="mini-badge" onclick="showModal('خيارات النظام', 'النسخة الأصلية المتكاملة مع بوت التيليجرام.')">
             <span>🔲 خيارات</span>
         </div>
     </div>
@@ -404,22 +416,22 @@
         <div class="win-display">ربح <span id="winAmount">0.00</span> NSP</div>
     </div>
 
-    <!-- Bet Selection Chips (3, 6, 9, 15, 50) -->
+    <!-- Bet Selection Chips -->
     <div class="bets-container">
         <div class="bet-chip active" onclick="setBet(3, this)">3 NSP</div>
         <div class="bet-chip" onclick="setBet(6, this)">6 NSP</div>
         <div class="bet-chip" onclick="setBet(9, this)">9 NSP</div>
-        <div class="bet-chip" onclick="setBet(15, this)">15 NSP</div>
+        <div class="bet-chip" onclick="setDivider(15, this)">15 NSP</div>
         <div class="bet-chip" onclick="setBet(50, this)">50 NSP</div>
     </div>
 
-    <!-- Action Buttons Bar -->
+    <!-- Action Buttons Bar (All Functional) -->
     <div class="controls">
-        <div class="sub-btn">▶</div>
-        <div class="sub-btn">⚡</div>
+        <div class="sub-btn" id="autoBtn" onclick="toggleAutoSpin()" title="دوران تلقائي">▶</div>
+        <div class="sub-btn" id="turboBtn" onclick="toggleTurbo()" title="سريع">⚡</div>
         <button class="spin-btn" id="spinBtn" onclick="startSpin()">↻</button>
-        <div class="sub-btn">x2</div>
-        <div class="sub-btn">🪙</div>
+        <div class="sub-btn" id="x2Btn" onclick="doubleBet()" title="مضاعفة الرهان">x2</div>
+        <div class="sub-btn" onclick="showModal('الشحن والعملات', 'رصيدك مرتبط تلقائياً بمحفظتك في بوت التيليجرام.')" title="عملات">🪙</div>
     </div>
 
     <!-- Bottom Stats -->
@@ -428,26 +440,26 @@
         <div>⏱️ آخر ربح: <span id="lastWin" style="color: var(--neon-blue);">0.00</span> NSP</div>
     </div>
 
-    <!-- Navigation Footer (Strictly named matching image: اللعبة، الترتيب، حسابي) -->
+    <!-- Navigation Footer -->
     <div class="footer-nav">
         <div class="nav-item active">
             <span>🎰</span>
             <span>اللعبة</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="showModal('لوحة الترتيب', 'أفضل اللاعبين هذا الأسبوع.')">
             <span>🏆</span>
             <span>الترتيب</span>
         </div>
-        <div class="nav-item">
+        <div class="nav-item" onclick="showModal('حسابي', 'عرض تفاصيل الرصيد والمعرف الشخصي.')">
             <span>👤</span>
             <span>حسابي</span>
         </div>
     </div>
 
-    <!-- System Modal Alert -->
+    <!-- Modal -->
     <div class="modal" id="msg-modal">
         <div class="modal-body">
-            <div id="modal-status" style="font-size: 1.2rem; font-weight: 900; color: var(--gold); margin-bottom: 6px;">تنبيه</div>
+            <div id="modal-status" style="font-size: 1.1rem; font-weight: 900; color: var(--gold); margin-bottom: 6px;">تنبيه</div>
             <p id="modal-desc" style="color: #a1e5ff; font-size: 0.9rem;"></p>
             <button class="modal-btn" onclick="closeModal()">استمرار 🚀</button>
         </div>
@@ -461,55 +473,59 @@
         let currentBet = 3;
         let isSpinning = false;
         let currentBalance = 0.00;
+        let autoSpinActive = false;
+        let turboActive = false;
+        let autoInterval = null;
 
         const SYMBOLS = ['7', '🍊', '🍇', '🍒', '🔔', '🏺'];
-        const WILD_SYMBOL = '🏺'; // الجرة الذهبية النادرة
+        const WILD_SYMBOL = '🏺';
         const reelsCount = 5;
         const reelElements = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // Web Audio API for Professional Sound Effects
+        // Professional Web Audio API Sounds
         let audioCtx = null;
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        function playSpinSound() {
-            initAudio();
-            if (!audioCtx) return;
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
-        }
-
-        function playWinSound() {
+        function playSound(type) {
             initAudio();
             if (!audioCtx) return;
             let now = audioCtx.currentTime;
-            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.frequency.setValueAtTime(freq, now + i * 0.08);
-                gain.gain.setValueAtTime(0.2, now + i * 0.08);
-                gain.gain.linearRampToValueAtTime(0.01, now + i * 0.08 + 0.2);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now + i * 0.08);
-                osc.stop(now + i * 0.08 + 0.2);
-            });
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'spin') {
+                osc.frequency.setValueAtTime(250 + Math.random() * 100, now);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'win') {
+                [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, i) => {
+                    let o = audioCtx.createOscillator();
+                    let g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.frequency.setValueAtTime(freq, now + i * 0.07);
+                    g.gain.setValueAtTime(0.15, now + i * 0.07);
+                    g.gain.linearRampToValueAtTime(0.01, now + i * 0.07 + 0.2);
+                    o.start(now + i * 0.07);
+                    o.stop(now + i * 0.07 + 0.2);
+                });
+            } else if (type === 'wild') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
         }
 
-        // Fetch User Data from Python Server
         async function loadUserData() {
             try {
                 const res = await fetch('/api/get_user_data', {
@@ -525,12 +541,12 @@
                     document.getElementById('u-avatar').innerText = (data.name || "U")[0].toUpperCase();
                 }
             } catch (err) {
-                console.error("فشل إحضار بيانات المستخدم:", err);
+                console.error("فشل إحضار البيانات:", err);
             }
         }
         loadUserData();
 
-        // Build 5 Slot Reels
+        // Build Reels
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -539,22 +555,23 @@
             reel.appendChild(reelContainer);
             slotsFrame.appendChild(reel);
             reelElements.push(reelContainer);
-
             fillReel(reelContainer, [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()]);
         }
 
-        // Jar (WILD) restricted to rare appearance (Max 3 on screen)
         function getRandomSymbol() {
             const rand = Math.random();
-            if (rand < 0.08) return '🏺'; // نادرة الظهور
-            if (rand < 0.30) return '7';
+            if (rand < 0.05) return '🏺'; // نادرة الظهور جداً
+            if (rand < 0.28) return '7';
             return SYMBOLS[Math.floor(Math.random() * 4) + 1];
         }
 
-        function createSymbolNode(sym) {
+        function createSymbolNode(sym, isWildFull = false) {
             const div = document.createElement('div');
             div.className = 'symbol';
-            if (sym === '7') {
+            if (isWildFull) {
+                div.className = 'symbol wild-expanded';
+                div.innerHTML = '🏺<div class="wild-text">WILD</div>';
+            } else if (sym === '7') {
                 div.classList.add('seven');
                 div.innerHTML = '7';
             } else if (sym === '🏺') {
@@ -566,10 +583,14 @@
             return div;
         }
 
-        function fillReel(container, symbolsArray) {
+        function fillReel(container, symbolsArray, wildExpandedIndex = -1) {
             container.innerHTML = '';
-            symbolsArray.forEach(sym => {
-                container.appendChild(createSymbolNode(sym));
+            symbolsArray.forEach((sym, idx) => {
+                if (idx === wildExpandedIndex) {
+                    container.appendChild(createSymbolNode(sym, true));
+                } else {
+                    container.appendChild(createSymbolNode(sym, false));
+                }
             });
         }
 
@@ -577,13 +598,52 @@
             if (isSpinning) return;
             currentBet = amount;
             document.querySelectorAll('.bet-chip').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
+            if(el) el.classList.add('active');
+        }
+        function setDivider(amt, el) { setBet(amt, el); }
+
+        function doubleBet() {
+            let bets = [3, 6, 9, 15, 50];
+            let idx = bets.indexOf(currentBet);
+            if (idx < bets.length - 1) {
+                currentBet = bets[idx + 1];
+            } else {
+                currentBet = bets[0];
+            }
+            let chips = document.querySelectorAll('.bet-chip');
+            chips.forEach((c, i) => {
+                if(bets[i] === currentBet) {
+                    chips.forEach(b => b.classList.remove('active'));
+                    c.classList.add('active');
+                }
+            });
+        }
+
+        function toggleAutoSpin() {
+            autoSpinActive = !autoSpinActive;
+            let btn = document.getElementById('autoBtn');
+            if (autoSpinActive) {
+                btn.classList.add('active-sub');
+                startSpin();
+                autoInterval = setInterval(() => {
+                    if (!isSpinning) startSpin();
+                }, 1800);
+            } else {
+                btn.classList.remove('active-sub');
+                clearInterval(autoInterval);
+            }
+        }
+
+        function toggleTurbo() {
+            turboActive = !turboActive;
+            document.getElementById('turboBtn').classList.toggle('active-sub', turboActive);
         }
 
         async function startSpin() {
             if (isSpinning) return;
             if (currentBalance < currentBet) {
-                showModal("❌ رصيد غير كافٍ", "يرجى شحن حسابك في البوت للبدء بهذه الدورة.");
+                showModal("❌ رصيد غير كافٍ", "يرجى شحن حسابك للبدء بهذه الدورة.");
+                if (autoSpinActive) toggleAutoSpin();
                 return;
             }
 
@@ -594,7 +654,6 @@
             document.getElementById('winAmount').innerText = '0.00';
 
             let serverResponse = null;
-
             try {
                 const res = await fetch('/api/play_game', {
                     method: 'POST',
@@ -603,19 +662,18 @@
                 });
                 serverResponse = await res.json();
             } catch (e) {
-                console.warn("تنبيه الاتصال بالسيرفر", e);
+                console.warn("تنبيه اتصال السيرفر", e);
             }
 
-            // Spin Animation from Left to Right with Sound
             let finalGrid = [];
-            let jarCount = 0;
+            let speed = turboActive ? 300 : 800;
 
             const spinPromises = reelElements.map((reelContainer, index) => {
                 return new Promise(resolve => {
                     setTimeout(() => {
                         reelContainer.classList.add('blur-spin');
                         let interval = setInterval(() => {
-                            playSpinSound();
+                            playSound('spin');
                             fillReel(reelContainer, [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()]);
                         }, 50);
 
@@ -625,24 +683,19 @@
                             
                             let finalSyms = [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()];
                             
-                            // Ensure Jar (WILD) does not exceed 3 total on screen
-                            finalSyms = finalSyms.map(s => {
-                                if (s === '🏺') {
-                                    if (jarCount < 3) {
-                                        jarCount++;
-                                        return '🏺';
-                                    } else {
-                                        return '7';
-                                    }
-                                }
-                                return s;
-                            });
+                            // فحص الجرة النادرة وتوسيعها لتملأ البكرة
+                            let wildIdx = -1;
+                            if (finalSyms.includes('WILD') || finalSyms.includes('🏺') || Math.random() < 0.04) {
+                                wildIdx = 1; // تتوسط البكرة وتملأها
+                                finalSyms[0] = '🏺'; finalSyms[1] = '🏺'; finalSyms[2] = '🏺';
+                                playSound('wild');
+                            }
 
-                            fillReel(reelContainer, finalSyms);
+                            fillReel(reelContainer, finalSyms, wildIdx);
                             finalGrid.push(finalSyms);
                             resolve();
-                        }, 800 + index * 200);
-                    }, index * 60);
+                        }, speed + index * 150);
+                    }, index * 40);
                 });
             });
 
@@ -653,86 +706,121 @@
                 document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
             }
 
-            evaluateWin(finalGrid, serverResponse);
+            evaluateWinLines(finalGrid, serverResponse);
             isSpinning = false;
             document.getElementById('spinBtn').disabled = false;
         }
 
-        // Win Logic: Left to Right Single Lines (Max multiplier capped at 100x)
-        function evaluateWin(grid, serverResponse) {
+        // Win Lines Matching Your Exact Drawing & Payout Rules
+        function evaluateWinLines(grid, serverResponse) {
             let rows = [0, 1, 2].map(r => grid.map(reel => reel[r]));
             let totalMultiplier = 0;
-            let winningLines = [];
+            let matchedLines = [];
 
-            rows.forEach((rowSyms, rowIndex) => {
-                let firstSym = rowSyms[0];
-                let matchCount = 1;
+            // خطوط الفوز (أفقية ومائلة كما رسمتها)
+            let lineConfigs = [
+                { type: 'horizontal', r: 0 }, // خط علوي
+                { type: 'horizontal', r: 1 }, // خط أوسط
+                { type: 'horizontal', r: 2 }, // خط سفلي
+                { type: 'diagonal_down', path: [0, 1, 2, 1, 0] }, // مائل للأسفل ثم للأعلى
+                { type: 'diagonal_up', path: [2, 1, 0, 1, 2] }    // مائل للأعلى ثم للأسفل
+            ];
 
-                let baseSym = firstSym === WILD_SYMBOL ? rowSyms.find(s => s !== WILD_SYMBOL) || '7' : firstSym;
+            lineConfigs.forEach((cfg, lineIdx) => {
+                let symbolsOnLine = [];
+                if (cfg.type === 'horizontal') {
+                    symbolsOnLine = rows[cfg.r];
+                } else if (cfg.type === 'diagonal_down') {
+                    symbolsOnLine = [rows[0][0], rows[1][1], rows[2][2], rows[1][3], rows[0][4]];
+                } else if (cfg.type === 'diagonal_up') {
+                    symbolsOnLine = [rows[2][0], rows[1][1], rows[0][2], rows[1][3], rows[2][4]];
+                }
 
-                for (let c = 1; c < rowSyms.length; c++) {
-                    if (rowSyms[c] === baseSym || rowSyms[c] === WILD_SYMBOL) {
-                        matchCount++;
+                let first = symbolsOnLine[0];
+                let count = 1;
+                let base = first === WILD_SYMBOL ? symbolsOnLine.find(s => s !== WILD_SYMBOL) || '7' : first;
+
+                for (let i = 1; i < symbolsOnLine.length; i++) {
+                    if (symbolsOnLine[i] === base || symbolsOnLine[i] === WILD_SYMBOL) {
+                        count++;
                     } else {
                         break;
                     }
                 }
 
                 let mult = 0;
-                if (baseSym === '7') {
-                    if (matchCount === 2) mult = 1;
-                    else if (matchCount === 3) mult = 2;
-                    else if (matchCount === 4) mult = 5;
-                    else if (matchCount === 5) mult = 100; // الحد الأقصى للربح الضخم 100x
-                } else { 
-                    if (matchCount === 3) mult = 1;
-                    else if (matchCount === 4) mult = 5;
-                    else if (matchCount === 5) mult = 10;
+                // تطبيق شروط المضاعفات المطلوبة بدقة (الوصول لآخر خط = 5 أعمدة كاملة)
+                if (count === 5) {
+                    if (base === '7') mult = 100;       // 100 ضعف للـ 7 عند الوصول للاخر
+                    else if (base === '🍇') mult = 25;  // 25 ضعف للعنب عند الوصول للاخر
+                    else mult = 10;                     // 10 أضعاف لباقي الفواكه عند الوصول للاخر
+                } else if (count === 4) {
+                    if (base === '7') mult = 20;
+                    else if (base === '🍇') mult = 8;
+                    else mult = 4;
+                } else if (count === 3) {
+                    if (base === '7') mult = 5;
+                    else if (base === '🍇') mult = 2;
+                    else mult = 1;
                 }
 
                 if (mult > 0) {
-                    if (mult > 100) mult = 100; // منع تجاوز 100x تماماً
+                    if (mult > 100) mult = 100;
                     totalMultiplier += mult;
-                    winningLines.push({ row: rowIndex, mult });
+                    matchedLines.push({ lineIndex: lineIdx, config: cfg, mult });
                 }
             });
 
             let winAmount = serverResponse?.win_amount !== undefined ? serverResponse.win_amount : (totalMultiplier * currentBet);
 
             if (winAmount > 0) {
-                playWinSound();
+                playSound('win');
                 document.getElementById('winAmount').innerText = winAmount.toFixed(2);
                 document.getElementById('lineInfo').innerText = `مبروك! ربحت ${winAmount.toFixed(2)} NSP`;
                 document.getElementById('lastWin').innerText = winAmount.toFixed(2);
 
-                let currentBest = parseFloat(document.getElementById('bestWin').innerText);
-                if (winAmount > currentBest) {
-                    document.getElementById('bestWin').innerText = winAmount.toFixed(2);
-                }
+                let best = parseFloat(document.getElementById('bestWin').innerText);
+                if (winAmount > best) document.getElementById('bestWin').innerText = winAmount.toFixed(2);
 
-                confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
-                drawSingleLine(winningLines);
+                confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+                drawComplexLines(matchedLines);
             } else {
                 document.getElementById('lineInfo').innerText = 'حظ أوفر في الضربة القادمة';
             }
         }
 
-        // Draw Single Line instead of full box lines
-        function drawSingleLine(lines) {
+        function drawComplexLines(lines) {
             const canvas = document.getElementById('lineCanvas');
             const ctx = canvas.getContext('2d');
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
+            let colWidth = canvas.width / 5;
+            let rowHeight = canvas.height / 3;
 
-            lines.forEach(line => {
-                const y = (line.row * 80) + 40;
+            lines.forEach(l => {
+                let cfg = l.config;
                 ctx.beginPath();
-                ctx.moveTo(12, y);
-                ctx.lineTo(canvas.width - 12, y);
+                if (cfg.type === 'horizontal') {
+                    let y = (cfg.r * rowHeight) + (rowHeight / 2);
+                    ctx.moveTo(10, y);
+                    ctx.lineTo(canvas.width - 10, y);
+                } else if (cfg.type === 'diagonal_down') {
+                    ctx.moveTo(colWidth/2, rowHeight/2);
+                    ctx.lineTo(colWidth*1.5, rowHeight*1.5);
+                    ctx.lineTo(colWidth*2.5, rowHeight*2.5);
+                    ctx.lineTo(colWidth*3.5, rowHeight*1.5);
+                    ctx.lineTo(canvas.width - colWidth/2, rowHeight/2);
+                } else if (cfg.type === 'diagonal_up') {
+                    ctx.moveTo(colWidth/2, rowHeight*2.5);
+                    ctx.lineTo(colWidth*1.5, rowHeight*1.5);
+                    ctx.lineTo(colWidth*2.5, rowHeight/2);
+                    ctx.lineTo(colWidth*3.5, rowHeight*1.5);
+                    ctx.lineTo(canvas.width - colWidth/2, rowHeight*2.5);
+                }
                 ctx.strokeStyle = '#00f0ff';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 3.5;
                 ctx.shadowColor = '#00f0ff';
-                ctx.shadowBlur = 10;
+                ctx.shadowBlur = 12;
                 ctx.stroke();
             });
         }
