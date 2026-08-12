@@ -93,7 +93,6 @@ def init_db():
     cursor.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
     cursor.execute('CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, amount REAL, uses_left INTEGER)')
     
-    # جدول القنوات المضافة للاشتراك الإجباري
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS channels (
             channel_id TEXT PRIMARY KEY,
@@ -140,7 +139,6 @@ init_db()
 # 3. فحص الاشتراك الإجباري بالقنوات
 # ----------------------------------------------------
 async def check_user_channels_subscription(bot, user_id: int) -> tuple[bool, list]:
-    """ يفحص هل العميل مشترك بجميع القنوات المطلوبة أيا كان قدم حسابه """
     conn = get_db()
     channels = conn.execute("SELECT channel_id, channel_title, channel_link FROM channels").fetchall()
     conn.close()
@@ -355,7 +353,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat_id = update.effective_chat.id
 
-    # 1. فحص الاشتراك بالقنوات الإجبارية للعملاء جدد أو قدامى
     is_subscribed, unsubscribed = await check_user_channels_subscription(context.bot, user.id)
     if not is_subscribed:
         await update.message.reply_text(
@@ -472,7 +469,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     user = update.effective_user
     text = update.message.text.strip() if update.message.text else ""
     
-    # فحص الاشتراك الإجباري عند إرسال أي نص
     is_subscribed, unsubscribed = await check_user_channels_subscription(context.bot, user.id)
     if not is_subscribed:
         await update.message.reply_text(
@@ -595,7 +591,6 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
     conn = get_db()
 
     if step == "adm_add_channel_input":
-        # إضافة قناة جديدة
         parts = text.split("|")
         if len(parts) >= 3:
             ch_id = parts[0].strip()
@@ -608,7 +603,7 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
             conn.commit()
             await update.message.reply_text(f"✅ تم إضافة القناة `{ch_title}` بنجاح!")
         else:
-            await update.message.reply_text("❌ يرجى الإرسال بالتنسيق الصحيح:\n`ChannelID|Title|Link`\nمثال:\n`@mychannel|قناتنا الرسمية|https://t.me/mychannel`")
+            await update.message.reply_text("❌ يرجى الإرسال بالتنسيق الصحيح:\n`ChannelID|Title|Link`")
 
     elif step == "adm_input_custom_algo":
         try:
@@ -626,48 +621,60 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
     elif step == "adm_input_user_boost":
         try:
             parts = text.split()
-            target_id = int(parts[0])
-            boost_val = float(parts[1])
-            conn.execute("UPDATE users SET custom_boost = ? WHERE user_id = ?", (boost_val, target_id))
-            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-            conn.commit()
-            await update.message.reply_text(f"🎯 تم تعديل حظ اللاعب `{target_id}` بمقدار: `{boost_val:+}%` بنجاح!")
+            if len(parts) >= 2:
+                target_id = int(parts[0])
+                boost_val = float(parts[1])
+                conn.execute("UPDATE users SET custom_boost = ? WHERE user_id = ?", (boost_val, target_id))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+                conn.commit()
+                await update.message.reply_text(f"🎯 تم تعديل حظ اللاعب `{target_id}` بمقدار: `{boost_val:+}%` بنجاح!")
+            else:
+                await update.message.reply_text("❌ الصيغة خاطئة. مثال: `7255100997 25`")
         except Exception:
             await update.message.reply_text("❌ الصيغة الصحيحة: `ID Boost` (مثال: `7255100997 25`)")
 
     elif step == "adm_input_add_bal":
         try:
             parts = text.split()
-            target_id, amt = int(parts[0]), float(parts[1])
-            conn.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amt, target_id))
-            conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (target_id, "إضافة رصيد من الأدمن", amt))
-            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-            conn.commit()
-            await update.message.reply_text(f"✅ تم إضافة `{amt}` ليرة إلى حساب `{target_id}` بنجاح.")
+            if len(parts) >= 2:
+                target_id, amt = int(parts[0]), float(parts[1])
+                conn.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amt, target_id))
+                conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (target_id, "إضافة رصيد من الأدمن", amt))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+                conn.commit()
+                await update.message.reply_text(f"✅ تم إضافة `{amt}` ليرة إلى حساب `{target_id}` بنجاح.")
+            else:
+                await update.message.reply_text("❌ اكتب بالشكل: `ID Amount`")
         except Exception:
             await update.message.reply_text("❌ اكتب بالشكل: `ID Amount`")
 
     elif step == "adm_input_sub_bal":
         try:
             parts = text.split()
-            target_id, amt = int(parts[0]), float(parts[1])
-            conn.execute("UPDATE users SET balance = MAX(0, balance - ?) WHERE user_id = ?", (amt, target_id))
-            conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (target_id, "خصم رصيد من الأدمن", -amt))
-            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-            conn.commit()
-            await update.message.reply_text(f"✅ تم خصم `{amt}` ليرة من حساب `{target_id}` بنجاح.")
+            if len(parts) >= 2:
+                target_id, amt = int(parts[0]), float(parts[1])
+                conn.execute("UPDATE users SET balance = MAX(0, balance - ?) WHERE user_id = ?", (amt, target_id))
+                conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (target_id, "خصم رصيد من الأدمن", -amt))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+                conn.commit()
+                await update.message.reply_text(f"✅ تم خصم `{amt}` ليرة من حساب `{target_id}` بنجاح.")
+            else:
+                await update.message.reply_text("❌ اكتب بالشكل: `ID Amount`")
         except Exception:
             await update.message.reply_text("❌ اكتب بالشكل: `ID Amount`")
 
     elif step == "adm_input_make_gift":
         try:
             parts = text.split()
-            amt, uses = float(parts[0]), int(parts[1])
-            code = "GIFT-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-            conn.execute("INSERT INTO gift_codes (code, amount, uses_left) VALUES (?, ?, ?)", (code, amt, uses))
-            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-            conn.commit()
-            await update.message.reply_text(f"🎁 تم إنشاء كود الهدية:\n`{code}`\nالقيمة: `{amt}` | الاستخدامات: `{uses}`")
+            if len(parts) >= 2:
+                amt, uses = float(parts[0]), int(parts[1])
+                code = "GIFT-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                conn.execute("INSERT INTO gift_codes (code, amount, uses_left) VALUES (?, ?, ?)", (code, amt, uses))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+                conn.commit()
+                await update.message.reply_text(f"🎁 تم إنشاء كود الهدية:\n`{code}`\nالقيمة: `{amt}` | الاستخدامات: `{uses}`")
+            else:
+                await update.message.reply_text("❌ اكتب بالشكل: `Amount Uses`")
         except Exception:
             await update.message.reply_text("❌ اكتب بالشكل: `Amount Uses`")
 
@@ -684,36 +691,45 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_text(f"✅ تم تعديل الحد الأدنى للسحب إلى `{text}` ليرة.")
 
     elif step == "adm_input_user_info":
-        usr = conn.execute("SELECT * FROM users WHERE user_id = ?", (int(text),)).fetchone()
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        if usr:
-            info = (
-                f"🔍 **تفاصيل اللاعب:**\n\n"
-                f"👤 **الاسم:** {usr['full_name']}\n"
-                f"🆔 **ID:** `{usr['user_id']}`\n"
-                f"📱 **الهاتف:** `{usr['phone']}`\n"
-                f"💰 **الرصيد:** `{usr['balance']:,.2f}` ليرة\n"
-                f"🎯 **تعديل الحظ الخاص:** `{usr['custom_boost'] or 0.0:+}%`\n"
-                f"👥 **الإحالات:** `{usr['referrals_count']}`\n"
-                f"🎰 **الألعاب:** `{usr['games_played']}` مرة\n"
-                f"🚫 **الحظر:** {'محظور ❌' if usr['is_banned'] else 'نشط ✅'}"
-            )
-            await update.message.reply_text(info, parse_mode="Markdown")
-        else:
-            await update.message.reply_text("❌ المستخدم غير موجود.")
+        try:
+            usr = conn.execute("SELECT * FROM users WHERE user_id = ?", (int(text),)).fetchone()
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+            conn.commit()
+            if usr:
+                info = (
+                    f"🔍 **تفاصيل اللاعب:**\n\n"
+                    f"👤 **الاسم:** {usr['full_name']}\n"
+                    f"🆔 **ID:** `{usr['user_id']}`\n"
+                    f"📱 **الهاتف:** `{usr['phone']}`\n"
+                    f"💰 **الرصيد:** `{usr['balance']:,.2f}` ليرة\n"
+                    f"🎯 **تعديل الحظ الخاص:** `{usr['custom_boost'] or 0.0:+}%`\n"
+                    f"👥 **الإحالات:** `{usr['referrals_count']}`\n"
+                    f"🎰 **الألعاب:** `{usr['games_played']}` مرة\n"
+                    f"🚫 **الحظر:** {'محظور ❌' if usr['is_banned'] else 'نشط ✅'}"
+                )
+                await update.message.reply_text(info, parse_mode="Markdown")
+            else:
+                await update.message.reply_text("❌ المستخدم غير موجود.")
+        except ValueError:
+            await update.message.reply_text("❌ يرجى إدخال معرف رقمي صحيح (ID).")
 
     elif step == "adm_input_ban":
-        conn.execute("UPDATE users SET is_banned = 1 WHERE user_id = ?", (int(text),))
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        await update.message.reply_text(f"🚫 تم حظر المستخدم `{text}` بنجاح.")
+        try:
+            conn.execute("UPDATE users SET is_banned = 1 WHERE user_id = ?", (int(text),))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+            conn.commit()
+            await update.message.reply_text(f"🚫 تم حظر المستخدم `{text}` بنجاح.")
+        except ValueError:
+            await update.message.reply_text("❌ يرجى إدخال معرف رقمي صحيح.")
 
     elif step == "adm_input_unban":
-        conn.execute("UPDATE users SET is_banned = 0 WHERE user_id = ?", (int(text),))
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        await update.message.reply_text(f"✅ تم إلغاء حظر المستخدم `{text}` بنجاح.")
+        try:
+            conn.execute("UPDATE users SET is_banned = 0 WHERE user_id = ?", (int(text),))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+            conn.commit()
+            await update.message.reply_text(f"✅ تم إلغاء حظر المستخدم `{text}` بنجاح.")
+        except ValueError:
+            await update.message.reply_text("❌ يرجى إدخال معرف رقمي صحيح.")
 
     elif step == "adm_input_bc_txt":
         users_list = conn.execute("SELECT user_id FROM users WHERE is_banned = 0").fetchall()
@@ -728,15 +744,19 @@ async def handle_admin_text_inputs(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_text(f"📢 تم إرسال الرسالة لـ `{count}` مستخدم.")
 
     elif step == "adm_input_pm_txt":
-        parts = text.split("|")
-        target_id, msg = int(parts[0].strip()), parts[1].strip()
-        conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
-        conn.commit()
-        try:
-            await context.bot.send_message(target_id, f"📩 **رسالة من الإدارة:**\n\n{msg}", parse_mode="Markdown")
-            await update.message.reply_text(f"✅ تم إرسال الرسالة للعميل `{target_id}`.")
-        except Exception as e:
-            await update.message.reply_text(f"❌ فشل الإرسال: {e}")
+        parts = text.split("|", 1)
+        if len(parts) >= 2:
+            try:
+                target_id = int(parts[0].strip())
+                msg = parts[1].strip()
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (admin_user["user_id"],))
+                conn.commit()
+                await context.bot.send_message(target_id, f"📩 **رسالة من الإدارة:**\n\n{msg}", parse_mode="Markdown")
+                await update.message.reply_text(f"✅ تم إرسال الرسالة للعميل `{target_id}`.")
+            except Exception as e:
+                await update.message.reply_text(f"❌ فشل الإرسال: {e}")
+        else:
+            await update.message.reply_text("❌ الصيغة خاطئة. استخدم: `ID|المحتوى`")
 
     elif step.startswith("reply_to_user_"):
         target_id = int(step.replace("reply_to_user_", ""))
@@ -755,7 +775,6 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     user = update.effective_user
     data = query.data
 
-    # زر التحقق من الاشتراك الإجباري
     if data == "check_subscription_status":
         await query.answer("جاري التثبت من اشتراكك...")
         is_subbed, unsubbed = await check_user_channels_subscription(context.bot, user.id)
@@ -937,7 +956,7 @@ async def handle_admin_callbacks(query, context, admin_id, data):
 
     elif data == "adm_add_bal":
         conn.execute("UPDATE users SET step = 'adm_input_add_bal' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("✍️ أرسل (ID Amount):\nمثال:\n7255100997 5000")
+        await query.message.reply_text("✍️ أرسل (ID Amount):\nمثال:\n`7255100997 5000`", parse_mode="Markdown")
 
     elif data == "adm_sub_bal":
         conn.execute("UPDATE users SET step = 'adm_input_sub_bal' WHERE user_id = ?", (admin_id,))
@@ -945,7 +964,7 @@ async def handle_admin_callbacks(query, context, admin_id, data):
 
     elif data == "adm_make_gift":
         conn.execute("UPDATE users SET step = 'adm_input_make_gift' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("🎁 أرسل (Amount Uses):\nمثال:\n1000 20")
+        await query.message.reply_text("🎁 أرسل (Amount Uses):\nمثال:\n`1000 20`", parse_mode="Markdown")
 
     elif data == "adm_set_ref":
         conn.execute("UPDATE users SET step = 'adm_input_set_ref' WHERE user_id = ?", (admin_id,))
@@ -988,7 +1007,7 @@ async def handle_admin_callbacks(query, context, admin_id, data):
 
     elif data == "adm_pm_txt":
         conn.execute("UPDATE users SET step = 'adm_input_pm_txt' WHERE user_id = ?", (admin_id,))
-        await query.message.reply_text("📩 أرسل (ID|المحتوى):\nمثال:\n7255100997|مرحباً بك")
+        await query.message.reply_text("📩 أرسل (ID|المحتوى):\nمثال:\n`7255100997|مرحباً بك`", parse_mode="Markdown")
 
     elif data == "adm_stats":
         total_users = conn.execute("SELECT COUNT(*) as c FROM users").fetchone()["c"]
