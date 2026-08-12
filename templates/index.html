@@ -1,1 +1,629 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>1xBet VIP Casino - Pro Edition</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax5/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #07090e;
+            --bg-card: #111823;
+            --gold: #ffd700;
+            --orange: #ff8800;
+            --cyan: #00f0ff;
+            --light: #ffffff;
+            --dim: #8892b0;
+            --danger: #ff3366;
+            --success: #00ff66;
+        }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #111a2e 0%, var(--bg-dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            padding-bottom: 40px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: rgba(17, 24, 35, 0.85);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), var(--orange));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #000;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .balance-badge {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 900;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+
+        .container {
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--gold);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .game-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
+            position: relative;
+        }
+
+        .game-card:hover {
+            border-color: var(--gold);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.25);
+            transform: translateY(-3px);
+        }
+
+        .game-card:active {
+            transform: scale(0.95);
+        }
+
+        .game-banner {
+            width: 100%;
+            height: 120px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .game-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(0deg, var(--bg-card) 0%, transparent 80%);
+        }
+
+        .game-details {
+            padding: 12px;
+            text-align: center;
+        }
+
+        .game-title {
+            font-size: 0.95rem;
+            font-weight: 900;
+            color: var(--light);
+        }
+
+        .game-tag {
+            font-size: 0.75rem;
+            color: var(--dim);
+            margin-top: 2px;
+        }
+
+        .play-screen {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            align-self: flex-start;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .game-stage {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            padding: 24px;
+            text-align: center;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Chicken Game Specific Grid UI */
+        .chicken-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .chicken-tile {
+            background: #1a2638;
+            border: 2px solid #2a3d5e;
+            border-radius: 12px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chicken-tile:hover {
+            border-color: var(--gold);
+        }
+
+        .chicken-tile.revealed-bone {
+            background: rgba(255, 51, 102, 0.2);
+            border-color: var(--danger);
+        }
+
+        .chicken-tile.revealed-chicken {
+            background: rgba(0, 255, 102, 0.2);
+            border-color: var(--success);
+            animation: bounce 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* Betting Controls */
+        .bet-selector {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        .bet-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .bet-chip {
+            background: #192333;
+            border: 1px solid #2d3f59;
+            color: var(--light);
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .bet-chip.active {
+            background: linear-gradient(135deg, var(--gold), var(--orange));
+            color: #000;
+            border-color: var(--gold);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            font-weight: 900;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, var(--gold), var(--orange));
+            color: #000;
+            border: none;
+            width: 100%;
+            padding: 15px;
+            border-radius: 14px;
+            font-size: 1.15rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+            margin-top: 14px;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Modal Dialog */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-body {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--gold);
+            padding: 28px;
+            text-align: center;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-btn {
+            background: linear-gradient(135deg, var(--gold), var(--orange));
+            color: #000;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 10px;
+            font-weight: 900;
+            margin-top: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="avatar" id="u-avatar">U</div>
+            <span id="u-name" style="font-weight: 900; font-size: 0.95rem;">اللاعب</span>
+        </div>
+        <div class="balance-badge">
+            <span id="u-balance">0.00</span>
+            <span>💰</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Main Games Catalog View -->
+        <div id="catalog-view">
+            <div class="section-title">🔥 ألعاب 1xBet VIP الكبرى</div>
+            <div class="games-grid">
+                
+                <!-- Chicken Game Card Added -->
+                <div class="game-card" onclick="openGame('chicken', '🐔 لعبة الدجاجة (Chicken)', 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">🐔 لعبة الدجاجة الفخمة</div>
+                        <div class="game-tag">اختر العظام وتجنب الفخ</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('aviator', '🚀 طائرة الأفياتور (Aviator)', 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">🚀 طائرة الأفياتور</div>
+                        <div class="game-tag">عداد مضاعفات ضخم</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('wheel', '🎡 عجلة الحظ VIP', 'https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">🎡 عجلة الحظ VIP</div>
+                        <div class="game-tag">مضاعف x100</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('mines', '💣 التفاح والألغام', 'https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1579373903781-fd5c0c30c4cd?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">💣 حقل الألغام</div>
+                        <div class="game-tag">اختر المسار الآمن</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('slots', '🎰 سلوتس الفواكه الملوكية', 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">🎰 سلوتس الملوك</div>
+                        <div class="game-tag">ماكينة الحظ السريع</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('chests', '💎 صناديق الذهب', 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">💎 صناديق الذهب</div>
+                        <div class="game-tag">افتح الكنز الفائز</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('dice', '🎲 نرد الحظ الكلاسيكي', 'https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">🎲 نرد الحظ</div>
+                        <div class="game-tag">مجموع أرقام الحظ</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('coinflip', '🪙 رمي العملة الذهبية', 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">🪙 العملة الذهبية</div>
+                        <div class="game-tag">وجه أو ظهر (3D)</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('roulette', '🎯 روليت الكازينو VIP', 'https://images.unsplash.com/photo-1605870445919-838d190e8e1b?w=400')">
+                    <div class="game-banner" style="background-image: url('https://images.unsplash.com/photo-1605870445919-838d190e8e1b?w=400');"></div>
+                    <div class="game-details">
+                        <div class="game-title">🎯 روليت VIP</div>
+                        <div class="game-tag">الأرقام الحمراء والبيضاء</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Interactive Play View -->
+        <div id="play-view" class="play-screen">
+            <button class="back-btn" onclick="closeGame()">➔ العودة للرئيسية</button>
+            <h2 id="active-game-title" style="text-align: center; color: var(--gold);">اسم اللعبة</h2>
+
+            <div class="game-stage">
+                <div id="preview-box" style="width: 100%;">
+                    <img id="game-preview-img" src="" style="width: 100%; height: 140px; object-fit: cover; border-radius: 12px; margin-bottom: 10px;">
+                    <p style="color: var(--dim); font-size: 0.85rem;">اختر سعر الضربة ثم اضغط تنفيذ للبدء الفوري!</p>
+                </div>
+
+                <div id="stage-interactive" style="display: none; width: 100%;">
+                    <div id="stage-content" style="font-size: 3rem;">🎲</div>
+                </div>
+            </div>
+
+            <div class="bet-selector">
+                <div style="text-align: center; color: var(--dim); font-size: 0.85rem;">🎯 حدد قيمة الرهان:</div>
+                <div class="bet-grid">
+                    <div class="bet-chip active" onclick="setBet(3, this)">3</div>
+                    <div class="bet-chip" onclick="setBet(6, this)">6</div>
+                    <div class="bet-chip" onclick="setBet(9, this)">9</div>
+                    <div class="bet-chip" onclick="setBet(12, this)">12</div>
+                    <div class="bet-chip" onclick="setBet(15, this)">15</div>
+                    <div class="bet-chip" onclick="setBet(20, this)">20</div>
+                    <div class="bet-chip" onclick="setBet(50, this)">50</div>
+                    <div class="bet-chip" onclick="setBet(100, this)">100</div>
+                </div>
+                <button class="action-btn" id="play-btn" onclick="executeStrike()">🔥 تنفيذ الضربة الفورية 🔥</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Dialog -->
+    <div class="modal" id="msg-modal">
+        <div class="modal-body">
+            <div id="modal-status" style="font-size: 1.4rem; font-weight: 900; color: var(--gold); margin-bottom: 10px;">النتيجة</div>
+            <p id="modal-desc" style="color: var(--dim); font-size: 1rem;"></p>
+            <button class="modal-btn" onclick="closeModal()">استمرار 🚀</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let userId = tg.initDataUnsafe?.user?.id || 7255100997;
+        let selectedBet = 3;
+        let currentGame = 'chicken';
+        let currentBalance = 0;
+
+        async function loadUserData() {
+            try {
+                const res = await fetch('/api/get_user_data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: userId })
+                });
+                const data = await res.json();
+                if (data.balance !== undefined) {
+                    currentBalance = data.balance;
+                    document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+                    document.getElementById('u-name').innerText = data.name || "اللاعب";
+                    document.getElementById('u-avatar').innerText = (data.name || "U")[0].toUpperCase();
+                }
+            } catch (err) {
+                console.error("فشل إحضار بيانات المستخدم:", err);
+            }
+        }
+
+        loadUserData();
+
+        function setBet(amount, el) {
+            selectedBet = amount;
+            document.querySelectorAll('.bet-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function openGame(gameKey, title, bannerUrl) {
+            currentGame = gameKey;
+            document.getElementById('catalog-view').style.display = 'none';
+            document.getElementById('play-view').style.display = 'flex';
+            document.getElementById('active-game-title').innerText = title;
+            document.getElementById('game-preview-img').src = bannerUrl;
+            
+            document.getElementById('preview-box').style.display = 'block';
+            document.getElementById('stage-interactive').style.display = 'none';
+        }
+
+        function closeGame() {
+            document.getElementById('play-view').style.display = 'none';
+            document.getElementById('catalog-view').style.display = 'block';
+        }
+
+        async function executeStrike() {
+            if (currentBalance < selectedBet) {
+                showModal("❌ رصيد غير كافٍ", "يرجى شحن حسابك للبدء بهذه الضربة.");
+                return;
+            }
+
+            const btn = document.getElementById('play-btn');
+            btn.disabled = true;
+
+            document.getElementById('preview-box').style.display = 'none';
+            document.getElementById('stage-interactive').style.display = 'block';
+            const stage = document.getElementById('stage-content');
+
+            // Dynamic animations based on game type
+            if (currentGame === 'chicken') {
+                stage.innerHTML = '<div style="font-size:1.3rem; color:var(--gold);">🐔 جاري إعداد أطباق الدجاج...</div><div class="chicken-grid" id="chicken-board"></div>';
+                let board = document.getElementById('chicken-board');
+                for(let i=0; i<8; i++) {
+                    let tile = document.createElement('div');
+                    tile.className = 'chicken-tile';
+                    tile.innerHTML = '❓';
+                    board.appendChild(tile);
+                }
+            } else if (currentGame === 'aviator') {
+                stage.innerHTML = '🚀 <div style="font-size:1.2rem; margin-top:5px; color:var(--cyan);">جاري صعود الطائرة المضاعفة...</div>';
+            } else if (currentGame === 'wheel') {
+                stage.innerHTML = '🎡 <div style="font-size:1.2rem; margin-top:5px; color:var(--gold);">جاري دوران عجلة الكازينو...</div>';
+            } else {
+                stage.innerHTML = '💎 <div style="font-size:1.2rem; margin-top:5px;">جاري معالجة الرهان...</div>';
+            }
+
+            try {
+                const res = await fetch('/api/play_game', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: userId, bet: selectedBet, game: currentGame })
+                });
+
+                const data = await res.json();
+
+                if (res.status !== 200 || data.error) {
+                    showModal("⚠️ تنبيه النظام", data.error || "حدث خطأ أثناء التواصل مع السيرفر");
+                    btn.disabled = false;
+                    return;
+                }
+
+                currentBalance = data.new_balance;
+                document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+
+                setTimeout(() => {
+                    if (currentGame === 'chicken' && document.getElementById('chicken-board')) {
+                        let tiles = document.querySelectorAll('.chicken-tile');
+                        let winningIndex = Math.floor(Math.random() * tiles.length);
+                        tiles.forEach((t, idx) => {
+                            if (data.win && idx === winningIndex) {
+                                t.innerHTML = '🐔';
+                                t.classList.add('revealed-chicken');
+                            } else if (!data.win && idx === 0) {
+                                t.innerHTML = '🦴';
+                                t.classList.add('revealed-bone');
+                            } else {
+                                t.innerHTML = data.win ? '🪙' : '🦴';
+                            }
+                        });
+                    }
+
+                    if (data.win) {
+                        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                        showModal("🎉 مبروك الفوز الكبير!", `ربحت ${data.win_amount} بنجاح! (المضاعف x${data.multiplier})`);
+                    } else {
+                        showModal("💔 حظ أوفر في المرة القادمة", "لم تنجح هذه الضربة، حاول مجدداً وا,ستعد تعويضها!");
+                    }
+                    btn.disabled = false;
+                }, 1500);
+
+            } catch (e) {
+                showModal("⚠️ خطأ شبكة", "تعذر الاتصال بالسيرفر، تأكد من جودة الإنترنت.");
+                btn.disabled = false;
+            }
+        }
+
+        function showModal(title, desc) {
+            document.getElementById('modal-status').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            document.getElementById('msg-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('msg-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
