@@ -1000,9 +1000,9 @@ InlineKeyboardButton("🔥 ربح عالي (10x / متوسط)", callback_data="a
                 f"🎰 **إدارة خوارزمية لعبة Golden Bull:**\nالوضع الحالي المفعل: `{curr_mode}`\n\nاختر الوضع الجديد:",
                 reply_markup=kb, parse_mode="Markdown"
             )
-            return
+                return
 
-         if data.startswith("ask_rate_"):
+if data.startswith("ask_rate_"):
     mode = data.replace("ask_rate_", "")
     context.user_data["selected_mode"] = mode
     context.user_data["waiting_for_percent"] = True
@@ -1014,6 +1014,7 @@ InlineKeyboardButton("🔥 ربح عالي (10x / متوسط)", callback_data="a
         parse_mode="Markdown"
     )
     return
+
 
 
         # إضافة أدمن جديد
