@@ -2,16 +2,17 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Golden Bull Deluxe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Golden Bull Deluxe Casino</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent-gold: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-green: #10b981;
+            --bg-color: #070b19;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --border-glow: #f59e0b;
+            --accent-gold: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7);
+            --accent-red: linear-gradient(135deg, #ef4444, #991b1b);
+            --accent-green: linear-gradient(135deg, #10b981, #065f46);
             --text-color: #f8fafc;
         }
 
@@ -19,23 +20,26 @@
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
             margin: 0;
             padding: 0;
-            background-color: var(--bg-color);
+            background: radial-gradient(circle at top, #1e1b4b 0%, #070b19 100%);
             color: var(--text-color);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow-x: hidden;
         }
 
+        /* --- Header Styling --- */
         header {
             width: 100%;
-            background: #020617;
+            background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(12px);
             padding: 12px 20px;
             display: flex;
             justify-content: space-between;
@@ -44,6 +48,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
         .user-info {
@@ -52,243 +57,334 @@
             gap: 10px;
         }
 
-        .balance-box {
-            background: #1e293b;
-            border: 1px solid var(--accent-gold);
+        .balance-badge {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1.5px solid #f59e0b;
             padding: 6px 14px;
-            border-radius: 20px;
+            border-radius: 30px;
             font-weight: bold;
-            color: var(--accent-gold);
-            font-size: 1.1rem;
-        }
-
-        .games-nav {
+            color: #fcf6ba;
             display: flex;
-            gap: 10px;
-            padding: 10px;
-            width: 100%;
-            max-width: 500px;
-            overflow-x: auto;
-        }
-
-        .nav-btn {
-            background: var(--card-bg);
-            border: 1px solid #475569;
-            color: #94a3b8;
-            padding: 8px 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .nav-btn.active {
-            background: var(--accent-gold);
-            color: #000;
-            border-color: var(--accent-gold);
-        }
-
-        .game-container {
-            width: 100%;
-            max-width: 480px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
             align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+
+        /* --- Canvas Background for FX --- */
+        #fxCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* --- Game Hub Grid --- */
+        .hub-container {
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
         }
 
         .game-card {
-            width: 100%;
             background: var(--card-bg);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            border: 1px solid #334155;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 15px;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
         }
 
-        .slot-title {
-            color: var(--accent-gold);
-            margin-top: 0;
-            font-size: 1.4rem;
-            text-transform: uppercase;
+        .game-card:hover, .game-card:active {
+            transform: translateY(-5px) scale(1.02);
+            border-color: #f59e0b;
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
         }
 
-        /* شبكة 5 بكرات × 3 صفوف */
-        .slot-machine-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 6px;
-            background: #020617;
-            padding: 12px;
-            border-radius: 14px;
-            border: 2px solid var(--accent-gold);
+        .game-card .icon {
+            font-size: 2.8rem;
+            margin-bottom: 8px;
+            display: block;
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
+        }
+
+        .game-card .title {
+            font-weight: bold;
+            font-size: 1rem;
+            color: #fcf6ba;
+        }
+
+        .game-card .tag {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: var(--accent-red);
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        /* --- Game Stage Modal/View --- */
+        .stage-view {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .game-box {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #f59e0b;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.25);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* --- Controls & Inputs --- */
+        .bet-control {
+            display: flex;
+            gap: 10px;
             margin: 15px 0;
+            width: 100%;
+            justify-content: center;
         }
 
-        .slot-cell {
-            background: #0f172a;
-            border-radius: 6px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
+        .bet-input {
+            background: #020617;
             border: 1px solid #334155;
-            transition: all 0.1s ease-in-out;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 12px;
+            width: 120px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
         }
 
-        .slot-cell.spinning {
-            animation: spinAnim 0.1s infinite linear;
+        .btn-action {
+            background: var(--accent-gold);
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            transition: transform 0.1s;
         }
 
-        .slot-cell.win-highlight {
-            border-color: var(--accent-green);
-            background: rgba(16, 185, 129, 0.25);
-            transform: scale(1.05);
+        .btn-action:active {
+            transform: scale(0.95);
         }
 
-        @keyframes spinAnim {
-            0% { transform: translateY(-3px); }
-            50% { transform: translateY(3px); }
-            100% { transform: translateY(0); }
-        }
-
-        .bet-controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .bet-btn {
+        .btn-back {
             background: #334155;
             color: #fff;
             border: none;
-            width: 36px;
-            height: 36px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            align-self: flex-start;
+        }
+
+        /* --- Specific Game Elements --- */
+        /* 1. Golden Bull Slot */
+        .slot-reel-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            background: #020617;
+            padding: 15px;
+            border-radius: 16px;
+            border: 2px solid #475569;
+        }
+        .slot-reel {
+            width: 70px;
+            height: 90px;
+            background: #1e293b;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: inset 0 0 10px #000;
+            transition: all 0.1s;
+        }
+
+        /* 2. Wheel of Fortune */
+        .wheel-canvas {
+            width: 250px;
+            height: 250px;
             border-radius: 50%;
-            font-size: 1.2rem;
-            cursor: pointer;
-            font-weight: bold;
+            border: 5px solid #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+            transition: transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99);
         }
 
-        .bet-val {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--accent-gold);
-            min-width: 80px;
-        }
-
-        .spin-btn {
+        /* 3. Crash Rocket */
+        .crash-display {
             width: 100%;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #000;
-            border: none;
-            padding: 14px;
-            font-size: 1.3rem;
-            font-weight: bold;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            height: 180px;
+            background: #020617;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .crash-multiplier {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #10b981;
+            text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
         }
 
-        .spin-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .status-msg {
-            margin-top: 15px;
-            font-weight: bold;
-            min-height: 28px;
-            font-size: 1.05rem;
-        }
-
-        .win-text { color: var(--accent-green); }
-        .lose-text { color: var(--accent-red); }
-
-        .coming-soon {
-            display: none;
-            padding: 40px 20px;
-            color: #94a3b8;
+        /* 8. Plinko Board */
+        .plinko-board {
+            width: 280px;
+            height: 220px;
+            background: #020617;
+            border-radius: 16px;
+            position: relative;
         }
     </style>
 </head>
 <body>
 
+    <canvas id="fxCanvas"></canvas>
+
     <header>
         <div class="user-info">
-            <span id="username">المستخدم</span>
+            <span style="font-size: 1.5rem;">👑</span>
+            <div>
+                <div style="font-size: 0.8rem; color: #94a3b8;">VIP Player</div>
+                <div id="userIdDisplay" style="font-weight: bold; font-size: 0.85rem;">ID: ------</div>
+            </div>
         </div>
-        <div class="balance-box">
-            💰 <span id="user-balance">0</span>
+        <div class="balance-badge">
+            <span>💰</span>
+            <span id="balanceDisplay">0.00</span>
+            <span style="font-size: 0.75rem; color: #f1f5f9;">ل.س</span>
         </div>
     </header>
 
-    <div class="games-nav">
-        <button class="nav-btn active" onclick="switchGame('golden-bull')">🎰 Golden Bull</button>
-        <button class="nav-btn" onclick="switchGame('wheel')">🎡 قريباً</button>
+    <!-- Hub: 10 Games Matrix -->
+    <div id="hubView" class="hub-container">
+        <div class="game-card" onclick="openGame('slot')">
+            <span class="tag">🔥 100x</span>
+            <span class="icon">🎰</span>
+            <div class="title">Golden Bull Slot</div>
+        </div>
+        <div class="game-card" onclick="openGame('wheel')">
+            <span class="tag">🎯 50x</span>
+            <span class="icon">🎡</span>
+            <div class="title">عجلة الحظ الذهبية</div>
+        </div>
+        <div class="game-card" onclick="openGame('crash')">
+            <span class="tag">🚀 حماسي</span>
+            <span class="icon">🚀</span>
+            <div class="title">صاروخ الأرباح</div>
+        </div>
+        <div class="game-card" onclick="openGame('mines')">
+            <span class="tag">💣 تضاعف</span>
+            <span class="icon">⛏️</span>
+            <div class="title">منجم الذهب</div>
+        </div>
+        <div class="game-card" onclick="openGame('plinko')">
+            <span class="tag">🔮 25x</span>
+            <span class="icon">🔮</span>
+            <div class="title">كرات البلينكو</div>
+        </div>
+        <div class="game-card" onclick="openGame('flip')">
+            <span class="tag">🪙 2x</span>
+            <span class="icon">🪙</span>
+            <div class="title">رمي العملة 3D</div>
+        </div>
+        <div class="game-card" onclick="openGame('hilo')">
+            <span class="tag">🃏 ذكاء</span>
+            <span class="icon">🎴</span>
+            <div class="title">الكارت الأعلى والأدنى</div>
+        </div>
+        <div class="game-card" onclick="openGame('dice')">
+            <span class="tag">🎲 سريع</span>
+            <span class="icon">🎲</span>
+            <div class="title">نرد الحظ VIP</div>
+        </div>
+        <div class="game-card" onclick="openGame('chests')">
+            <span class="tag">🎁 مفاجآت</span>
+            <span class="icon">💎</span>
+            <div class="title">صناديق الجواهر</div>
+        </div>
+        <div class="game-card" onclick="openGame('blackjack')">
+            <span class="tag">♠️ ملكي</span>
+            <span class="icon">🃏</span>
+            <div class="title">بلاكبلاك VIP</div>
+        </div>
     </div>
 
-    <div class="game-container">
-        <!-- لعبة Golden Bull (5 أعمدة × 3 صفوف) -->
-        <div id="golden-bull" class="game-card">
-            <h2 class="slot-title">🎰 Golden Bull</h2>
-            
-            <div class="slot-machine-grid" id="slot-grid">
-                <!-- سيتم تعبئة الخلايا الـ 15 برمجياً -->
-            </div>
-
-            <div class="bet-controls">
-                <button class="bet-btn" onclick="adjustBet(-1)">-</button>
-                <div class="bet-val">الرهان: <span id="bet-amount">1</span></div>
-                <button class="bet-btn" onclick="adjustBet(1)">+</button>
-            </div>
-
-            <button id="spin-btn" class="spin-btn" onclick="playSpin()">إبدأ اللعب 🎲</button>
-            
-            <div id="status-msg" class="status-msg"></div>
-        </div>
-
-        <div id="wheel" class="game-card coming-soon">
-            <h3>🎮 لعبة جديدة قريباً</h3>
-            <p>جاهزة لإضافة ألعاب جديدة في المستقبل!</p>
+    <!-- Stage View Container -->
+    <div id="stageView" class="stage-view">
+        <button class="btn-back" onclick="closeGame()">🔙 العودة للصالة</button>
+        <div class="game-box" id="gameBoxContent">
+            <!-- Game dynamic UI renders here -->
         </div>
     </div>
 
     <script>
-        const tg = window.Telegram ? window.Telegram.WebApp : null;
-        if (tg) tg.expand();
+        // --- WebApp Telegram Initialization & URL Query Params ---
+        const tg = window.Telegram?.WebApp;
+        if(tg) tg.expand();
 
-        const FRUITS = ["🍇", "🍋", "🍉", "🔔", "💎", "🐂"];
-        let currentBet = 1;
-        let isSpinning = false;
-        let userBalance = 0;
-        let userId = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        let userId = urlParams.get('user_id') || '7255100997';
+        let balance = parseFloat(urlParams.get('balance')) || 1000.0;
+        
+        // Administrative Algorithm Rates
+        let rateLoss = parseFloat(urlParams.get('rl')) || 50;
+        let rateNormal = parseFloat(urlParams.get('rn')) || 30; // 1x - 5x
+        let rateMedium = parseFloat(urlParams.get('rm')) || 15; // 6x - 20x
+        let rateHigh = parseFloat(urlParams.get('rh')) || 5;   // 20x - 100x
 
-        // ===== تحكم بنسبة خوارزمية الربح (يمكنك تعديل النسبة المئوية هنا) =====
-        // مثلاً: 40 يعني نسبة فرصة الفوز العامة 40%
-        let WIN_PROBABILITY_PERCENT = 40; 
+        document.getElementById('userIdDisplay').innerText = `ID: ${userId}`;
+        updateBalanceUI(balance);
 
-        // توليد الشبكة المرئية (5 أعمدة × 3 صفوف)
-        const gridEl = document.getElementById('slot-grid');
-        let cellElements = [];
-        for (let r = 0; r < 3; r++) {
-            cellElements[r] = [];
-            for (let c = 0; c < 5; c++) {
-                const cell = document.createElement('div');
-                cell.className = 'slot-cell';
-                cell.id = `cell-${r}-${c}`;
-                cell.innerText = FRUITS[Math.floor(Math.random() * FRUITS.length)];
-                gridEl.appendChild(cell);
-                cellElements[r][c] = cell;
+        function updateBalanceUI(val) {
+            balance = val;
+            document.getElementById('balanceDisplay').innerText = balance.toFixed(2);
+            // Sync with Telegram Bot engine
+            if(tg && tg.sendData) {
+                tg.sendData(JSON.stringify({ action: "update_balance", new_balance: balance }));
             }
         }
 
-        // محرك الصوت عبر Web Audio API
+        // --- Web Audio Sound FX Synthesizer ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -298,208 +394,258 @@
             gain.connect(audioCtx.destination);
 
             if (type === 'spin') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(350, audioCtx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.08);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.08);
-            } else if (type === 'win') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(350, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.35);
-                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.35);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.35);
-            } else if (type === 'lose') {
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(180, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(70, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.2);
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'win') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'loss') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
             }
         }
 
-        function initApp() {
-            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                const user = tg.initDataUnsafe.user;
-                userId = user.id;
-                document.getElementById('username').innerText = user.first_name || "لاعب";
-            } else {
-                document.getElementById('username').innerText = "لاعب VIP";
-            }
+        // --- Particle FX Engine (Gold Shower) ---
+        const canvas = document.getElementById('fxCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let particles = [];
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const initialBal = parseInt(urlParams.get('balance')) || 0;
-            userBalance = Math.floor(initialBal / 100); // إزالة صفرين
-            updateBalanceDisplay();
-        }
-
-        function updateBalanceDisplay() {
-            document.getElementById('user-balance').innerText = userBalance.toLocaleString();
-        }
-
-        function adjustBet(delta) {
-            if (isSpinning) return;
-            const bets = [1, 2, 5, 10, 25, 50, 100];
-            let idx = bets.indexOf(currentBet);
-            if (idx === -1) idx = 0;
-            idx += delta;
-            if (idx >= 0 && idx < bets.length) {
-                currentBet = bets[idx];
-                document.getElementById('bet-amount').innerText = currentBet;
+        function triggerWinFX() {
+            playSound('win');
+            for(let i=0; i<80; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.7) * 14,
+                    size: Math.random() * 8 + 4,
+                    color: ['#f59e0b', '#fcf6ba', '#bf953f'][Math.floor(Math.random()*3)]
+                });
             }
         }
 
-        function playSpin() {
-            if (isSpinning) return;
-            if (userBalance < currentBet) {
-                showStatus("⚠️ الرصيد غير كافٍ للعب!", "lose-text");
-                playSound('lose');
-                return;
-            }
+        function renderParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.4;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                if(p.y > canvas.height) particles.splice(idx, 1);
+            });
+            requestAnimationFrame(renderParticles);
+        }
+        renderParticles();
 
-            userBalance -= currentBet;
-            updateBalanceDisplay();
-            isSpinning = true;
-            document.getElementById('spin-btn').disabled = true;
-            showStatus("", "");
+        // --- Algorithm Result Generator ---
+        function calculateOutcomeMultiplier() {
+            let rand = Math.random() * 100;
+            if (rand < rateLoss) return 0; // Loss
+            rand -= rateLoss;
+            if (rand < rateNormal) return Math.floor(Math.random() * 4) + 1.5; // 1.5x - 5x
+            rand -= rateNormal;
+            if (rand < rateMedium) return Math.floor(Math.random() * 14) + 6;  // 6x - 20x
+            return Math.floor(Math.random() * 80) + 20;                        // 20x - 100x
+        }
 
-            // إزالة تمييز الفوز القديم وتفعيل حركة الدوران
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 5; c++) {
-                    cellElements[r][c].classList.remove('win-highlight');
-                    cellElements[r][c].classList.add('spinning');
+        // --- Game Navigation ---
+        function openGame(gameType) {
+            document.getElementById('hubView').style.display = 'none';
+            const stage = document.getElementById('stageView');
+            stage.style.display = 'flex';
+            const box = document.getElementById('gameBoxContent');
+
+            if (gameType === 'slot') renderSlotUI(box);
+            else if (gameType === 'wheel') renderWheelUI(box);
+            else if (gameType === 'crash') renderCrashUI(box);
+            else if (gameType === 'mines') renderMinesUI(box);
+            else renderGenericGameUI(box, gameType);
+        }
+
+        function closeGame() {
+            document.getElementById('stageView').style.display = 'none';
+            document.getElementById('hubView').style.display = 'grid';
+        }
+
+        // --- 1. Golden Bull Slot Game Engine ---
+        function renderSlotUI(box) {
+            box.innerHTML = `
+                <h2 style="color:#fcf6ba; margin:0 0 10px 0;">🎰 Golden Bull Slot</h2>
+                <div class="slot-reel-container">
+                    <div class="slot-reel" id="reel1">🐂</div>
+                    <div class="slot-reel" id="reel2">👑</div>
+                    <div class="slot-reel" id="reel3">💎</div>
+                </div>
+                <div class="bet-control">
+                    <input type="number" id="betInput" class="bet-input" value="10" min="10">
+                </div>
+                <button class="btn-action" onclick="spinSlot()">تدوير عجلة الثور (Spin)</button>
+            `;
+        }
+
+        function spinSlot() {
+            let bet = parseFloat(document.getElementById('betInput').value);
+            if (bet > balance) return alert('رصيدك غير كافٍ!');
+            updateBalanceUI(balance - bet);
+            playSound('spin');
+
+            const symbols = ['🐂', '👑', '💎', '🍇', '🔔', '7️⃣'];
+            let mult = calculateOutcomeMultiplier();
+            let r1 = document.getElementById('reel1');
+            let r2 = document.getElementById('reel2');
+            let r3 = document.getElementById('reel3');
+
+            let spins = 0;
+            let timer = setInterval(() => {
+                r1.innerText = symbols[Math.floor(Math.random()*symbols.length)];
+                r2.innerText = symbols[Math.floor(Math.random()*symbols.length)];
+                r3.innerText = symbols[Math.floor(Math.random()*symbols.length)];
+                spins++;
+                if (spins > 15) {
+                    clearInterval(timer);
+                    if (mult > 0) {
+                        let winSym = mult >= 20 ? '🐂' : '👑';
+                        r1.innerText = winSym; r2.innerText = winSym; r3.innerText = winSym;
+                        let winAmt = bet * mult;
+                        updateBalanceUI(balance + winAmt);
+                        triggerWinFX();
+                    } else {
+                        playSound('loss');
+                    }
                 }
-            }
+            }, 80);
+        }
 
-            let soundInterval = setInterval(() => playSound('spin'), 90);
+        // --- 2. Wheel of Fortune Engine ---
+        function renderWheelUI(box) {
+            box.innerHTML = `
+                <h2 style="color:#fcf6ba; margin:0 0 10px 0;">🎡 عجلة الحظ الذهبية</h2>
+                <canvas id="wheelCanvas" width="250" height="250" class="wheel-canvas"></canvas>
+                <div class="bet-control">
+                    <input type="number" id="betInput" class="bet-input" value="10">
+                </div>
+                <button class="btn-action" onclick="spinWheel()">إدار العجلة</button>
+            `;
+            drawWheelCanvas();
+        }
+
+        function drawWheelCanvas() {
+            const cvs = document.getElementById('wheelCanvas');
+            if(!cvs) return;
+            const c = cvs.getContext('2d');
+            const colors = ['#f59e0b', '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+            for(let i=0; i<6; i++) {
+                c.beginPath();
+                c.fillStyle = colors[i];
+                c.moveTo(125, 125);
+                c.arc(125, 125, 120, (i*60)*Math.PI/180, ((i+1)*60)*Math.PI/180);
+                c.fill();
+            }
+        }
+
+        function spinWheel() {
+            let bet = parseFloat(document.getElementById('betInput').value);
+            if (bet > balance) return alert('رصيدك غير كافٍ!');
+            updateBalanceUI(balance - bet);
+
+            let mult = calculateOutcomeMultiplier();
+            let cvs = document.getElementById('wheelCanvas');
+            let deg = 360 * 5 + (mult > 0 ? 60 : 30);
+            cvs.style.transform = `rotate(${deg}deg)`;
 
             setTimeout(() => {
-                clearInterval(soundInterval);
-                stopSpinAndEvaluate();
-            }, 1200);
+                if (mult > 0) {
+                    updateBalanceUI(balance + (bet * mult));
+                    triggerWinFX();
+                } else playSound('loss');
+            }, 4000);
         }
 
-        function stopSpinAndEvaluate() {
-            let board = [];
-            // خوارزمية التحكم بناءً على النسبة المئوية WIN_PROBABILITY_PERCENT
-            let forceWin = (Math.random() * 100) < WIN_PROBABILITY_PERCENT;
-            let targetFruit = FRUITS[Math.floor(Math.random() * FRUITS.length)];
+        // --- 3. Crash Rocket Game ---
+        function renderCrashUI(box) {
+            box.innerHTML = `
+                <h2 style="color:#fcf6ba;">🚀 صاروخ الأرباح التصاعدي</h2>
+                <div class="crash-display">
+                    <div id="rocketIcon" style="font-size:3rem; transform: translateY(20px);">🚀</div>
+                    <div id="crashMult" class="crash-multiplier">1.00x</div>
+                </div>
+                <div class="bet-control">
+                    <input type="number" id="betInput" class="bet-input" value="10">
+                </div>
+                <button id="crashBtn" class="btn-action" onclick="startCrash()">إطلاق الصاروخ</button>
+            `;
+        }
 
-            for (let r = 0; r < 3; r++) {
-                board[r] = [];
-                for (let c = 0; c < 5; c++) {
-                    let fruit;
-                    if (forceWin && c < 3 && r === 1) { 
-                        // ضمان تطابق المنتصف على الأقل 3 بكرات أولى إذا تحقق الحظ بالنسبة المئوية
-                        fruit = targetFruit;
+        function startCrash() {
+            let bet = parseFloat(document.getElementById('betInput').value);
+            if (bet > balance) return alert('رصيدك غير كافٍ!');
+            updateBalanceUI(balance - bet);
+
+            let multTarget = calculateOutcomeMultiplier();
+            let current = 1.00;
+            let display = document.getElementById('crashMult');
+            let btn = document.getElementById('crashBtn');
+            btn.disabled = true;
+
+            let timer = setInterval(() => {
+                current += 0.05;
+                display.innerText = current.toFixed(2) + 'x';
+                if (current >= multTarget || multTarget === 0) {
+                    clearInterval(timer);
+                    if (multTarget > 0) {
+                        display.style.color = '#10b981';
+                        updateBalanceUI(balance + (bet * multTarget));
+                        triggerWinFX();
                     } else {
-                        fruit = FRUITS[Math.floor(Math.random() * FRUITS.length)];
+                        display.innerText = '💥 انفجار!';
+                        display.style.color = '#ef4444';
+                        playSound('loss');
                     }
-                    board[r][c] = fruit;
-                    cellElements[r][c].classList.remove('spinning');
-                    cellElements[r][c].innerText = fruit;
+                    btn.disabled = false;
                 }
-            }
+            }, 100);
+        }
 
-            let totalWinMultiplier = 0;
-            let winningCells = [];
+        // --- Generic UI Fallback for Games ---
+        function renderGenericGameUI(box, name) {
+            box.innerHTML = `
+                <h2 style="color:#fcf6ba; text-transform:capitalize;">🎮 ${name} VIP</h2>
+                <div style="font-size:5rem; margin: 20px 0;">🎲</div>
+                <div class="bet-control">
+                    <input type="number" id="betInput" class="bet-input" value="10">
+                </div>
+                <button class="btn-action" onclick="playGeneric('${name}')">بدء اللعب الان</button>
+            `;
+        }
 
-            // فحص الصفوف الثلاثة (الأعلى ر=0، المنتصف ر=1، الأسفل ر=2) من اليسار لليمين
-            for (let r = 0; r < 3; r++) {
-                let matchCount = 1;
-                let rowFruit = board[r][0];
+        function playGeneric(name) {
+            let bet = parseFloat(document.getElementById('betInput').value);
+            if (bet > balance) return alert('رصيدك غير كافٍ!');
+            updateBalanceUI(balance - bet);
 
-                for (let c = 1; c < 5; c++) {
-                    if (board[r][c] === rowFruit) {
-                        matchCount++;
-                    } else {
-                        break;
-                    }
-                }
-
-                // إذا تطابقت 3 بكرات أو أكثر من اليسار في نفس الصف (أعلى، منتصف، أو أسفل)
-                if (matchCount >= 3) {
-                    let rowMult = 0;
-                    if (matchCount === 3) rowMult = 2;       // ثلاثية
-                    else if (matchCount === 4) rowMult = 5;  // رباعية
-                    else if (matchCount === 5) rowMult = 15; // خماسية
-
-                    totalWinMultiplier += rowMult;
-                    for (let c = 0; c < matchCount; c++) {
-                        winningCells.push({r: r, c: c});
-                    }
-                }
-            }
-
-            // مكافأة كبرى (10 أضعاف الإضافية) عند وجود ثلاثيات في أكثر من صف (أعلى والمنتصف والأسفل معاً)
-            let winningRowsCount = 0;
-            for (let r = 0; r < 3; r++) {
-                if (board[r][0] === board[r][1] && board[r][1] === board[r][2]) {
-                    winningRowsCount++;
-                }
-            }
-
-            if (winningRowsCount >= 2) {
-                totalWinMultiplier *= 3; // مضاعفة الربح بقوة عند تداخل الصفوف الفائزة
-            }
-            if (winningRowsCount === 3) {
-                totalWinMultiplier *= 10; // مكافأة كبرى 10 أضعاف عند الفوز في الصفوف الثلاثة معاً (فوق، منتصف، تحت)
-            }
-
-            let winAmount = currentBet * totalWinMultiplier;
-
-            if (winAmount > 0) {
-                userBalance += winAmount;
-                updateBalanceDisplay();
-
-                // تمييز الخانات الفائزة بجمالية خضراء
-                winningCells.forEach(cell => {
-                    cellElements[cell.r][cell.c].classList.add('win-highlight');
-                });
-
-                showStatus(`🎉 مبروك! ربحت ${winAmount} 💰 (تطابق صفوف متعددة من اليسار)`, "win-text");
-                playSound('win');
+            let mult = calculateOutcomeMultiplier();
+            if (mult > 0) {
+                updateBalanceUI(balance + (bet * mult));
+                triggerWinFX();
             } else {
-                showStatus("حظاً أوفر في المرة القادمة!", "lose-text");
-                playSound('lose');
-            }
-
-            sendDataToBot(winAmount - currentBet);
-            isSpinning = false;
-            document.getElementById('spin-btn').disabled = false;
-        }
-
-        function showStatus(msg, className) {
-            const el = document.getElementById('status-msg');
-            el.innerText = msg;
-            el.className = `status-msg ${className}`;
-        }
-
-        function sendDataToBot(netProfit) {
-            if (tg && tg.sendData) {
-                const realProfit = netProfit * 100; // إرجاع القيمة الحقيقية بقاعدة بيانات البوت
-                tg.sendData(JSON.stringify({
-                    action: "golden_bull_result",
-                    net_profit: realProfit,
-                    user_id: userId
-                }));
+                playSound('loss');
+                alert('💔 لم تحالفك الحظ هذه الجولة!');
             }
         }
-
-        function switchGame(gameId) {
-            document.querySelectorAll('.game-card').forEach(card => card.style.display = 'none');
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(gameId).style.display = 'block';
-            event.target.classList.add('active');
-        }
-
-        window.onload = initApp;
     </script>
 </body>
 </html>
