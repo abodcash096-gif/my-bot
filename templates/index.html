@@ -2,161 +2,697 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Casino Games WebApp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VIP Ultra Casino WebApp</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        :root {
+            --neon-gold: #ffd700;
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff007f;
+            --bg-dark: #070712;
+            --card-bg: rgba(18, 16, 38, 0.75);
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 15px;
-            text-align: center;
+            padding: 0;
+            user-select: none;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
-        .card {
-            background: #1e293b;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .balance {
-            font-size: 20px;
-            color: #38bdf8;
-            font-weight: bold;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        button {
-            background: linear-gradient(135deg, #6366f1, #a855f7);
+
+        body {
+            background: radial-gradient(circle at center, #1a103c 0%, #05050d 100%);
             color: #fff;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: transform 0.2s;
+            text-align: center;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
         }
-        button:active {
+
+        /* Particles Overlay Canvas */
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 90;
+        }
+
+        /* Top Bar Info UI */
+        .header-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 20px;
+            padding: 12px 20px;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.15), inset 0 0 10px rgba(255, 215, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info { text-align: right; }
+        .user-name { font-size: 13px; color: #a0a0c0; font-weight: 500; }
+        .user-balance {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--neon-gold);
+            text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        .vip-badge {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: #000;
+            font-weight: 900;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+            animation: pulse-glow 2s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
+            100% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+        }
+
+        /* Canvas Stage */
+        .stage-container {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Neon Glowing Outer Ring */
+        .ring-glow {
+            position: absolute;
+            width: 348px;
+            height: 348px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, var(--neon-cyan), var(--neon-pink), var(--neon-gold), var(--neon-cyan));
+            animation: rotate-ring 6s linear infinite;
+            filter: blur(8px);
+            opacity: 0.7;
+        }
+
+        @keyframes rotate-ring {
+            100% { transform: rotate(360deg); }
+        }
+
+        canvas#wheelCanvas {
+            position: relative;
+            z-index: 2;
+            border-radius: 50%;
+            box-shadow: 0 0 35px rgba(0, 0, 0, 0.9);
+        }
+
+        /* Live Neon Pointer Needle */
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 36px solid #ff0055;
+            filter: drop-shadow(0 0 12px #ff0055);
+            z-index: 10;
+        }
+
+        .pointer::after {
+            content: '';
+            position: absolute;
+            top: -36px;
+            left: -6px;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #fff;
+        }
+
+        /* Control Panel Container */
+        .controls {
+            width: 100%;
+            max-width: 440px;
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        .bet-title {
+            font-size: 13px;
+            color: #b0b0d0;
+            margin-bottom: 8px;
+            text-align: right;
+        }
+
+        .bet-input-box {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .bet-input {
+            width: 100%;
+            padding: 14px;
+            background: #0d0a1f;
+            border: 2px solid rgba(0, 243, 255, 0.4);
+            border-radius: 14px;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 800;
+            text-align: center;
+            outline: none;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .bet-input:focus {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        /* Quick Bet Options */
+        .quick-bets {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .q-btn {
+            flex: 1;
+            padding: 8px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: #ddd;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .q-btn:active {
+            background: rgba(0, 243, 255, 0.2);
+            border-color: var(--neon-cyan);
             transform: scale(0.95);
         }
-        input {
-            width: 80%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 6px;
-            border: 1px solid #334155;
-            background: #0f172a;
+
+        /* High Voltage Spin Button */
+        .spin-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #ff007f 0%, #7928ca 50%, #00f3ff 100%);
+            background-size: 200% 200%;
+            border: none;
+            border-radius: 16px;
             color: #fff;
-            text-align: center;
+            font-size: 22px;
+            font-weight: 900;
+            cursor: pointer;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.6);
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.5);
+            transition: all 0.3s ease;
+            animation: gradient-shift 3s ease infinite;
         }
-        .game-box {
-            display: none;
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .spin-btn:active {
+            transform: scale(0.97);
+            filter: brightness(1.2);
+        }
+
+        .spin-btn:disabled {
+            background: #2a2a3d;
+            box-shadow: none;
+            cursor: not-allowed;
+            animation: none;
+            opacity: 0.6;
+        }
+
+        /* Multiplier Badges Bar */
+        .multipliers-grid {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
             margin-top: 15px;
-            padding: 15px;
-            background: #0f172a;
-            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--neon-gold);
+            font-weight: 800;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.1);
+        }
+
+        /* High-Graphics Win Result Modal */
+        #resultModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(12px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #resultModal.show {
+            opacity: 1;
+        }
+
+        .modal-box {
+            background: linear-gradient(145deg, #181236, #0d0822);
+            border: 2px solid var(--neon-gold);
+            padding: 35px 25px;
+            border-radius: 28px;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255, 215, 0, 0.2);
+            text-align: center;
+            width: 85%;
+            max-width: 360px;
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #resultModal.show .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 26px;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        .modal-multiplier {
+            font-size: 40px;
+            font-weight: 900;
+            color: var(--neon-gold);
+            margin: 10px 0;
+            text-shadow: 0 0 20px var(--neon-gold);
+        }
+
+        .modal-amount {
+            font-size: 28px;
+            font-weight: 800;
+            color: #00ff88;
+            margin-bottom: 20px;
+            text-shadow: 0 0 12px #00ff88;
+        }
+
+        .close-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #00f3ff, #0077ff);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-size: 18px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
         }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2>🎰 كازينو الألعاب العالمي</h2>
-        <div class="balance">رصيدك: <span id="userBalance">0.00</span> ليرة سورية</div>
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Top Status Bar -->
+    <div class="header-card">
+        <div class="user-info">
+            <div class="user-name" id="userName">جاري التحميل...</div>
+            <div class="user-balance" id="userBalance">0.00 ل.س</div>
+        </div>
+        <div class="vip-badge">🎰 VIP CASINO</div>
     </div>
 
-    <div class="card">
-        <label>قيمة الرهان (ليرة جديدة):</label><br>
-        <input type="number" id="betAmount" value="100" min="10">
+    <!-- Interactive Canvas Wheel Stage -->
+    <div class="stage-container">
+        <div class="ring-glow"></div>
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="330" height="330"></canvas>
     </div>
 
-    <div class="grid">
-        <button onclick="playGame('عجلة الحظ')">🎡 عجلة الحظ</button>
-        <button onclick="playGame('حقل الألغام')">💣 حقل الألغام</button>
-        <button onclick="playGame('ماكينة الحظ')">🎰 ماكينة الحظ</button>
-        <button onclick="playGame('النرد')">🎲 النرد</button>
-        <button onclick="playGame('الروليت')">🎯 الروليت</button>
-        <button onclick="playGame('بلينكو')">⚪ بلينكو</button>
-        <button onclick="playGame('كراش')">🚀 كراش</button>
-        <button onclick="playGame('قلب الكروت')">🃏 قلب الكروت</button>
-        <button onclick="playGame('كينو')">🔢 كينو</button>
-        <button onclick="playGame('أكبر أو أصغر')">📈 أكبر أو أصغر</button>
+    <!-- Game Control Dashboard -->
+    <div class="controls">
+        <div class="bet-title">حدد قيمة الرهان (ليرة جديدة):</div>
+        <div class="bet-input-box">
+            <input type="number" id="betInput" class="bet-input" value="100" min="10">
+        </div>
+
+        <div class="quick-bets">
+            <button class="q-btn" onclick="setBet(50)">50</button>
+            <button class="q-btn" onclick="setBet(100)">100</button>
+            <button class="q-btn" onclick="setBet(200)">200</button>
+            <button class="q-btn" onclick="setBet(500)">500</button>
+            <button class="q-btn" onclick="multiplyBet(2)">X2</button>
+        </div>
+
+        <button id="spinBtn" class="spin-btn" onclick="playGame()">إدارة العجلة 🚀</button>
+
+        <div class="multipliers-grid">
+            <span class="badge">x3</span>
+            <span class="badge">x6</span>
+            <span class="badge">x9</span>
+            <span class="badge">x15</span>
+            <span class="badge">x20</span>
+            <span class="badge">x50</span>
+            <span class="badge">x100</span>
+        </div>
     </div>
 
-    <div id="gameResult" class="card game-box">
-        <h3 id="resTitle"></h3>
-        <p id="resDesc"></p>
+    <!-- Animated Win Pop-up -->
+    <div id="resultModal">
+        <div class="modal-box">
+            <div class="modal-title" id="modalTitle">🎉 ضربة قوية!</div>
+            <div class="modal-multiplier" id="modalMult">x3</div>
+            <div class="modal-amount" id="modalAmount">+0.00 ل.س</div>
+            <button class="close-btn" onclick="closeModal()">متابعة اللعب 🎮</button>
+        </div>
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
+        const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let userId = tg.initDataUnsafe?.user?.id || 123456789; 
+        const SERVER_URL = "{{ server_url }}";
+        const userId = tg.initDataUnsafe?.user?.id || 7255100997;
 
-        async function fetchUser() {
+        // مضاعفات الضرب المطلوبة بدقة
+        const multipliers = [3, 6, 9, 15, 20, 50, 100];
+        const colors = ["#ff0055", "#7928ca", "#00f3ff", "#ff007f", "#ffd700", "#00ff88", "#ff5500"];
+
+        const canvas = document.getElementById("wheelCanvas");
+        const ctx = canvas.getContext("2d");
+        const numSegments = multipliers.length;
+        const anglePerSeg = (2 * Math.PI) / numSegments;
+        let currentAngle = 0;
+        let isSpinning = false;
+
+        // --------------------------------------------------
+        // Web Audio API سينمائي موثق للأصوات والتأثيرات
+        // --------------------------------------------------
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
             try {
-                let res = await fetch('/api/get_user_data', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'tick') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.04);
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.04);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(261.63, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(523.25, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.5);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // --------------------------------------------------
+        // رسم العجلة فائقة الجودة بتقنية HTML5 Canvas
+        // --------------------------------------------------
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 12;
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = currentAngle + i * anglePerSeg;
+
+                // تدرج شعاعي سينمائي لكل قطعة
+                const grad = ctx.createRadialGradient(centerX, centerY, 15, centerX, centerY, radius);
+                grad.addColorStop(0, '#0f0b21');
+                grad.addColorStop(0.6, colors[i]);
+                grad.addColorStop(1, '#05030a');
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + anglePerSeg);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // خطوط ذهبية مضيئة بين القطاعات
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = "rgba(255, 215, 0, 0.4)";
+                ctx.stroke();
+
+                // كتابة نص المضاعف بظلال توهج
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + anglePerSeg / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "900 20px Arial";
+                ctx.shadowColor = colors[i];
+                ctx.shadowBlur = 12;
+                ctx.fillText("x" + multipliers[i], radius - 22, 7);
+                ctx.restore();
+            }
+
+            // المركز VIP الذهبي
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 32, 0, 2 * Math.PI);
+            ctx.fillStyle = "#0a0718";
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#ffd700";
+            ctx.shadowColor = "#ffd700";
+            ctx.shadowBlur = 15;
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "#ffd700";
+            ctx.font = "bold 13px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("VIP", centerX, centerY + 4);
+        }
+
+        drawWheel();
+
+        // --------------------------------------------------
+        // جلب بيانات الحساب والرصيد
+        // --------------------------------------------------
+        async function fetchUserData() {
+            try {
+                const res = await fetch(`${SERVER_URL}/api/get_user_data`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ user_id: userId })
                 });
-                let data = await res.json();
-                if(data.balance !== undefined) {
-                    document.getElementById('userBalance').innerText = data.balance.toFixed(2);
+                const data = await res.json();
+                if (data.name) {
+                    document.getElementById("userName").innerText = data.name;
+                    document.getElementById("userBalance").innerText = data.balance.toFixed(2) + " ل.س";
                 }
-            } catch(e) {}
+            } catch (e) { console.error(e); }
+        }
+        fetchUserData();
+
+        function setBet(amt) {
+            document.getElementById("betInput").value = amt;
         }
 
-        async function playGame(gameName) {
-            let bet = parseFloat(document.getElementById('betAmount').value);
-            if(!bet || bet <= 0) {
-                alert('يرجى تحديد مبلغ رهان صحيح');
-                return;
-            }
+        function multiplyBet(factor) {
+            const val = parseFloat(document.getElementById("betInput").value) || 0;
+            document.getElementById("betInput").value = Math.max(10, val * factor);
+        }
 
-            let resBox = document.getElementById('gameResult');
-            resBox.style.display = 'block';
-            document.getElementById('resTitle').innerText = '⏳ جاري اللعب...';
-            document.getElementById('resDesc').innerText = `جاري تشغيل لعبة ${gameName}`;
+        // --------------------------------------------------
+        // محرك الحركة والدوران بالفيزياء وتطابق النتائج
+        // --------------------------------------------------
+        let lastSegmentIndex = -1;
+
+        async function playGame() {
+            if (isSpinning) return;
+            const bet = parseFloat(document.getElementById("betInput").value);
+            if (!bet || bet <= 0) return alert("يرجى إدخال مبلغ رهان صحيح");
+
+            document.getElementById("spinBtn").disabled = true;
+            isSpinning = true;
 
             try {
-                let res = await fetch('/api/play_game', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        user_id: userId,
-                        bet: bet,
-                        game_type: gameName
-                    })
+                const res = await fetch(`${SERVER_URL}/api/play_game`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_id: userId, bet: bet })
                 });
-                let data = await res.json();
+                const data = await res.json();
 
-                if(data.error) {
-                    document.getElementById('resTitle').innerText = '❌ خطأ';
-                    document.getElementById('resDesc').innerText = data.error;
-                } else {
-                    document.getElementById('userBalance').innerText = data.new_balance.toFixed(2);
-                    if(data.win) {
-                        document.getElementById('resTitle').innerText = '🎉 مبروك! فوز كبير';
-                        document.getElementById('resDesc').innerText = `ربحت x${data.multiplier} بقيمة ${data.win_amount} ليرة سورية!`;
+                if (data.error) {
+                    alert(data.error);
+                    document.getElementById("spinBtn").disabled = false;
+                    isSpinning = false;
+                    return;
+                }
+
+                // حساب زاوية التوقف الدقيقة للمضاعف المستهدف تحت الإبرة مباشرة
+                let stopIndex = data.target_index;
+                if (stopIndex === -1) stopIndex = Math.floor(Math.random() * numSegments);
+
+                // الإبرة في الأعلى (3pi/2)
+                const targetSegAngle = (3 * Math.PI / 2) - (stopIndex * anglePerSeg) - (anglePerSeg / 2);
+                const extraRounds = 8 * Math.PI * 2; // 8 دورات حماسية سريعة
+                const totalRotation = extraRounds + (targetSegAngle - (currentAngle % (Math.PI * 2)));
+
+                let start = null;
+                const duration = 4500; // 4.5 ثواني حركة حية متدرجة
+
+                function animateWheel(timestamp) {
+                    if (!start) start = timestamp;
+                    const progress = (timestamp - start) / duration;
+
+                    if (progress < 1) {
+                        // معادلة تباطؤ فيزيائية ناعمة جداً (Ease-Out Quart)
+                        const easeOut = 1 - Math.pow(1 - progress, 4);
+                        currentAngle = easeOut * totalRotation;
+                        drawWheel();
+
+                        // تشغيل صوت التكة عند المرور بين القطاعات
+                        const currentSegment = Math.floor(((3 * Math.PI / 2 - currentAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) / anglePerSeg);
+                        if (currentSegment !== lastSegmentIndex) {
+                            playSound('tick');
+                            lastSegmentIndex = currentSegment;
+                        }
+
+                        requestAnimationFrame(animateWheel);
                     } else {
-                        document.getElementById('resTitle').innerText = '💔 حظ أوفر';
-                        document.getElementById('resDesc').innerText = `خسرت الرهان بقيمة ${bet} ليرة سورية.`;
+                        currentAngle = totalRotation;
+                        drawWheel();
+                        isSpinning = false;
+                        document.getElementById("spinBtn").disabled = false;
+
+                        // تحديث الرصيد
+                        document.getElementById("userBalance").innerText = data.new_balance.toFixed(2) + " ل.س";
+
+                        if (data.win) {
+                            playSound('win');
+                            triggerParticles();
+                            document.getElementById("modalMult").innerText = `x${data.multiplier}`;
+                            document.getElementById("modalAmount").innerText = `+${data.win_amount.toFixed(2)} ل.س`;
+                            const modal = document.getElementById("resultModal");
+                            modal.style.display = "flex";
+                            setTimeout(() => modal.classList.add("show"), 10);
+                        }
                     }
                 }
-            } catch(e) {
-                document.getElementById('resTitle').innerText = '❌ خطأ بالاتصال';
+                requestAnimationFrame(animateWheel);
+
+            } catch (e) {
+                alert("حدث خطأ في الاتصال بالخادم");
+                document.getElementById("spinBtn").disabled = false;
+                isSpinning = false;
             }
         }
 
-        fetchUser();
+        function closeModal() {
+            const modal = document.getElementById("resultModal");
+            modal.classList.remove("show");
+            setTimeout(() => modal.style.display = "none", 300);
+        }
+
+        // --------------------------------------------------
+        // نظام الجزيئات المتفجرة المضيئة عند الفوز (Particles)
+        // --------------------------------------------------
+        const pCanvas = document.getElementById("particleCanvas");
+        const pCtx = pCanvas.getContext("2d");
+        let particles = [];
+
+        function resizeCanvas() {
+            pCanvas.width = window.innerWidth;
+            pCanvas.height = window.innerHeight;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        function triggerParticles() {
+            particles = [];
+            for (let i = 0; i < 120; i++) {
+                particles.push({
+                    x: pCanvas.width / 2,
+                    y: pCanvas.height / 2,
+                    vx: (Math.random() - 0.5) * 18,
+                    vy: (Math.random() - 0.5) * 18 - 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    radius: Math.random() * 6 + 2,
+                    alpha: 1,
+                    decay: Math.random() * 0.02 + 0.015
+                });
+            }
+            animateParticles();
+        }
+
+        function animateParticles() {
+            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+            let active = false;
+
+            particles.forEach(p => {
+                if (p.alpha > 0) {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.2; // الجاذبية
+                    p.alpha -= p.decay;
+                    active = true;
+
+                    pCtx.beginPath();
+                    pCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    pCtx.fillStyle = p.color;
+                    pCtx.globalAlpha = Math.max(0, p.alpha);
+                    pCtx.shadowBlur = 10;
+                    pCtx.shadowColor = p.color;
+                    pCtx.fill();
+                }
+            });
+
+            if (active) requestAnimationFrame(animateParticles);
+        }
     </script>
 </body>
 </html>
