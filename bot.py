@@ -1274,10 +1274,10 @@ def main():
     app.add_handler(CallbackQueryHandler(callback_router))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
     app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, text_and_contact_handler))
-        app.add_handler(
-            MessageHandler(
-                filters.TEXT & (~filters.COMMAND), handle_percent_input
-            )
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & (~filters.COMMAND), handle_percent_input
+        )
     )
 
     print("VIP Telegram Bot is online and listening...")
