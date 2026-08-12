@@ -5,6 +5,7 @@ import random
 import string
 import logging
 import threading
+import re
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 
@@ -39,7 +40,14 @@ logger = logging.getLogger(__name__)
 # إدخال توكن البوت ومعرف المدير الرئيسي هنا
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8842721926:AAFn7HGsi7MPsPO7KtN4Z9PE5lj-j6OOhvY")
 DEFAULT_ADMIN_ID = int(os.getenv("ADMIN_ID", "7255100997")) # استبدل بـ ID حسابك
-SERVER_URL = os.getenv("SERVER_URL", "https://my-bot-j658.onrender.com")
+
+# تنظيف الرابط تلقائياً لضمان عدم قبول أي أقواس أو تنسيقات خاطئة من تلغرام
+RAW_SERVER_URL = os.getenv("SERVER_URL", "https://my-bot-j658.onrender.com")
+extracted_urls = re.findall(r'https?://[^\s\)\]]+', RAW_SERVER_URL)
+if extracted_urls:
+    SERVER_URL = extracted_urls[0].rstrip('/')
+else:
+    SERVER_URL = "https://my-bot-j658.onrender.com"
 
 # ----------------------------------------------------
 # 2. إعداد قاعدة البيانات (SQLite)
@@ -700,7 +708,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     elif data == "btn_buy_bot":
         conn.execute("UPDATE users SET step = 'buy_bot_desc' WHERE user_id = ?", (user.id,))
         conn.commit()
-        await query.message.reply_text("🤖 اكتب التفاصيل والميزات التي تريدها في البوت الخا ص بك ونوع استضافته:")
+        await query.message.reply_text("🤖 اكتب التفاصيل والميزات التي تريدها في البوت الخاص بك ونوع استضافته:")
 
     elif data == "confirm_buy_bot":
         await query.message.reply_text("✅ تم استلام طلبك! سيتواصل معك قسم البرمجة فوراً لتسليم البوت.")
