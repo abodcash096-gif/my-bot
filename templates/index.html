@@ -36,7 +36,7 @@
             overflow-x: hidden;
         }
 
-        /* Top Bar matching your image */
+        /* Top Bar */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -90,7 +90,7 @@
             box-shadow: 0 0 10px var(--neon-glow);
         }
 
-        /* Top Mini Widgets */
+        /* Top Widgets */
         .top-widgets {
             display: flex;
             justify-content: space-between;
@@ -157,33 +157,25 @@
             position: relative;
         }
 
-        /* Expanded Wild Jar styling */
-        .symbol.wild-expanded {
-            background: radial-gradient(circle, rgba(255,215,0,0.4) 0%, rgba(255,136,0,0.2) 80%);
+        /* تنسيق الجرة الممتلئة بالكامل عند الربح (بدون كلمات أجنبية) */
+        .symbol.jar-expanded {
+            background: radial-gradient(circle, rgba(255,215,0,0.35) 0%, rgba(255,136,0,0.2) 80%);
             border: 2px solid var(--gold);
             box-shadow: inset 0 0 20px var(--gold), 0 0 15px var(--gold);
             border-radius: 6px;
-            height: 228px; /* يملأ البكرة بالكامل */
+            height: 228px;
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             z-index: 5;
-            animation: wildGlow 1.5s infinite alternate;
+            font-size: 55px;
+            animation: jarGlow 1.5s infinite alternate;
         }
 
-        @keyframes wildGlow {
+        @keyframes jarGlow {
             0% { box-shadow: inset 0 0 10px var(--gold), 0 0 10px var(--gold); }
             100% { box-shadow: inset 0 0 25px var(--gold), 0 0 20px var(--gold); }
-        }
-
-        .symbol.wild-text {
-            font-size: 14px;
-            font-weight: 900;
-            color: var(--gold);
-            text-shadow: 0 0 8px var(--gold);
-            letter-spacing: 2px;
-            margin-top: 4px;
         }
 
         .symbol.seven {
@@ -420,12 +412,12 @@
     <div class="bets-container">
         <div class="bet-chip active" onclick="setBet(3, this)">3 NSP</div>
         <div class="bet-chip" onclick="setBet(6, this)">6 NSP</div>
-        <div class="bet-chip" onclick="setBet(9, this)">9 NSP</div>
-        <div class="bet-chip" onclick="setDivider(15, this)">15 NSP</div>
+        <div class="bet-chip" onclick="setBonusBet(9, this)">9 NSP</div>
+        <div class="bet-chip" onclick="setBet(15, this)">15 NSP</div>
         <div class="bet-chip" onclick="setBet(50, this)">50 NSP</div>
     </div>
 
-    <!-- Action Buttons Bar (All Functional) -->
+    <!-- Action Buttons Bar -->
     <div class="controls">
         <div class="sub-btn" id="autoBtn" onclick="toggleAutoSpin()" title="دوران تلقائي">▶</div>
         <div class="sub-btn" id="turboBtn" onclick="toggleTurbo()" title="سريع">⚡</div>
@@ -478,51 +470,56 @@
         let autoInterval = null;
 
         const SYMBOLS = ['7', '🍊', '🍇', '🍒', '🔔', '🏺'];
-        const WILD_SYMBOL = '🏺';
         const reelsCount = 5;
         const reelElements = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // Professional Web Audio API Sounds
+        // نظام أصوات حديث، سينمائي ونقي (Modern Web Audio API)
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        function playSound(type) {
+        function playModernSound(type) {
             initAudio();
             if (!audioCtx) return;
             let now = audioCtx.currentTime;
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
 
-            if (type === 'spin') {
-                osc.frequency.setValueAtTime(250 + Math.random() * 100, now);
-                gain.gain.setValueAtTime(0.08, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
-                osc.start(now);
-                osc.stop(now + 0.08);
-            } else if (type === 'win') {
-                [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, i) => {
-                    let o = audioCtx.createOscillator();
-                    let g = audioCtx.createGain();
-                    o.connect(g); g.connect(audioCtx.destination);
-                    o.frequency.setValueAtTime(freq, now + i * 0.07);
-                    g.gain.setValueAtTime(0.15, now + i * 0.07);
-                    g.gain.linearRampToValueAtTime(0.01, now + i * 0.07 + 0.2);
-                    o.start(now + i * 0.07);
-                    o.stop(now + i * 0.07 + 0.2);
-                });
-            } else if (type === 'wild') {
+            if (type === 'click') {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.05);
+            } 
+            else if (type === 'spin') {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(600, now);
-                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-                osc.start(now);
-                osc.stop(now + 0.4);
+                osc.frequency.setValueAtTime(150 + Math.random() * 80, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.06);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.06);
+            } 
+            else if (type === 'win') {
+                // نغمات متطورة نقية ومبهجة تشبه الكازينوهات العالمية الحديثة
+                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+                notes.forEach((freq, i) => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.08));
+                    gain.gain.setValueAtTime(0.18, now + (i * 0.08));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.08) + 0.3);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now + (i * 0.08));
+                    osc.stop(now + (i * 0.08) + 0.3);
+                });
             }
         }
 
@@ -546,7 +543,6 @@
         }
         loadUserData();
 
-        // Build Reels
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -555,54 +551,52 @@
             reel.appendChild(reelContainer);
             slotsFrame.appendChild(reel);
             reelElements.push(reelContainer);
-            fillReel(reelContainer, [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()]);
+            fillReel(reelContainer, [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()], false);
         }
 
         function getRandomSymbol() {
             const rand = Math.random();
-            if (rand < 0.05) return '🏺'; // نادرة الظهور جداً
-            if (rand < 0.28) return '7';
+            if (rand < 0.03) return '🏺'; // نادرة الظهور
+            if (rand < 0.25) return '7';
             return SYMBOLS[Math.floor(Math.random() * 4) + 1];
         }
 
-        function createSymbolNode(sym, isWildFull = false) {
+        function createSymbolNode(sym, isJarExpanded = false) {
             const div = document.createElement('div');
-            div.className = 'symbol';
-            if (isWildFull) {
-                div.className = 'symbol wild-expanded';
-                div.innerHTML = '🏺<div class="wild-text">WILD</div>';
-            } else if (sym === '7') {
+            div.className = isJarExpanded ? 'symbol jar-expanded' : 'symbol';
+            if (sym === '7') {
                 div.classList.add('seven');
                 div.innerHTML = '7';
             } else if (sym === '🏺') {
-                div.classList.add('wild');
-                div.innerHTML = '🏺<div class="wild-text">WILD</div>';
+                div.innerHTML = '🏺'; // جرة بشعير بدون أي حروف أجنبية
             } else {
                 div.innerHTML = sym;
             }
             return div;
         }
 
-        function fillReel(container, symbolsArray, wildExpandedIndex = -1) {
+        function fillReel(container, symbolsArray, expandJar = false) {
             container.innerHTML = '';
-            symbolsArray.forEach((sym, idx) => {
-                if (idx === wildExpandedIndex) {
-                    container.appendChild(createSymbolNode(sym, true));
-                } else {
+            if (expandJar) {
+                container.appendChild(createSymbolNode('🏺', true));
+            } else {
+                symbolsArray.forEach(sym => {
                     container.appendChild(createSymbolNode(sym, false));
-                }
-            });
+                });
+            }
         }
 
         function setBet(amount, el) {
             if (isSpinning) return;
+            playModernSound('click');
             currentBet = amount;
             document.querySelectorAll('.bet-chip').forEach(b => b.classList.remove('active'));
             if(el) el.classList.add('active');
         }
-        function setDivider(amt, el) { setBet(amt, el); }
+        function setBonusBet(amount, el) { setBet(amount, el); }
 
         function doubleBet() {
+            playModernSound('click');
             let bets = [3, 6, 9, 15, 50];
             let idx = bets.indexOf(currentBet);
             if (idx < bets.length - 1) {
@@ -620,6 +614,7 @@
         }
 
         function toggleAutoSpin() {
+            playModernSound('click');
             autoSpinActive = !autoSpinActive;
             let btn = document.getElementById('autoBtn');
             if (autoSpinActive) {
@@ -635,6 +630,7 @@
         }
 
         function toggleTurbo() {
+            playModernSound('click');
             turboActive = !turboActive;
             document.getElementById('turboBtn').classList.toggle('active-sub', turboActive);
         }
@@ -673,8 +669,8 @@
                     setTimeout(() => {
                         reelContainer.classList.add('blur-spin');
                         let interval = setInterval(() => {
-                            playSound('spin');
-                            fillReel(reelContainer, [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()]);
+                            playModernSound('spin');
+                            fillReel(reelContainer, [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()], false);
                         }, 50);
 
                         setTimeout(() => {
@@ -682,16 +678,7 @@
                             reelContainer.classList.remove('blur-spin');
                             
                             let finalSyms = [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()];
-                            
-                            // فحص الجرة النادرة وتوسيعها لتملأ البكرة
-                            let wildIdx = -1;
-                            if (finalSyms.includes('WILD') || finalSyms.includes('🏺') || Math.random() < 0.04) {
-                                wildIdx = 1; // تتوسط البكرة وتملأها
-                                finalSyms[0] = '🏺'; finalSyms[1] = '🏺'; finalSyms[2] = '🏺';
-                                playSound('wild');
-                            }
-
-                            fillReel(reelContainer, finalSyms, wildIdx);
+                            fillReel(reelContainer, finalSyms, false);
                             finalGrid.push(finalSyms);
                             resolve();
                         }, speed + index * 150);
@@ -706,24 +693,22 @@
                 document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
             }
 
-            evaluateWinLines(finalGrid, serverResponse);
+            evaluateStrictWin(finalGrid, serverResponse);
             isSpinning = false;
             document.getElementById('spinBtn').disabled = false;
         }
 
-        // Win Lines Matching Your Exact Drawing & Payout Rules
-        function evaluateWinLines(grid, serverResponse) {
+        function evaluateStrictWin(grid, serverResponse) {
             let rows = [0, 1, 2].map(r => grid.map(reel => reel[r]));
             let totalMultiplier = 0;
             let matchedLines = [];
 
-            // خطوط الفوز (أفقية ومائلة كما رسمتها)
             let lineConfigs = [
-                { type: 'horizontal', r: 0 }, // خط علوي
-                { type: 'horizontal', r: 1 }, // خط أوسط
-                { type: 'horizontal', r: 2 }, // خط سفلي
-                { type: 'diagonal_down', path: [0, 1, 2, 1, 0] }, // مائل للأسفل ثم للأعلى
-                { type: 'diagonal_up', path: [2, 1, 0, 1, 2] }    // مائل للأعلى ثم للأسفل
+                { type: 'horizontal', r: 0 },
+                { type: 'horizontal', r: 1 },
+                { type: 'horizontal', r: 2 },
+                { type: 'diagonal_down', path: [0, 1, 2, 1, 0] },
+                { type: 'diagonal_up', path: [2, 1, 0, 1, 2] }
             ];
 
             lineConfigs.forEach((cfg, lineIdx) => {
@@ -737,11 +722,14 @@
                 }
 
                 let first = symbolsOnLine[0];
-                let count = 1;
-                let base = first === WILD_SYMBOL ? symbolsOnLine.find(s => s !== WILD_SYMBOL) || '7' : first;
+                if (!first) return;
 
-                for (let i = 1; i < symbolsOnLine.length; i++) {
-                    if (symbolsOnLine[i] === base || symbolsOnLine[i] === WILD_SYMBOL) {
+                let base = first === '🏺' ? symbolsOnLine.find(s => s !== '🏺' && s !== undefined) || '7' : first;
+                let count = 0;
+
+                for (let i = 0; i < symbolsOnLine.length; i++) {
+                    let s = symbolsOnLine[i];
+                    if (s === base || s === '🏺') {
                         count++;
                     } else {
                         break;
@@ -749,32 +737,38 @@
                 }
 
                 let mult = 0;
-                // تطبيق شروط المضاعفات المطلوبة بدقة (الوصول لآخر خط = 5 أعمدة كاملة)
-                if (count === 5) {
-                    if (base === '7') mult = 100;       // 100 ضعف للـ 7 عند الوصول للاخر
-                    else if (base === '🍇') mult = 25;  // 25 ضعف للعنب عند الوصول للاخر
-                    else mult = 10;                     // 10 أضعاف لباقي الفواكه عند الوصول للاخر
-                } else if (count === 4) {
-                    if (base === '7') mult = 20;
-                    else if (base === '🍇') mult = 8;
-                    else mult = 4;
-                } else if (count === 3) {
-                    if (base === '7') mult = 5;
-                    else if (base === '🍇') mult = 2;
-                    else mult = 1;
+                if (count >= 3) {
+                    if (count === 5) {
+                        if (base === '7') mult = 100;
+                        else if (base === '🍇') mult = 25;
+                        else mult = 10;
+                    } else if (count === 4) {
+                        if (base === '7') mult = 20;
+                        else if (base === '🍇') mult = 8;
+                        else mult = 4;
+                    } else if (count === 3) {
+                        if (base === '7') mult = 5;
+                        else if (base === '🍇') mult = 2;
+                        else mult = 1;
+                    }
                 }
 
                 if (mult > 0) {
-                    if (mult > 100) mult = 100;
                     totalMultiplier += mult;
-                    matchedLines.push({ lineIndex: lineIdx, config: cfg, mult });
+                    matchedLines.push({ config: cfg, mult, count });
                 }
             });
 
-            let winAmount = serverResponse?.win_amount !== undefined ? serverResponse.win_amount : (totalMultiplier * currentBet);
+            let winAmount = 0;
+            if (serverResponse && serverResponse.win) {
+                winAmount = serverResponse.win_amount;
+            } else if (!serverResponse || !serverResponse.win) {
+                totalMultiplier = 0;
+                winAmount = 0;
+            }
 
             if (winAmount > 0) {
-                playSound('win');
+                playModernSound('win');
                 document.getElementById('winAmount').innerText = winAmount.toFixed(2);
                 document.getElementById('lineInfo').innerText = `مبروك! ربحت ${winAmount.toFixed(2)} NSP`;
                 document.getElementById('lastWin').innerText = winAmount.toFixed(2);
@@ -782,19 +776,28 @@
                 let best = parseFloat(document.getElementById('bestWin').innerText);
                 if (winAmount > best) document.getElementById('bestWin').innerText = winAmount.toFixed(2);
 
-                confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
-                drawComplexLines(matchedLines);
+                confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+                
+                // الجرة تملء البكرة عند الربح فقط
+                reelElements.forEach((reelContainer, idx) => {
+                    if (Math.random() < 0.4) {
+                        fillReel(reelContainer, [], true);
+                    }
+                });
+
+                drawWinningLines(matchedLines);
             } else {
+                document.getElementById('winAmount').innerText = '0.00';
                 document.getElementById('lineInfo').innerText = 'حظ أوفر في الضربة القادمة';
+                clearCanvas();
             }
         }
 
-        function drawComplexLines(lines) {
+        function drawWinningLines(lines) {
             const canvas = document.getElementById('lineCanvas');
             const ctx = canvas.getContext('2d');
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
-            let colWidth = canvas.width / 5;
             let rowHeight = canvas.height / 3;
 
             lines.forEach(l => {
@@ -804,23 +807,14 @@
                     let y = (cfg.r * rowHeight) + (rowHeight / 2);
                     ctx.moveTo(10, y);
                     ctx.lineTo(canvas.width - 10, y);
-                } else if (cfg.type === 'diagonal_down') {
-                    ctx.moveTo(colWidth/2, rowHeight/2);
-                    ctx.lineTo(colWidth*1.5, rowHeight*1.5);
-                    ctx.lineTo(colWidth*2.5, rowHeight*2.5);
-                    ctx.lineTo(colWidth*3.5, rowHeight*1.5);
-                    ctx.lineTo(canvas.width - colWidth/2, rowHeight/2);
-                } else if (cfg.type === 'diagonal_up') {
-                    ctx.moveTo(colWidth/2, rowHeight*2.5);
-                    ctx.lineTo(colWidth*1.5, rowHeight*1.5);
-                    ctx.lineTo(colWidth*2.5, rowHeight/2);
-                    ctx.lineTo(colWidth*3.5, rowHeight*1.5);
-                    ctx.lineTo(canvas.width - colWidth/2, rowHeight*2.5);
+                } else {
+                    ctx.moveTo(10, canvas.height / 2);
+                    ctx.lineTo(canvas.width - 10, canvas.height / 2);
                 }
                 ctx.strokeStyle = '#00f0ff';
-                ctx.lineWidth = 3.5;
+                ctx.lineWidth = 3;
                 ctx.shadowColor = '#00f0ff';
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = 10;
                 ctx.stroke();
             });
         }
@@ -832,12 +826,14 @@
         }
 
         function showModal(title, desc) {
+            playModernSound('click');
             document.getElementById('modal-status').innerText = title;
             document.getElementById('modal-desc').innerText = desc;
             document.getElementById('msg-modal').style.display = 'flex';
         }
 
         function closeModal() {
+            playModernSound('click');
             document.getElementById('msg-modal').style.display = 'none';
         }
     </script>
