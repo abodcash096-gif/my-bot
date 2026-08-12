@@ -14,7 +14,7 @@
             --gold: #ffd700;
             --orange: #ff8800;
             --bg-dark: #030d18;
-            --card-bg: rgba(3, 20, 40, 0.75);
+            --card-bg: rgba(3, 20, 40, 0.85);
         }
 
         * {
@@ -42,7 +42,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px 16px;
-            background: rgba(1, 15, 30, 0.8);
+            background: rgba(1, 15, 30, 0.9);
             border-bottom: 1px solid rgba(0, 210, 255, 0.3);
         }
 
@@ -90,20 +90,40 @@
             box-shadow: 0 0 10px var(--neon-glow);
         }
 
+        /* Top Mini Widgets matching Gold Lera Image */
+        .top-widgets {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 16px;
+        }
+
+        .mini-badge {
+            border: 1px solid var(--neon-blue);
+            border-radius: 16px;
+            padding: 4px 10px;
+            font-size: 10px;
+            background: rgba(0,30,60,0.6);
+            color: var(--neon-blue);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 0 8px var(--neon-glow);
+        }
+
         /* Game Slots Grid Frame */
         .game-container {
             position: relative;
             width: 94%;
             max-width: 420px;
-            margin: 10px auto 0;
+            margin: 4px auto 0;
         }
 
         .slots-frame {
             display: flex;
-            gap: 5px;
-            background: rgba(1, 15, 30, 0.9);
+            gap: 4px;
+            background: rgba(1, 15, 30, 0.95);
             border: 2px solid var(--neon-blue);
-            box-shadow: 0 0 20px var(--neon-glow), inset 0 0 15px var(--neon-glow);
+            box-shadow: 0 0 22px var(--neon-glow), inset 0 0 15px var(--neon-glow);
             border-radius: 12px;
             padding: 6px;
             position: relative;
@@ -114,7 +134,7 @@
             flex: 1;
             height: 240px;
             background: var(--card-bg);
-            border: 1px solid rgba(0, 210, 255, 0.3);
+            border: 1px solid rgba(0, 210, 255, 0.4);
             border-radius: 6px;
             overflow: hidden;
             position: relative;
@@ -138,23 +158,24 @@
         }
 
         .symbol.wild {
-            background: radial-gradient(circle, rgba(255,215,0,0.25) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, transparent 75%);
             border: 1px solid var(--gold);
-            box-shadow: inset 0 0 12px var(--gold);
+            box-shadow: inset 0 0 15px var(--gold);
             border-radius: 6px;
         }
 
         .symbol.wild-text {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 900;
             color: var(--gold);
-            text-shadow: 0 0 5px var(--gold);
-            margin-top: -6px;
+            text-shadow: 0 0 6px var(--gold);
+            margin-top: -4px;
+            letter-spacing: 1px;
         }
 
         .symbol.seven {
             color: #00f0ff;
-            text-shadow: 0 0 12px #00f0ff, 0 0 20px #00d2ff;
+            text-shadow: 0 0 12px #00f0ff, 0 0 22px #00d2ff;
             font-weight: 900;
             font-style: italic;
         }
@@ -172,17 +193,17 @@
         /* Win & Stats Info Display */
         .info-panel {
             text-align: center;
-            margin: 10px 0 5px;
+            margin: 6px 0;
         }
 
         .line-info {
             color: var(--neon-blue);
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
         }
 
         .win-display {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 900;
             color: #fff;
             text-shadow: 0 0 12px var(--neon-blue);
@@ -192,18 +213,18 @@
         .bets-container {
             display: flex;
             justify-content: center;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 6px;
+            margin-bottom: 8px;
             padding: 0 10px;
         }
 
         .bet-chip {
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 6px 10px;
+            border-radius: 18px;
             border: 1px solid var(--neon-blue);
-            background: rgba(0, 30, 60, 0.6);
+            background: rgba(0, 30, 60, 0.7);
             color: #fff;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 0 6px var(--neon-glow);
@@ -223,18 +244,18 @@
             justify-content: space-around;
             align-items: center;
             padding: 0 16px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .spin-btn {
-            width: 75px;
-            height: 75px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             border: 3px solid var(--neon-blue);
-            background: radial-gradient(circle, rgba(0,210,255,0.4) 0%, rgba(0,30,60,0.95) 100%);
+            background: radial-gradient(circle, rgba(0,210,255,0.45) 0%, rgba(0,30,60,0.95) 100%);
             box-shadow: 0 0 20px var(--neon-blue), inset 0 0 15px var(--neon-blue);
             color: #fff;
-            font-size: 34px;
+            font-size: 32px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -252,36 +273,39 @@
         }
 
         .sub-btn {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             border: 1px solid var(--neon-blue);
-            background: rgba(0, 20, 40, 0.7);
+            background: rgba(0, 20, 40, 0.75);
             color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 16px;
+            font-size: 15px;
             cursor: pointer;
+            box-shadow: 0 0 5px var(--neon-glow);
         }
 
         /* Footer Stats */
         .history-bar {
             display: flex;
             justify-content: space-around;
-            background: rgba(0, 15, 30, 0.85);
+            background: rgba(0, 15, 30, 0.9);
             border-top: 1px solid rgba(0, 210, 255, 0.3);
             border-bottom: 1px solid rgba(0, 210, 255, 0.3);
-            padding: 8px 0;
-            font-size: 12px;
+            padding: 6px 0;
+            font-size: 11px;
             font-weight: bold;
         }
 
+        /* Navigation Footer matching image names exactly */
         .footer-nav {
             display: flex;
             justify-content: space-around;
             background: #020810;
-            padding: 10px 0;
+            padding: 8px 0;
+            border-top: 1px solid rgba(0,210,255,0.2);
         }
 
         .nav-item {
@@ -291,10 +315,12 @@
             gap: 2px;
             font-size: 11px;
             color: #5d7a97;
+            cursor: pointer;
         }
 
         .nav-item.active {
             color: var(--neon-blue);
+            text-shadow: 0 0 8px var(--neon-blue);
         }
 
         .blur-spin {
@@ -339,16 +365,30 @@
 </head>
 <body>
 
-    <!-- Header Section linked to Python Server -->
+    <!-- Header Section matching Gold Lera -->
     <div class="top-bar">
         <div class="user-info">
             <div class="avatar" id="u-avatar">U</div>
-            <span id="u-name" style="font-weight: bold; font-size: 0.9rem;">اللاعب</span>
+            <span id="u-name" style="font-weight: bold; font-size: 0.85rem;">اللاعب</span>
         </div>
-        <div class="logo">goold<br><span style="font-size: 15px; color: #a1e5ff;">Lera</span></div>
+        <div class="logo">goold<br><span style="font-size: 14px; color: #a1e5ff;">Lera</span></div>
         <div class="balance-badge">
             <span id="u-balance">0.00</span>
-            <span>NSP</span>
+            <span style="font-size: 11px;">NSP</span>
+        </div>
+    </div>
+
+    <!-- Top Mini Widgets (DD, HH, المهام) -->
+    <div class="top-widgets">
+        <div class="mini-badge">
+            <span>⚡ 3 3 3</span>
+            <span style="font-size: 8px; color: #8cf;">DD HH</span>
+        </div>
+        <div class="mini-badge" style="border-color: var(--gold); color: var(--gold);">
+            <span>🎁 المهام</span>
+        </div>
+        <div class="mini-badge">
+            <span>🔲 خيارات</span>
         </div>
     </div>
 
@@ -364,7 +404,7 @@
         <div class="win-display">ربح <span id="winAmount">0.00</span> NSP</div>
     </div>
 
-    <!-- Bet Selection Chips -->
+    <!-- Bet Selection Chips (3, 6, 9, 15, 50) -->
     <div class="bets-container">
         <div class="bet-chip active" onclick="setBet(3, this)">3 NSP</div>
         <div class="bet-chip" onclick="setBet(6, this)">6 NSP</div>
@@ -388,7 +428,7 @@
         <div>⏱️ آخر ربح: <span id="lastWin" style="color: var(--neon-blue);">0.00</span> NSP</div>
     </div>
 
-    <!-- Navigation Footer -->
+    <!-- Navigation Footer (Strictly named matching image: اللعبة، الترتيب، حسابي) -->
     <div class="footer-nav">
         <div class="nav-item active">
             <span>🎰</span>
@@ -407,8 +447,8 @@
     <!-- System Modal Alert -->
     <div class="modal" id="msg-modal">
         <div class="modal-body">
-            <div id="modal-status" style="font-size: 1.3rem; font-weight: 900; color: var(--gold); margin-bottom: 8px;">تنبيه</div>
-            <p id="modal-desc" style="color: #a1e5ff; font-size: 0.95rem;"></p>
+            <div id="modal-status" style="font-size: 1.2rem; font-weight: 900; color: var(--gold); margin-bottom: 6px;">تنبيه</div>
+            <p id="modal-desc" style="color: #a1e5ff; font-size: 0.9rem;"></p>
             <button class="modal-btn" onclick="closeModal()">استمرار 🚀</button>
         </div>
     </div>
@@ -423,12 +463,53 @@
         let currentBalance = 0.00;
 
         const SYMBOLS = ['7', '🍊', '🍇', '🍒', '🔔', '🏺'];
-        const WILD_SYMBOL = '🏺';
+        const WILD_SYMBOL = '🏺'; // الجرة الذهبية النادرة
         const reelsCount = 5;
         const reelElements = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // Fetch user info from Python server
+        // Web Audio API for Professional Sound Effects
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSpinSound() {
+            initAudio();
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playWinSound() {
+            initAudio();
+            if (!audioCtx) return;
+            let now = audioCtx.currentTime;
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                gain.gain.setValueAtTime(0.2, now + i * 0.08);
+                gain.gain.linearRampToValueAtTime(0.01, now + i * 0.08 + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + i * 0.08);
+                osc.stop(now + i * 0.08 + 0.2);
+            });
+        }
+
+        // Fetch User Data from Python Server
         async function loadUserData() {
             try {
                 const res = await fetch('/api/get_user_data', {
@@ -444,7 +525,7 @@
                     document.getElementById('u-avatar').innerText = (data.name || "U")[0].toUpperCase();
                 }
             } catch (err) {
-                console.error("فشل إحضار بيانات المستخدم من السيرفر:", err);
+                console.error("فشل إحضار بيانات المستخدم:", err);
             }
         }
         loadUserData();
@@ -462,10 +543,11 @@
             fillReel(reelContainer, [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()]);
         }
 
+        // Jar (WILD) restricted to rare appearance (Max 3 on screen)
         function getRandomSymbol() {
             const rand = Math.random();
-            if (rand < 0.12) return '🏺';
-            if (rand < 0.28) return '7';
+            if (rand < 0.08) return '🏺'; // نادرة الظهور
+            if (rand < 0.30) return '7';
             return SYMBOLS[Math.floor(Math.random() * 4) + 1];
         }
 
@@ -501,7 +583,7 @@
         async function startSpin() {
             if (isSpinning) return;
             if (currentBalance < currentBet) {
-                showModal("❌ رصيد غير كافٍ", "يرجى شحن حسابك للبدء بهذه الدورة.");
+                showModal("❌ رصيد غير كافٍ", "يرجى شحن حسابك في البوت للبدء بهذه الدورة.");
                 return;
             }
 
@@ -513,7 +595,6 @@
 
             let serverResponse = null;
 
-            // Connect with bot API endpoint
             try {
                 const res = await fetch('/api/play_game', {
                     method: 'POST',
@@ -522,16 +603,19 @@
                 });
                 serverResponse = await res.json();
             } catch (e) {
-                console.warn("تنبيه الاتصال بالسيرفر، سيتم العمل بالنتائج المباشرة", e);
+                console.warn("تنبيه الاتصال بالسيرفر", e);
             }
 
-            // Spin Animation for each reel
+            // Spin Animation from Left to Right with Sound
             let finalGrid = [];
+            let jarCount = 0;
+
             const spinPromises = reelElements.map((reelContainer, index) => {
                 return new Promise(resolve => {
                     setTimeout(() => {
                         reelContainer.classList.add('blur-spin');
                         let interval = setInterval(() => {
+                            playSpinSound();
                             fillReel(reelContainer, [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()]);
                         }, 50);
 
@@ -539,19 +623,31 @@
                             clearInterval(interval);
                             reelContainer.classList.remove('blur-spin');
                             
-                            // Determine outcome
                             let finalSyms = [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()];
+                            
+                            // Ensure Jar (WILD) does not exceed 3 total on screen
+                            finalSyms = finalSyms.map(s => {
+                                if (s === '🏺') {
+                                    if (jarCount < 3) {
+                                        jarCount++;
+                                        return '🏺';
+                                    } else {
+                                        return '7';
+                                    }
+                                }
+                                return s;
+                            });
+
                             fillReel(reelContainer, finalSyms);
                             finalGrid.push(finalSyms);
                             resolve();
-                        }, 1000 + index * 250);
-                    }, index * 80);
+                        }, 800 + index * 200);
+                    }, index * 60);
                 });
             });
 
             await Promise.all(spinPromises);
 
-            // Update balance if server provided
             if (serverResponse && serverResponse.new_balance !== undefined) {
                 currentBalance = serverResponse.new_balance;
                 document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
@@ -562,7 +658,7 @@
             document.getElementById('spinBtn').disabled = false;
         }
 
-        // Win Algorithm (Left to Right)
+        // Win Logic: Left to Right Single Lines (Max multiplier capped at 100x)
         function evaluateWin(grid, serverResponse) {
             let rows = [0, 1, 2].map(r => grid.map(reel => reel[r]));
             let totalMultiplier = 0;
@@ -582,20 +678,20 @@
                     }
                 }
 
-                // Calculated Rules
                 let mult = 0;
                 if (baseSym === '7') {
                     if (matchCount === 2) mult = 1;
                     else if (matchCount === 3) mult = 2;
                     else if (matchCount === 4) mult = 5;
-                    else if (matchCount === 5) mult = 100;
-                } else { // Regular Fruits & Bell
+                    else if (matchCount === 5) mult = 100; // الحد الأقصى للربح الضخم 100x
+                } else { 
                     if (matchCount === 3) mult = 1;
                     else if (matchCount === 4) mult = 5;
                     else if (matchCount === 5) mult = 10;
                 }
 
                 if (mult > 0) {
+                    if (mult > 100) mult = 100; // منع تجاوز 100x تماماً
                     totalMultiplier += mult;
                     winningLines.push({ row: rowIndex, mult });
                 }
@@ -604,6 +700,7 @@
             let winAmount = serverResponse?.win_amount !== undefined ? serverResponse.win_amount : (totalMultiplier * currentBet);
 
             if (winAmount > 0) {
+                playWinSound();
                 document.getElementById('winAmount').innerText = winAmount.toFixed(2);
                 document.getElementById('lineInfo').innerText = `مبروك! ربحت ${winAmount.toFixed(2)} NSP`;
                 document.getElementById('lastWin').innerText = winAmount.toFixed(2);
@@ -613,14 +710,15 @@
                     document.getElementById('bestWin').innerText = winAmount.toFixed(2);
                 }
 
-                confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-                drawWinningLines(winningLines);
+                confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+                drawSingleLine(winningLines);
             } else {
                 document.getElementById('lineInfo').innerText = 'حظ أوفر في الضربة القادمة';
             }
         }
 
-        function drawWinningLines(lines) {
+        // Draw Single Line instead of full box lines
+        function drawSingleLine(lines) {
             const canvas = document.getElementById('lineCanvas');
             const ctx = canvas.getContext('2d');
             canvas.width = canvas.offsetWidth;
@@ -629,12 +727,12 @@
             lines.forEach(line => {
                 const y = (line.row * 80) + 40;
                 ctx.beginPath();
-                ctx.moveTo(10, y);
-                ctx.lineTo(canvas.width - 10, y);
+                ctx.moveTo(12, y);
+                ctx.lineTo(canvas.width - 12, y);
                 ctx.strokeStyle = '#00f0ff';
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 3;
                 ctx.shadowColor = '#00f0ff';
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = 10;
                 ctx.stroke();
             });
         }
