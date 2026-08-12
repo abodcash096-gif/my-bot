@@ -50,7 +50,6 @@ ALLOWED_STRIKE_PRICES = [3, 6, 9, 12, 15, 20, 50, 100]
 MULTIPLIERS = [2, 3, 5, 10, 15, 20, 50, 100]
 MULTIPLIER_WEIGHTS = [45, 25, 15, 8, 4, 2, 0.8, 0.2]
 
-# تم إضافة goold_lera القائمة المسموحة للألعاب
 ALLOWED_GAMES = [
     'wheel', 'aviator', 'mines', 'slots', 'chests', 
     'dice', 'coinflip', 'cards', 'thimbles', 'roulette', 'goold_lera'
@@ -133,7 +132,7 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus_enabled', '1')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_withdraw', '1000')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('game_algorithm', '35')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('game_algorithm', 'normal')")
 
     conn.commit()
     conn.close()
@@ -266,31 +265,22 @@ def api_play_game():
             conn.close()
             return jsonify({"error": "رصيدك غير كافٍ لتغطية هذه الضربة"}), 400
 
-        # خصم الرهان من رصيد البوت فورا
         new_balance = user["balance"] - bet
         conn.execute("UPDATE users SET balance = ?, games_played = games_played + 1 WHERE user_id = ?", (new_balance, user_id))
 
         algo_setting = conn.execute("SELECT value FROM settings WHERE key = 'game_algorithm'").fetchone()
-        algo_val = algo_setting["value"] if algo_setting else "35"
+        algo_val = algo_setting["value"] if algo_setting else "normal"
 
-        preset_rates = {
-            "forced_loss": 0.0,
-            "very_low": 0.10,
-            "low": 0.20,
-            "normal": 0.35,
-            "balanced": 0.50,
-            "high": 0.70,
-            "forced_win": 1.00
+        # الخيارات الخمسة الجديدة للتحكم في الخوارزمية بنسب مئوية
+        algorithm_rates = {
+            "loss": 0.0,          # خسارة صريحة (0%)
+            "normal": 0.25,       # ربح عادي (25%)
+            "medium": 0.45,       # ربح متوسط (45%)
+            "high": 0.70,         # ربح عالي (70%)
+            "mega_seven": 0.95    # ربح سبعات ضخم (95%)
         }
 
-        if algo_val in preset_rates:
-            base_chance = preset_rates[algo_val]
-        else:
-            try:
-                base_chance = float(algo_val) / 100.0
-            except ValueError:
-                base_chance = 0.35
-
+        base_chance = algorithm_rates.get(algo_val, 0.25)
         user_boost = user["custom_boost"] or 0.0
         final_win_chance = max(0.0, min(1.0, base_chance + (user_boost / 100.0)))
 
@@ -299,12 +289,17 @@ def api_play_game():
         win_amount = 0
 
         if is_win:
-            chosen_multiplier = random.choices(MULTIPLIERS, weights=MULTIPLIER_WEIGHTS)[0]
+            # إذا كانت الخوارزمية "سبعات ضخم"، نرجح المضاعف الأكبر 100x
+            if algo_val == "mega_seven":
+                chosen_multiplier = random.choices([50, 100], weights=[20, 80])[0]
+            else:
+                chosen_multiplier = random.choices(MULTIPLIERS, weights=MULTIPLIER_WEIGHTS)[0]
+            
             if chosen_multiplier > 100:
-                chosen_multiplier = 100  # تقييد الحد الأقصى للربح الضخم بـ 100x كما طلبت
+                chosen_multiplier = 100
             
             win_amount = round(bet * chosen_multiplier, 2)
-            new_balance += win_amount # زيادة رصيد البوت عند الفوز
+            new_balance += win_amount
             
             conn.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
             conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)",
@@ -337,7 +332,7 @@ def run_flask():
 def main_menu_keyboard(is_admin=False):
     games_url = f"{SERVER_URL}/games"
     keyboard = [
-        [InlineKeyboardButton("goold Lera", web_app=WebAppInfo(url=games_url))], # تم تعديل اسم زر اللعبة ليطابق اسم اللعبة حصراً
+        [InlineKeyboardButton("goold Lera", web_app=WebAppInfo(url=games_url))],
         [InlineKeyboardButton("👤 حسابي ورصيدي", callback_data="btn_account"), InlineKeyboardButton("💸 سحب رصيدي", callback_data="btn_withdraw")],
         [InlineKeyboardButton("🔗 رابط إحالاتي", callback_data="btn_referral"), InlineKeyboardButton("🤖 شراء بوت", callback_data="btn_buy_bot")],
         [InlineKeyboardButton("💬 مراسلة الدعم", callback_data="btn_support"), InlineKeyboardButton("🎁 إدخال كود هدية", callback_data="btn_gift")],
@@ -1004,16 +999,18 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
 
+        # تعديل خيارات خوارزميات الأرباح الخمسة المطلوبة
         if data == "adm_algo":
             kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚫 خسارة (0%)", callback_data="set_algo_forced_loss"), InlineKeyboardButton("📉 منخفضة جداً (10%)", callback_data="set_algo_very_low")],
-                [InlineKeyboardButton("📉 منخفضة (20%)", callback_data="set_algo_low"), InlineKeyboardButton("⚖️ متوازنة (35%)", callback_data="set_algo_normal")],
-                [InlineKeyboardButton("📈 مرتفعة (50%)", callback_data="set_algo_balanced"), InlineKeyboardButton("🔥 عالية (70%)", callback_data="set_algo_high")],
-                [InlineKeyboardButton("💎 فوز (100%)", callback_data="set_algo_forced_win")],
-                [InlineKeyboardButton("🔙 رجوع", callback_data="open_admin_panel")]
+                [InlineKeyboardButton("🚫 خسارة (0%)", callback_data="set_algo_loss")],
+                [InlineKeyboardButton("📉 ربح عادي (25%)", callback_data="set_algo_normal")],
+                [InlineKeyboardButton("⚖️ ربح متوسط (45%)", callback_data="set_algo_medium")],
+                [InlineKeyboardButton("📈 ربح عالي (70%)", callback_data="set_algo_high")],
+                [InlineKeyboardButton("🔥 ربح سبعات ضخم (95%)", callback_data="set_algo_mega_seven")],
+                [InlineKeyboardButton("🔙 رجوع للوحة", callback_data="open_admin_panel")]
             ])
             cur_a = conn.execute("SELECT value FROM settings WHERE key='game_algorithm'").fetchone()["value"]
-            await query.message.edit_text(f"⚙️ **ضبط الخوارزمية (RTP):**\n\nالحالي: `{cur_a}`", parse_mode="Markdown", reply_markup=kb)
+            await query.message.edit_text(f"⚙️ **ضبط خوارزمية الربح (RTP):**\n\nالوضع الحالي: `{cur_a}`\n\nاختر أحد الخيارات الخمسة:", parse_mode="Markdown", reply_markup=kb)
             conn.close()
             return
 
@@ -1022,7 +1019,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('game_algorithm', ?)", (new_val,))
             conn.commit()
             conn.close()
-            await query.message.edit_text(f"✅ تم الضبط إلى: `{new_val}`", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="open_admin_panel")]]))
+            await query.message.edit_text(f"✅ تم ضبط الخوارزمية بنجاح إلى: `{new_val}`", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="open_admin_panel")]]))
             return
 
         if data == "adm_channels_menu":
