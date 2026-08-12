@@ -13,7 +13,7 @@ from telegram.ext import (
 from database import get_db, init_db
 from server import run_flask
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8842721926:AAFn7HGsi7MPsPO7KtN4Z9PE5lj-j6OOhvY")
 WEBAPP_URL = "https://my-bot-j658.onrender.com/games"
 DEVELOPER_CHANNEL = "@lerafree"
 
