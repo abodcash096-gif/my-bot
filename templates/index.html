@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Golden Tree - VIP 2026</title>
+    <title>Golden Tree VIP - 2026 Ultimate Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon-blue: #00f3ff;
-            --neon-glow: rgba(0, 243, 255, 0.8);
+            --neon-glow: rgba(0, 243, 255, 0.85);
             --gold: #ffdf00;
-            --gold-glow: rgba(255, 223, 0, 0.7);
-            --bg-dark: #010409;
-            --card-bg: rgba(4, 15, 30, 0.98);
+            --gold-glow: rgba(255, 223, 0, 0.8);
+            --bg-dark: #000308;
+            --card-bg: rgba(3, 12, 25, 0.98);
         }
 
         * {
@@ -27,7 +27,7 @@
         }
 
         body {
-            background: radial-gradient(circle at center, #051932 0%, var(--bg-dark) 100%);
+            background: radial-gradient(circle at center, #04162c 0%, var(--bg-dark) 100%);
             color: #fff;
             min-height: 100vh;
             display: flex;
@@ -42,9 +42,9 @@
             justify-content: space-between;
             align-items: center;
             padding: 8px 14px;
-            background: rgba(1, 8, 18, 0.98);
-            border-bottom: 1px solid rgba(0, 243, 255, 0.35);
-            backdrop-filter: blur(12px);
+            background: rgba(1, 6, 14, 0.99);
+            border-bottom: 1.5px solid rgba(0, 243, 255, 0.4);
+            backdrop-filter: blur(15px);
         }
 
         .user-info {
@@ -54,8 +54,8 @@
         }
 
         .avatar {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--gold), #ff8800);
             display: flex;
@@ -63,7 +63,7 @@
             justify-content: center;
             font-weight: 900;
             color: #000;
-            box-shadow: 0 0 15px var(--gold-glow);
+            box-shadow: 0 0 18px var(--gold-glow);
         }
 
         .logo {
@@ -73,12 +73,12 @@
             background: linear-gradient(180deg, #fff 0%, var(--gold) 50%, #b38f00 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 15px rgba(255, 223, 0, 0.5);
+            text-shadow: 0 0 18px rgba(255, 223, 0, 0.6);
             line-height: 1.1;
         }
 
         .balance-badge {
-            background: rgba(0, 243, 255, 0.1);
+            background: rgba(0, 243, 255, 0.12);
             border: 1.5px solid var(--neon-blue);
             color: var(--neon-blue);
             padding: 5px 12px;
@@ -88,7 +88,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            box-shadow: 0 0 12px var(--neon-glow);
+            box-shadow: 0 0 15px var(--neon-glow);
         }
 
         /* Top Widgets */
@@ -103,7 +103,7 @@
             border-radius: 12px;
             padding: 4px 10px;
             font-size: 10px;
-            background: rgba(0,30,60,0.8);
+            background: rgba(0,30,60,0.85);
             color: var(--neon-blue);
             display: flex;
             flex-direction: column;
@@ -124,10 +124,10 @@
         .slots-frame {
             display: flex;
             gap: 4px;
-            background: rgba(1, 8, 18, 0.99);
-            border: 2.5px solid var(--neon-blue);
-            box-shadow: 0 0 35px var(--neon-glow), inset 0 0 20px var(--neon-glow);
-            border-radius: 16px;
+            background: rgba(1, 6, 14, 0.99);
+            border: 3px solid var(--neon-blue);
+            box-shadow: 0 0 40px var(--neon-glow), inset 0 0 25px var(--neon-glow);
+            border-radius: 18px;
             padding: 6px;
             position: relative;
             overflow: hidden;
@@ -135,10 +135,10 @@
 
         .reel {
             flex: 1;
-            height: 236px;
+            height: 238px;
             background: var(--card-bg);
-            border: 1px solid rgba(0, 243, 255, 0.35);
-            border-radius: 8px;
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            border-radius: 10px;
             overflow: hidden;
             position: relative;
         }
@@ -151,46 +151,46 @@
         }
 
         .symbol {
-            height: 78px;
+            height: 79px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 40px;
+            font-size: 42px;
             position: relative;
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            filter: drop-shadow(0 0 5px rgba(255,255,255,0.25));
+            filter: drop-shadow(0 0 6px rgba(255,255,255,0.3));
         }
 
         .symbol:hover {
-            transform: scale(1.12);
+            transform: scale(1.15);
         }
 
-        /* تصميم الجرة الذهبية النادرة (Golden Tree Style) */
+        /* تصميم الجرة الفاخرة النادرة */
         .symbol.jar-rare {
-            background: radial-gradient(circle, rgba(255,223,0,0.65) 0%, rgba(255,136,0,0.35) 75%);
+            background: radial-gradient(circle, rgba(255,223,0,0.7) 0%, rgba(255,136,0,0.4) 75%);
             border: 2px solid var(--gold);
-            box-shadow: inset 0 0 25px var(--gold), 0 0 22px var(--gold);
-            border-radius: 8px;
-            animation: goldenTreePulse 0.7s infinite alternate;
+            box-shadow: inset 0 0 28px var(--gold), 0 0 25px var(--gold);
+            border-radius: 10px;
+            animation: ultimateJarPulse 0.6s infinite alternate;
         }
 
-        @keyframes goldenTreePulse {
-            0% { transform: scale(1); filter: drop-shadow(0 0 10px var(--gold)); }
-            100% { transform: scale(1.12); filter: drop-shadow(0 0 25px var(--gold)); }
+        @keyframes ultimateJarPulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 12px var(--gold)); }
+            100% { transform: scale(1.15); filter: drop-shadow(0 0 30px var(--gold)); }
         }
 
         .symbol.seven {
             color: #00ffff;
-            text-shadow: 0 0 15px #00ffff, 0 0 30px #0088ff, 0 0 50px #0044ff;
+            text-shadow: 0 0 18px #00ffff, 0 0 35px #0088ff, 0 0 55px #0044ff;
             font-weight: 900;
             font-style: italic;
-            animation: sevenGlowAnim 0.9s infinite alternate;
+            animation: ultimateSevenGlow 0.8s infinite alternate;
         }
 
-        @keyframes sevenGlowAnim {
+        @keyframes ultimateSevenGlow {
             0% { transform: scale(1); filter: brightness(1); }
-            100% { transform: scale(1.06); filter: brightness(1.35); }
+            100% { transform: scale(1.08); filter: brightness(1.4); }
         }
 
         #lineCanvas {
@@ -213,14 +213,14 @@
             color: var(--neon-blue);
             font-size: 13px;
             font-weight: 700;
-            text-shadow: 0 0 10px var(--neon-blue);
+            text-shadow: 0 0 12px var(--neon-blue);
         }
 
         .win-display {
-            font-size: 22px;
+            font-size: 23px;
             font-weight: 900;
             color: #fff;
-            text-shadow: 0 0 15px var(--neon-blue);
+            text-shadow: 0 0 18px var(--neon-blue);
         }
 
         /* Bet Selection Chips */
@@ -236,21 +236,21 @@
             padding: 6px 12px;
             border-radius: 16px;
             border: 1.5px solid var(--neon-blue);
-            background: rgba(0, 30, 60, 0.85);
+            background: rgba(0, 30, 60, 0.9);
             color: #fff;
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 0 8px var(--neon-glow);
+            box-shadow: 0 0 10px var(--neon-glow);
             transition: all 0.2s;
         }
 
         .bet-chip.active {
             background: var(--neon-blue);
             color: #000;
-            box-shadow: 0 0 22px var(--neon-blue);
+            box-shadow: 0 0 25px var(--neon-blue);
             font-weight: 900;
-            transform: scale(1.06);
+            transform: scale(1.08);
         }
 
         /* Controls Bar */
@@ -263,14 +263,14 @@
         }
 
         .spin-btn {
-            width: 74px;
-            height: 74px;
+            width: 76px;
+            height: 76px;
             border-radius: 50%;
-            border: 3px solid var(--neon-blue);
-            background: radial-gradient(circle, rgba(0,243,255,0.85) 0%, rgba(1,10,25,0.99) 100%);
-            box-shadow: 0 0 35px var(--neon-blue), inset 0 0 20px var(--neon-blue);
+            border: 3.5px solid var(--neon-blue);
+            background: radial-gradient(circle, rgba(0,243,255,0.9) 0%, rgba(1,8,20,0.99) 100%);
+            box-shadow: 0 0 40px var(--neon-blue), inset 0 0 22px var(--neon-blue);
             color: #fff;
-            font-size: 35px;
+            font-size: 36px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -282,34 +282,34 @@
         .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .sub-btn {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             border: 1.5px solid var(--neon-blue);
-            background: rgba(1, 10, 25, 0.9);
+            background: rgba(1, 8, 20, 0.92);
             color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 15px;
+            font-size: 16px;
             cursor: pointer;
-            box-shadow: 0 0 8px var(--neon-glow);
+            box-shadow: 0 0 10px var(--neon-glow);
             transition: 0.2s;
         }
         .sub-btn.active-sub {
             background: var(--gold);
             color: #000;
             border-color: var(--gold);
-            box-shadow: 0 0 18px var(--gold);
+            box-shadow: 0 0 20px var(--gold);
         }
 
         /* Bottom Stats */
         .history-bar {
             display: flex;
             justify-content: space-around;
-            background: rgba(1, 8, 18, 0.98);
-            border-top: 1px solid rgba(0, 243, 255, 0.35);
-            border-bottom: 1px solid rgba(0, 243, 255, 0.35);
+            background: rgba(1, 6, 14, 0.99);
+            border-top: 1.5px solid rgba(0, 243, 255, 0.4);
+            border-bottom: 1.5px solid rgba(0, 243, 255, 0.4);
             padding: 6px 0;
             font-size: 11px;
             font-weight: bold;
@@ -319,9 +319,9 @@
         .footer-nav {
             display: flex;
             justify-content: space-around;
-            background: #010306;
+            background: #000103;
             padding: 8px 0;
-            border-top: 1px solid rgba(0,243,255,0.2);
+            border-top: 1px solid rgba(0,243,255,0.25);
         }
 
         .nav-item {
@@ -337,7 +337,7 @@
 
         .nav-item.active {
             color: var(--neon-blue);
-            text-shadow: 0 0 10px var(--neon-blue);
+            text-shadow: 0 0 12px var(--neon-blue);
         }
 
         .blur-spin { filter: blur(6px); }
@@ -347,8 +347,8 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(10px);
             z-index: 200;
             align-items: center;
             justify-content: center;
@@ -356,26 +356,26 @@
         }
 
         .modal-body {
-            background: #041224;
-            border-radius: 20px;
+            background: #031020;
+            border-radius: 22px;
             border: 2px solid var(--neon-blue);
-            padding: 24px;
+            padding: 26px;
             text-align: center;
             max-width: 320px;
             width: 100%;
-            box-shadow: 0 0 40px var(--neon-glow);
+            box-shadow: 0 0 45px var(--neon-glow);
         }
 
         .modal-btn {
             background: var(--neon-blue);
             color: #000;
             border: none;
-            padding: 10px 26px;
+            padding: 10px 28px;
             border-radius: 12px;
             font-weight: 900;
             margin-top: 16px;
             cursor: pointer;
-            box-shadow: 0 0 18px var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-blue);
         }
     </style>
 </head>
@@ -387,7 +387,7 @@
             <div class="avatar" id="u-avatar">U</div>
             <span id="u-name" style="font-weight: bold; font-size: 0.85rem;">اللاعب</span>
         </div>
-        <div class="logo">Golden Tree<br><span style="font-size: 11px; color: #a1e5ff;">VIP Casino 2026</span></div>
+        <div class="logo">Golden Tree<br><span style="font-size: 11px; color: #a1e5ff;">VIP Ultimate 2026</span></div>
         <div class="balance-badge">
             <span id="u-balance">0.00</span>
             <span style="font-size: 10px;">NSP</span>
@@ -396,7 +396,7 @@
 
     <!-- Top Widgets -->
     <div class="top-widgets">
-        <div class="mini-badge" onclick="showModal('إعدادات اللعبة', 'نظام كازينو Golden Tree الاحترافي.')">
+        <div class="mini-badge" onclick="showModal('إعدادات اللعبة', 'نظام كازينو Golden Tree المتطور فائق الجودة.')">
             <span>⚡ 3 3 3</span>
             <span style="font-size: 8px; color: #8cf;">ULTRA HD</span>
         </div>
@@ -486,13 +486,13 @@
         const reelElements = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // محرك أصوات Golden Tree السينمائي الفاخر 2026
+        // نظام أصوات سينمائي فائق الجودة (Ultra HD 2026 Audio Engine)
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        function playGoldenTreeSound(type) {
+        function playUltimateSound(type) {
             initAudio();
             if (!audioCtx) return;
             let now = audioCtx.currentTime;
@@ -501,9 +501,9 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(1200, now);
-                osc.frequency.exponentialRampToValueAtTime(600, now + 0.04);
-                gain.gain.setValueAtTime(0.22, now);
+                osc.frequency.setValueAtTime(1400, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.04);
+                gain.gain.setValueAtTime(0.25, now);
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.04);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.04);
@@ -512,39 +512,39 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(350 + Math.random() * 150, now);
-                gain.gain.setValueAtTime(0.06, now);
+                osc.frequency.setValueAtTime(400 + Math.random() * 180, now);
+                gain.gain.setValueAtTime(0.07, now);
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.05);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.05);
             } 
             else if (type === 'jar_rare') {
-                // رنين ذهبي ساحر خاص بلعبة Golden Tree عند ظهور الجرة النادرة
-                [880.00, 1046.50, 1318.51, 1760.00, 2349.32].forEach((freq, i) => {
+                // رنين ذهبي فضائي فائق النقاء عند ظهور الجرة النادرة
+                [969.00, 1174.66, 1318.51, 1760.00, 2349.32, 3135.96].forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.05));
-                    gain.gain.setValueAtTime(0.35, now + (i * 0.05));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.35);
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.045));
+                    gain.gain.setValueAtTime(0.4, now + (i * 0.045));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.045) + 0.4);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.05));
-                    osc.stop(now + (i * 0.05) + 0.35);
+                    osc.start(now + (i * 0.045));
+                    osc.stop(now + (i * 0.045) + 0.4);
                 });
             }
             else if (type === 'win_epic') {
-                // ألحان فخمة ملكية تحاكي كبرى ألعاب الكازينو العالمية
-                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00, 2637.02, 3135.96];
+                // ألحان كازينو ملكية فخمة جداً وطويلة تبعد الملل وتدفع للعب الطويل
+                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00, 2637.02, 3135.96, 4186.01];
                 notes.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = i % 2 === 0 ? 'sine' : 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.055));
-                    gain.gain.setValueAtTime(0.3, now + (i * 0.055));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.055) + 0.45);
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.05));
+                    gain.gain.setValueAtTime(0.35, now + (i * 0.05));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.5);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.055));
-                    osc.stop(now + (i * 0.055) + 0.45);
+                    osc.start(now + (i * 0.05));
+                    osc.stop(now + (i * 0.05) + 0.5);
                 });
             }
         }
@@ -611,14 +611,14 @@
 
         function setBet(amount, el) {
             if (isSpinning) return;
-            playGoldenTreeSound('click');
+            playUltimateSound('click');
             currentBet = amount;
             document.querySelectorAll('.bet-chip').forEach(b => b.classList.remove('active'));
             if(el) el.classList.add('active');
         }
 
         function doubleBet() {
-            playGoldenTreeSound('click');
+            playUltimateSound('click');
             let bets = [3, 6, 9, 15, 50];
             let idx = bets.indexOf(currentBet);
             if (idx < bets.length - 1) {
@@ -636,7 +636,7 @@
         }
 
         function toggleAutoSpin() {
-            playGoldenTreeSound('click');
+            playUltimateSound('click');
             autoSpinActive = !autoSpinActive;
             let btn = document.getElementById('autoBtn');
             if (autoSpinActive) {
@@ -652,7 +652,7 @@
         }
 
         function toggleTurbo() {
-            playGoldenTreeSound('click');
+            playUltimateSound('click');
             turboActive = !turboActive;
             document.getElementById('turboBtn').classList.toggle('active-sub', turboActive);
         }
@@ -684,7 +684,7 @@
             }
 
             let finalGrid = [];
-            let speed = turboActive ? 250 : 700;
+            let speed = turboActive ? 220 : 650;
             let jarCount = 0;
 
             const spinPromises = reelElements.map((reelContainer, index) => {
@@ -692,9 +692,9 @@
                     setTimeout(() => {
                         reelContainer.classList.add('blur-spin');
                         let interval = setInterval(() => {
-                            playGoldenTreeSound('spin');
+                            playUltimateSound('spin');
                             fillReel(reelContainer, [getRandomSymbol(false), getRandomSymbol(false), getRandomSymbol(false)]);
-                        }, 40);
+                        }, 35);
 
                         setTimeout(() => {
                             clearInterval(interval);
@@ -706,27 +706,27 @@
                             fillReel(reelContainer, finalSyms);
                             finalGrid.push(finalSyms);
                             resolve();
-                        }, speed + index * 120);
-                    }, index * 30);
+                        }, speed + index * 110);
+                    }, index * 25);
                 });
             });
 
             await Promise.all(spinPromises);
 
-            if (jarCount > 0) playGoldenTreeSound('jar_rare');
+            if (jarCount > 0) playUltimateSound('jar_rare');
 
             if (serverResponse && serverResponse.new_balance !== undefined) {
                 currentBalance = serverResponse.new_balance;
                 document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
             }
 
-            evaluateGoldenTreeWin(finalGrid, serverResponse);
+            evaluateGoldenTreeExactWin(finalGrid, serverResponse);
             isSpinning = false;
             document.getElementById('spinBtn').disabled = false;
         }
 
-        // خوارزمية فحص الربح الحقيقية والمطابقة تماماً لـ Golden Tree (من اليسار لليمين حصراً)
-        function evaluateGoldenTreeWin(grid, serverResponse) {
+        // خوارزمية الربح الدقيقة المطابقة تماماً لـ Golden Tree (تبدأ حصراً من العمود الأول نحو اليمين وتتوقف عند أول انقطاع)
+        function evaluateGoldenTreeExactWin(grid, serverResponse) {
             let rows = [0, 1, 2].map(r => grid.map(reel => reel[r]));
             let totalMultiplier = 0;
             let matchedLines = [];
@@ -749,7 +749,7 @@
                     symbolsOnLine = [rows[2][0], rows[1][1], rows[0][2], rows[1][3], rows[2][4]];
                 }
 
-                // القاعدة الصارمة: يجب أن يبدأ التسلسل من العمود الأول (Index 0) في أقصى اليسار
+                // القاعدة الصارمة: يجب أن يبدأ الخط من العمود الأول (Index 0) حصراً
                 let first = symbolsOnLine[0];
                 if (!first || first === '🏺') return;
 
@@ -761,7 +761,7 @@
                     if (s === base || s === '🏺') {
                         count++;
                     } else {
-                        break;
+                        break; // يتوقف فوراً إذا انقطع التسلسل من اليسار لليمين
                     }
                 }
 
@@ -783,7 +783,7 @@
 
                 if (mult > 0) {
                     totalMultiplier += mult;
-                    matchedLines.push({ config: cfg, mult, count });
+                    matchedLines.push({ config: cfg, mult, count, rowIdx: cfg.r, type: cfg.type });
                 }
             });
 
@@ -796,7 +796,7 @@
             }
 
             if (winAmount > 0) {
-                playGoldenTreeSound('win_epic');
+                playUltimateSound('win_epic');
                 document.getElementById('winAmount').innerText = winAmount.toFixed(2);
                 document.getElementById('lineInfo').innerText = `مبروك! ربحت ${winAmount.toFixed(2)} NSP`;
                 document.getElementById('lastWin').innerText = winAmount.toFixed(2);
@@ -804,7 +804,7 @@
                 let best = parseFloat(document.getElementById('bestWin').innerText);
                 if (winAmount > best) document.getElementById('bestWin').innerText = winAmount.toFixed(2);
 
-                confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+                confetti({ particleCount: 160, spread: 110, origin: { y: 0.6 } });
                 drawWinningLines(matchedLines);
             } else {
                 document.getElementById('winAmount').innerText = '0.00';
@@ -813,6 +813,7 @@
             }
         }
 
+        // رسم خطوط تفصيلية لشرح الربح بدقة تامة للمستخدم
         function drawWinningLines(lines) {
             const canvas = document.getElementById('lineCanvas');
             const ctx = canvas.getContext('2d');
@@ -821,20 +822,22 @@
             let rowHeight = canvas.height / 3;
 
             lines.forEach(l => {
-                let cfg = l.config;
                 ctx.beginPath();
-                if (cfg.type === 'horizontal') {
-                    let y = (cfg.r * rowHeight) + (rowHeight / 2);
+                if (l.type === 'horizontal') {
+                    let y = (l.rowIdx * rowHeight) + (rowHeight / 2);
                     ctx.moveTo(10, y);
                     ctx.lineTo(canvas.width - 10, y);
-                } else {
-                    ctx.moveTo(10, canvas.height / 2);
-                    ctx.lineTo(canvas.width - 10, canvas.height / 2);
+                } else if (l.type === 'diagonal_down') {
+                    ctx.moveTo(10, 10);
+                    ctx.lineTo(canvas.width - 10, canvas.height - 10);
+                } else if (l.type === 'diagonal_up') {
+                    ctx.moveTo(10, canvas.height - 10);
+                    ctx.lineTo(canvas.width - 10, 10);
                 }
                 ctx.strokeStyle = '#00f3ff';
-                ctx.lineWidth = 5;
+                ctx.lineWidth = 5.5;
                 ctx.shadowColor = '#00f3ff';
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 22;
                 ctx.stroke();
             });
         }
@@ -846,14 +849,14 @@
         }
 
         function showModal(title, desc) {
-            playGoldenTreeSound('click');
+            playUltimateSound('click');
             document.getElementById('modal-status').innerText = title;
             document.getElementById('modal-desc').innerText = desc;
             document.getElementById('msg-modal').style.display = 'flex';
         }
 
         function closeModal() {
-            playGoldenTreeSound('click');
+            playUltimateSound('click');
             document.getElementById('msg-modal').style.display = 'none';
         }
     </script>
