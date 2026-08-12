@@ -997,7 +997,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         start_price = get_setting('bot_start_price')
         
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(عادي)
         cursor.execute("INSERT INTO bot_orders (user_id, details, price) VALUES (?, ?, ?)", (user_id, details, start_price))
         order_id = cursor.lastrowid
         conn.commit()
