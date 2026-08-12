@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Golden Tree - VIP Ultimate 2026</title>
+    <title>Golden Tree - VIP Master Edition 2026</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -12,9 +12,9 @@
             --neon-blue: #00f3ff;
             --neon-glow: rgba(0, 243, 255, 0.85);
             --gold: #ffdf00;
-            --gold-glow: rgba(255, 223, 0, 0.8);
-            --bg-dark: #000206;
-            --card-bg: rgba(2, 10, 20, 0.98);
+            --gold-glow: rgba(255, 223, 0, 0.85);
+            --bg-dark: #01040a;
+            --card-bg: rgba(3, 14, 28, 0.99);
         }
 
         * {
@@ -27,7 +27,7 @@
         }
 
         body {
-            background: radial-gradient(circle at center, #031428 0%, var(--bg-dark) 100%);
+            background: radial-gradient(circle at center, #051936 0%, var(--bg-dark) 100%);
             color: #fff;
             min-height: 100vh;
             display: flex;
@@ -42,7 +42,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 8px 14px;
-            background: rgba(1, 5, 12, 0.99);
+            background: rgba(1, 6, 15, 0.99);
             border-bottom: 1.5px solid rgba(0, 243, 255, 0.4);
             backdrop-filter: blur(15px);
         }
@@ -124,7 +124,7 @@
         .slots-frame {
             display: flex;
             gap: 4px;
-            background: rgba(1, 5, 12, 0.99);
+            background: rgba(1, 6, 15, 0.99);
             border: 3px solid var(--neon-blue);
             box-shadow: 0 0 45px var(--neon-glow), inset 0 0 25px var(--neon-glow);
             border-radius: 18px;
@@ -158,7 +158,7 @@
             align-items: center;
             font-size: 42px;
             position: relative;
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             filter: drop-shadow(0 0 8px rgba(255,255,255,0.35));
         }
 
@@ -166,31 +166,31 @@
             transform: scale(1.15);
         }
 
-        /* تصميم الجرة الفاخرة النادرة */
+        /* انميشن الفواكه والجرة المذهل */
         .symbol.jar-rare {
-            background: radial-gradient(circle, rgba(255,223,0,0.75) 0%, rgba(255,136,0,0.45) 75%);
+            background: radial-gradient(circle, rgba(255,223,0,0.8) 0%, rgba(255,136,0,0.5) 75%);
             border: 2px solid var(--gold);
-            box-shadow: inset 0 0 30px var(--gold), 0 0 30px var(--gold);
+            box-shadow: inset 0 0 35px var(--gold), 0 0 35px var(--gold);
             border-radius: 10px;
-            animation: ultimateJarPulse 0.6s infinite alternate;
+            animation: goldenPulse 0.55s infinite alternate;
         }
 
-        @keyframes ultimateJarPulse {
-            0% { transform: scale(1); filter: drop-shadow(0 0 12px var(--gold)); }
-            100% { transform: scale(1.15); filter: drop-shadow(0 0 35px var(--gold)); }
+        @keyframes goldenPulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 15px var(--gold)); }
+            100% { transform: scale(1.18); filter: drop-shadow(0 0 40px var(--gold)); }
         }
 
         .symbol.seven {
             color: #00ffff;
-            text-shadow: 0 0 20px #00ffff, 0 0 40px #0088ff, 0 0 60px #0044ff;
+            text-shadow: 0 0 22px #00ffff, 0 0 45px #0088ff, 0 0 70px #0044ff;
             font-weight: 900;
             font-style: italic;
-            animation: ultimateSevenGlow 0.8s infinite alternate;
+            animation: sevenGlowAnim 0.75s infinite alternate;
         }
 
-        @keyframes ultimateSevenGlow {
+        @keyframes sevenGlowAnim {
             0% { transform: scale(1); filter: brightness(1); }
-            100% { transform: scale(1.08); filter: brightness(1.4); }
+            100% { transform: scale(1.1); filter: brightness(1.45); }
         }
 
         #lineCanvas {
@@ -306,7 +306,7 @@
         .history-bar {
             display: flex;
             justify-content: space-around;
-            background: rgba(1, 5, 12, 0.99);
+            background: rgba(1, 6, 15, 0.99);
             border-top: 1.5px solid rgba(0, 243, 255, 0.4);
             border-bottom: 1.5px solid rgba(0, 243, 255, 0.4);
             padding: 6px 0;
@@ -386,7 +386,7 @@
             <div class="avatar" id="u-avatar">U</div>
             <span id="u-name" style="font-weight: bold; font-size: 0.85rem;">اللاعب</span>
         </div>
-        <div class="logo">Golden Tree<br><span style="font-size: 11px; color: #a1e5ff;">VIP Ultimate 2026</span></div>
+        <div class="logo">Golden Tree<br><span style="font-size: 11px; color: #a1e5ff;">Master VIP 2026</span></div>
         <div class="balance-badge">
             <span id="u-balance">0.00</span>
             <span style="font-size: 10px;">NSP</span>
@@ -395,7 +395,7 @@
 
     <!-- Top Widgets -->
     <div class="top-widgets">
-        <div class="mini-badge" onclick="showModal('إعدادات اللعبة', 'نظام كازينو Golden Tree المتطور فائق الجودة.')">
+        <div class="mini-badge" onclick="showModal('إعدادات اللعبة', 'نظام كازينو Golden Tree الحقيقي.')">
             <span>⚡ 3 سرعات</span>
             <span style="font-size: 8px; color: #8cf;">ULTRA HD</span>
         </div>
@@ -475,7 +475,7 @@
         let userId = tg?.initDataUnsafe?.user?.id || 7255100997;
         let currentBet = 3;
         let isSpinning = false;
-        let forceStopRequested = false; // لإيقاف الدوران الفوري عند الضغط مرة أخرى
+        let forceStopRequested = false;
         let currentBalance = 0.00;
         let autoSpinActive = false;
         let speedLevel = 1; // 1: بطيء, 2: سريع, 3: أسرع
@@ -486,13 +486,13 @@
         const reelElements = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // محرك أصوات سينمائي فائق الجودة (Ultra HD 2026 Audio Engine)
+        // محرك أصوات هادئ وراقي جداً (Harmonic Melodic Audio Engine) لمنع أي إزعاج
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        function playUltimateSound(type) {
+        function playGoldenTreeMelody(type) {
             initAudio();
             if (!audioCtx) return;
             let now = audioCtx.currentTime;
@@ -501,9 +501,9 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(1400, now);
-                osc.frequency.exponentialRampToValueAtTime(700, now + 0.04);
-                gain.gain.setValueAtTime(0.25, now);
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.04);
+                gain.gain.setValueAtTime(0.12, now);
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.04);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.04);
@@ -512,37 +512,39 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(400 + Math.random() * 180, now);
-                gain.gain.setValueAtTime(0.07, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.05);
+                osc.frequency.setValueAtTime(250 + Math.random() * 80, now);
+                gain.gain.setValueAtTime(0.03, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.04);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.05);
+                osc.start(now); osc.stop(now + 0.04);
             } 
             else if (type === 'jar_rare') {
-                [969.00, 1174.66, 1318.51, 1760.00, 2349.32, 3135.96].forEach((freq, i) => {
+                // رنين ذهبي ساحر وناعم جداً
+                [659.25, 783.99, 987.77, 1318.51].forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.045));
-                    gain.gain.setValueAtTime(0.4, now + (i * 0.045));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.045) + 0.4);
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.06));
+                    gain.gain.setValueAtTime(0.25, now + (i * 0.06));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.06) + 0.35);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.045));
-                    osc.stop(now + (i * 0.045) + 0.4);
+                    osc.start(now + (i * 0.06));
+                    osc.stop(now + (i * 0.06) + 0.35);
                 });
             }
             else if (type === 'win_epic') {
-                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00, 2637.02, 3135.96, 4186.01];
+                // ألحان كازينو هادئة وراقية مريحة للآذان وتبعد الملل تماماً
+                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
                 notes.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
-                    osc.type = i % 2 === 0 ? 'sine' : 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.05));
-                    gain.gain.setValueAtTime(0.35, now + (i * 0.05));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.5);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.07));
+                    gain.gain.setValueAtTime(0.22, now + (i * 0.07));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.07) + 0.45);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.05));
-                    osc.stop(now + (i * 0.05) + 0.5);
+                    osc.start(now + (i * 0.07));
+                    osc.stop(now + (i * 0.07) + 0.45);
                 });
             }
         }
@@ -609,14 +611,14 @@
 
         function setBet(amount, el) {
             if (isSpinning) return;
-            playUltimateSound('click');
+            playGoldenTreeMelody('click');
             currentBet = amount;
             document.querySelectorAll('.bet-chip').forEach(b => b.classList.remove('active'));
             if(el) el.classList.add('active');
         }
 
         function doubleBet() {
-            playUltimateSound('click');
+            playGoldenTreeMelody('click');
             let bets = [3, 6, 9, 15, 50];
             let idx = bets.indexOf(currentBet);
             if (idx < bets.length - 1) {
@@ -634,7 +636,7 @@
         }
 
         function toggleAutoSpin() {
-            playUltimateSound('click');
+            playGoldenTreeMelody('click');
             autoSpinActive = !autoSpinActive;
             let btn = document.getElementById('autoBtn');
             if (autoSpinActive) {
@@ -649,9 +651,9 @@
             }
         }
 
-        // تحكم في السرعات الثلاث عبر الزر السفلي
+        // تحكم بالسرعات الثلاث
         function cycleSpeed() {
-            playUltimateSound('click');
+            playGoldenTreeMelody('click');
             speedLevel = (speedLevel % 3) + 1;
             let btn = document.getElementById('speedBtn');
             if (speedLevel === 1) {
@@ -666,10 +668,10 @@
             }
         }
 
-        // زر البدء: اضغط للبدء، واضغط مرة أخرى للإيقاف الفوري
+        // زر البدء / الإيقاف الفوري
         function handleSpinButton() {
             if (isSpinning) {
-                forceStopRequested = true; // طلب إيقاف فوري
+                forceStopRequested = true;
             } else {
                 startSpin();
             }
@@ -685,7 +687,7 @@
 
             isSpinning = true;
             forceStopRequested = false;
-            document.getElementById('spinBtn').innerText = '⏹️'; // يتحول لزر إيقاف أثناء الدوران
+            document.getElementById('spinBtn').innerText = '⏹️';
             clearCanvas();
             document.getElementById('lineInfo').innerText = 'جاري التدوير...';
             document.getElementById('winAmount').innerText = '0.00';
@@ -703,9 +705,7 @@
             }
 
             let finalGrid = [];
-            
-            // تحديد السرعة بناءً على اختيار اللاعب (بطيء، سريع، أسرع)
-            let baseSpeed = speedLevel === 1 ? 1200 : (speedLevel === 2 ? 600 : 250);
+            let baseSpeed = speedLevel === 1 ? 1300 : (speedLevel === 2 ? 650 : 250);
             let jarCount = 0;
 
             const spinPromises = reelElements.map((reelContainer, index) => {
@@ -713,9 +713,9 @@
                     setTimeout(() => {
                         reelContainer.classList.add('blur-spin');
                         let interval = setInterval(() => {
-                            playUltimateSound('spin');
+                            playGoldenTreeMelody('spin');
                             fillReel(reelContainer, [getRandomSymbol(false), getRandomSymbol(false), getRandomSymbol(false)]);
-                        }, forceStopRequested ? 10 : 35);
+                        }, forceStopRequested ? 10 : 40);
 
                         let currentWait = forceStopRequested ? 50 : (baseSpeed + index * 100);
 
@@ -730,13 +730,13 @@
                             finalGrid.push(finalSyms);
                             resolve();
                         }, currentWait);
-                    }, forceStopRequested ? 0 : index * 20);
+                    }, forceStopRequested ? 0 : index * 25);
                 });
             });
 
             await Promise.all(spinPromises);
 
-            if (jarCount > 0) playUltimateSound('jar_rare');
+            if (jarCount > 0) playGoldenTreeMelody('jar_rare');
 
             if (serverResponse && serverResponse.new_balance !== undefined) {
                 currentBalance = serverResponse.new_balance;
@@ -746,10 +746,10 @@
             evaluateGoldenTreeExactWin(finalGrid, serverResponse);
             isSpinning = false;
             forceStopRequested = false;
-            document.getElementById('spinBtn').innerText = '↻'; // يعود لزر التدوير
+            document.getElementById('spinBtn').innerText = '↻';
         }
 
-        // خوارزمية الربح الدقيقة المطابقة تماماً لـ Golden Tree (تبدأ حصراً من العمود الأول نحو اليمين وتتوقف عند أول انقطاع)
+        // خوارزمية الربح الأصلية والمطابقة تماماً لـ Golden Tree (يسار ليمين حصراً دون خطأ)
         function evaluateGoldenTreeExactWin(grid, serverResponse) {
             let rows = [0, 1, 2].map(r => grid.map(reel => reel[r]));
             let totalMultiplier = 0;
@@ -773,7 +773,7 @@
                     symbolsOnLine = [rows[2][0], rows[1][1], rows[0][2], rows[1][3], rows[2][4]];
                 }
 
-                // القاعدة الصارمة: يجب أن يبدأ الخط من العمود الأول (Index 0) حصراً
+                // القاعدة الصارمة: البدء حصراً من العمود الأول (Index 0) في أقصى اليسار
                 let first = symbolsOnLine[0];
                 if (!first || first === '🏺') return;
 
@@ -785,7 +785,7 @@
                     if (s === base || s === '🏺') {
                         count++;
                     } else {
-                        break; // يتوقف فوراً إذا انقطع التسلسل من اليسار لليمين
+                        break; // يتوقف فوراً عند أول رمز مختلف
                     }
                 }
 
@@ -794,14 +794,14 @@
                     if (count >= 5) mult = 100;
                     else if (count === 4) mult = 20;
                     else if (count === 3) mult = 5;
-                    else if (count === 2) mult = 2; // السيبعات تربح بوجود اثنتين متجاورتين من اليسار
+                    else if (count === 2) mult = 2;
                 } else {
                     if (count >= 5) {
                         mult = base === '🍇' ? 20 : 10;
                     } else if (count === 4) {
                         mult = base === '🍇' ? 8 : 4;
                     } else if (count === 3) {
-                        mult = base === '🍇' ? 2 : 1; // ثلاثية الفواكه تبدأ من اليسار تربح
+                        mult = base === '🍇' ? 2 : 1;
                     }
                 }
 
@@ -820,7 +820,7 @@
             }
 
             if (winAmount > 0) {
-                playUltimateSound('win_epic');
+                playGoldenTreeMelody('win_epic');
                 document.getElementById('winAmount').innerText = winAmount.toFixed(2);
                 document.getElementById('lineInfo').innerText = `مبروك! ربحت ${winAmount.toFixed(2)} NSP`;
                 document.getElementById('lastWin').innerText = winAmount.toFixed(2);
@@ -837,7 +837,7 @@
             }
         }
 
-        // رسم خطوط تفصيلية تشرح الربح للمستخدم بوضوح تام على الشاشة
+        // رسم خطوط تفصيلية لشرح الربح بدقة تامة للمستخدم
         function drawWinningLines(lines) {
             const canvas = document.getElementById('lineCanvas');
             const ctx = canvas.getContext('2d');
@@ -873,14 +873,14 @@
         }
 
         function showModal(title, desc) {
-            playUltimateSound('click');
+            playGoldenTreeMelody('click');
             document.getElementById('modal-status').innerText = title;
             document.getElementById('modal-desc').innerText = desc;
             document.getElementById('msg-modal').style.display = 'flex';
         }
 
         function closeModal() {
-            playUltimateSound('click');
+            playGoldenTreeMelody('click');
             document.getElementById('msg-modal').style.display = 'none';
         }
     </script>
