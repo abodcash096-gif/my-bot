@@ -37,7 +37,7 @@
             overflow-x: hidden;
         }
 
-        /* --- 1. شاشة التحميل الافتتاحية بصورة البداية المرفقة المضمونة --- */
+        /* --- 1. شاشة التحميل الافتتاحية --- */
         .splash-screen {
             position: fixed;
             inset: 0;
@@ -136,23 +136,6 @@
             box-shadow: 0 0 15px var(--gold-glow);
         }
 
-        .vip-badge {
-            background: linear-gradient(135deg, #ffea00, #ff7700);
-            color: #000;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 900;
-            box-shadow: 0 0 12px var(--gold-glow);
-            cursor: pointer;
-            animation: vipPulse 1.8s infinite alternate;
-        }
-
-        @keyframes vipPulse {
-            0% { transform: scale(1); filter: brightness(1); }
-            100% { transform: scale(1.08); filter: brightness(1.3); }
-        }
-
         .balance-badge {
             background: rgba(0, 243, 255, 0.12);
             border: 1.5px solid var(--neon-blue);
@@ -200,7 +183,7 @@
             box-shadow: 0 0 15px var(--gold);
         }
 
-        /* --- إطار بكرات اللعبة --- */
+        /* --- إطار بكرات اللعبة (تم ضبطه ليدور من اليسار إلى اليمين LTR) --- */
         .game-container {
             position: relative;
             width: 95%;
@@ -212,6 +195,7 @@
         .slots-frame {
             display: flex;
             flex-direction: row;
+            direction: ltr; /* الترتيب يبدأ من اليسار إلى اليمين */
             background: rgba(1, 5, 12, 0.99);
             border: 3px solid var(--neon-blue);
             box-shadow: 0 0 45px var(--neon-glow), inset 0 0 25px var(--neon-glow);
@@ -224,7 +208,6 @@
             cursor: grab;
         }
 
-        /* تأثير الهزة الأرضية عند نزول الجرة */
         .slots-frame.shake {
             animation: screenShake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
@@ -250,7 +233,7 @@
             content: '';
             position: absolute;
             top: 0;
-            left: 0;
+            right: 0;
             width: 2px;
             height: 100%;
             background: var(--neon-blue);
@@ -268,29 +251,27 @@
             will-change: transform;
         }
 
-        /* --- حركة دوران معكوسة وانسيابية بالكامل للجهة الأخرى --- */
         .reel-strip.spinning {
-            animation: fastSpinSmoothReverse 0.12s linear infinite;
+            animation: fastSpinSmoothReverse 0.11s linear infinite;
         }
 
+        /* تأثير توقف مطاطي وجذاب وسريع */
         .reel-strip.bounce-stop {
-            animation: reelSmoothEaseStop 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: reelSmoothElasticStop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* تم عكس الاتجاه ليدور بالاتجاه المعاكس (من الأسفل للأعلى) */
         @keyframes fastSpinSmoothReverse {
-            0% { transform: translateY(0px); filter: blur(2px); }
-            100% { transform: translateY(-240px); filter: blur(2px); }
+            0% { transform: translateY(0px); filter: blur(3px); }
+            100% { transform: translateY(-240px); filter: blur(3px); }
         }
 
-        @keyframes reelSmoothEaseStop {
-            0% { transform: translateY(-28px); }
-            65% { transform: translateY(6px); }
-            85% { transform: translateY(-2px); }
+        @keyframes reelSmoothElasticStop {
+            0% { transform: translateY(-35px); }
+            60% { transform: translateY(10px); }
+            85% { transform: translateY(-3px); }
             100% { transform: translateY(0); }
         }
 
-        /* --- إزالة المربعات عن الفاكهة وتحسين المظهر البصري --- */
         .symbol {
             height: 80px;
             display: flex;
@@ -315,7 +296,6 @@
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* توهجات مخصصة بدون مربعات */
         .symbol.fruit-grape .symbol-badge { filter: drop-shadow(0 0 14px #a855f7); }
         .symbol.fruit-orange .symbol-badge { filter: drop-shadow(0 0 14px #ff8c00); }
         .symbol.fruit-pineapple .symbol-badge { filter: drop-shadow(0 0 14px #eab308); }
@@ -332,7 +312,6 @@
             filter: drop-shadow(0 0 20px #ff0055);
         }
 
-        /* مظهر الجرة المطور بأسلوب فاخر ووسم Wild */
         .symbol.jar-rare .symbol-badge {
             font-size: 54px;
             filter: drop-shadow(0 0 22px var(--gold)) drop-shadow(0 0 8px #ff8800);
@@ -344,7 +323,6 @@
             100% { transform: scale(1.12); filter: drop-shadow(0 0 35px var(--gold)) brightness(1.3); }
         }
 
-        /* الجرة المتوقفة */
         .symbol.jar-stopped {
             z-index: 50;
             animation: jarLockStop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
@@ -353,7 +331,6 @@
             filter: drop-shadow(0 0 40px var(--gold)) drop-shadow(0 0 20px #ffffff) !important;
         }
 
-        /* الجرة عند الفوز: التمدد لتغطية البكرة كاملة */
         .reel-jar-expanded {
             position: absolute;
             inset: 0;
@@ -664,7 +641,7 @@
 </head>
 <body>
 
-    <!-- 1. الشاشة الافتتاحية المحدثة مع تضمين صورة البداية 13156.png مباشرة وبوضوح تام -->
+    <!-- الشاشة الافتتاحية -->
     <div class="splash-screen" id="splashScreen">
         <img src="13156.png" class="splash-img" alt="Golden Lera Splash">
         <div class="loader-container">
@@ -672,11 +649,11 @@
         </div>
     </div>
 
+    <!-- الشريط العلوي خالي تماماً من VIP -->
     <div class="top-bar">
         <button class="buy-bonus-btn" onclick="openBonusModal()">🛒 شراء مكافأة</button>
         <div class="logo">Golden Lera<br><span style="font-size: 10px; color: #a1e5ff;">Pro Master 2026</span></div>
         <div class="user-info">
-            <div class="vip-badge" onclick="showVipModal()">👑 VIP 3</div>
             <div class="avatar" id="u-avatar">U</div>
             <div class="balance-badge">
                 <span id="u-balance">0.00</span>
@@ -732,14 +709,15 @@
         <div>⏱️ آخر ربح: <span id="lastWin" style="color: var(--neon-blue);">0.00</span> NSP</div>
     </div>
 
+    <!-- الشريط السفلي بدون VIP -->
     <div class="footer-nav">
         <div class="nav-item active">
             <span>🎰</span>
             <span>اللعبة</span>
         </div>
-        <div class="nav-item" onclick="showVipModal()">
-            <span>👑</span>
-            <span>VIP</span>
+        <div class="nav-item" onclick="openBonusModal()">
+            <span>🛒</span>
+            <span>المكافآت</span>
         </div>
         <div class="nav-item" onclick="showModal('الترتيب', 'جدول الترتيب متاح عبر بوت التلجرام.')">
             <span>🏆</span>
@@ -806,8 +784,7 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        // --- 1. شاشة التحميل الافتتاحية: انتظار عشوائي من 8 إلى 15 ثانية ثم الدخول للعبة مباشرة ---
-        const splashWaitTime = Math.floor(Math.random() * (15000 - 8000 + 1)) + 8000;
+        const splashWaitTime = Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000;
         let loadProgress = 0;
         const intervalTime = splashWaitTime / 100;
 
@@ -843,7 +820,7 @@
         const slotsFrame = document.getElementById('slotsFrame');
 
         // ==========================================
-        //  محرّك الأصوات والمؤثرات الصوتية المطورة
+        //  محرّك الأصوات والمؤثرات الصوتية
         // ==========================================
         let audioCtx = null;
         function initAudio() {
@@ -882,12 +859,12 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(160, now);
-                osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(45, now + 0.1);
                 gain.gain.setValueAtTime(0.28, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.12);
+                osc.start(now); osc.stop(now + 0.1);
             }
             else if (type === 'jar_drop') {
                 let osc = audioCtx.createOscillator();
@@ -900,40 +877,6 @@
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.3);
             }
-            else if (type === 'jar_fill') {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.linearRampToValueAtTime(850, now + 0.45);
-                gain.gain.setValueAtTime(0.35, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.45);
-            }
-            else if (type === 'jar_explode') {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(220, now);
-                osc.frequency.exponentialRampToValueAtTime(35, now + 0.5);
-                gain.gain.setValueAtTime(0.75, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.5);
-
-                let chord = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
-                chord.forEach((freq, i) => {
-                    let o = audioCtx.createOscillator();
-                    let g = audioCtx.createGain();
-                    o.type = 'sine';
-                    o.frequency.setValueAtTime(freq, now + (i * 0.035));
-                    g.gain.setValueAtTime(0.22, now + (i * 0.035));
-                    g.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.035) + 0.55);
-                    o.connect(g); g.connect(audioCtx.destination);
-                    o.start(now + (i * 0.035)); o.stop(now + (i * 0.035) + 0.55);
-                });
-            }
             else if (type === 'win_sound') {
                 let notes = [523.25, 659.25, 783.99, 1046.50];
                 notes.forEach((freq, i) => {
@@ -945,18 +888,6 @@
                     gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.35);
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.start(now + (i * 0.05)); osc.stop(now + (i * 0.05) + 0.35);
-                });
-            }
-            else if (type === 'win_king') {
-                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
-                notes.forEach((freq, i) => {
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.07));
-                    gain.gain.setValueAtTime(0.25, now + (i * 0.07));
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.07)); osc.stop(now + (i * 0.07) + 0.45);
                 });
             }
         }
@@ -1006,7 +937,7 @@
         }
         loadUserData();
 
-        // بناء بكرات اللعبة 5
+        // بناء البكرات من اليسار إلى اليمين (Reel 0 = أقصى اليسار)
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -1180,7 +1111,7 @@
         }
 
         // =========================================================================
-        //  محاكي وفاحص منطق أرباح الجرة (Wild Jar) لإكمال النقص بأي صف
+        //  محاكي تقييم الأرباح والجرة كرمز Wild
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
@@ -1194,7 +1125,6 @@
                     let matchingRowsInCol = [];
 
                     colData.forEach((item, rIdx) => {
-                        // الجرة (🏺) تعمل كبديل Wild وتكمل أي فاكهة أو 7 في أي صف
                         if (item && (item.sym === targetSym || item.sym === '🏺')) {
                             matchingRowsInCol.push(rIdx);
                         }
@@ -1203,14 +1133,13 @@
                     if (matchingRowsInCol.length > 0) {
                         connectedCols.push({ col: c, rows: matchingRowsInCol });
                     } else {
-                        break; // انقطاع السلسلة المتتالية
+                        break;
                     }
                 }
 
-                // حساب الأرباح عند تحقيق اتصال في بكرتين أو أكثر (مثال: فاكهتين + جرة، أو 7 + جرة)
                 if (connectedCols.length >= 2) {
                     let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
-                    if (targetSym === '7') mult *= 2; // مضاعف إضافي لـ 7
+                    if (targetSym === '7') mult *= 2;
 
                     totalWin += (bet * mult);
                     connectedCols.forEach(item => {
@@ -1222,9 +1151,9 @@
             return { winAmount: totalWin, winningCoords: winningCoords };
         }
 
-        // ==========================================
-        //  بدء التدوير وتتابع التوقف بفارق ثوانٍ/أجزاء ثانية
-        // ==========================================
+        // =========================================================================
+        //  بدء الدوران لجميع البكرات والتوقف المتتالي السريع من اليسار إلى اليمين
+        // =========================================================================
         async function startSpin() {
             if (isSpinning) return;
             
@@ -1249,6 +1178,7 @@
                 if (isSpinning) playProSound('spin_tick');
             }, 55);
 
+            // تدوير جميع البكرات معاً في أحدث وقت متزامن
             reelStrips.forEach(strip => {
                 populateStrip(strip, generateInitialList(9));
                 strip.classList.add('spinning');
@@ -1276,10 +1206,9 @@
                 });
                 serverResult = await response.json();
             } catch (err) {
-                console.warn("استخدام المحاكي المحلي لتقييم الجرة Wild عند عدم توفر السيرفر:", err);
+                console.warn("استخدام المحاكي المحلي:", err);
             }
 
-            // في حال عدم توفر السيرفر أو استخدام وضع تجريبي، يتم إنتاج الشبكة وتقييم الجرة كـ Wild
             if (!serverResult || !serverResult.success) {
                 let fallbackGrid = [];
                 for (let c = 0; c < reelsCount; c++) {
@@ -1301,16 +1230,16 @@
 
             let finalGrid = serverResult.grid;
 
-            let baseWait = speedLevel === 1 ? 400 : (speedLevel === 2 ? 220 : 90);
-            let stepDelay = speedLevel === 1 ? 250 : (speedLevel === 2 ? 140 : 50);
+            // توقيت توقف سريع جداً وتدريجي: التوقف الكامل للبكرات الخمس يستغرق ~1.4 ثانية فقط بعد وقوف أول صف
+            let initialDelay = speedLevel === 1 ? 500 : (speedLevel === 2 ? 300 : 120);
+            let staggerStep = speedLevel === 1 ? 350 : (speedLevel === 2 ? 220 : 90); // 350ms * 4 = 1.4 ثانية تماماً
 
-            let reelOrder = [0, 1, 2, 3, 4];
-
+            // توقف البكرات بالترتيب من اليسار (0) إلى اليمين (4)
             for (let step = 0; step < reelsCount; step++) {
-                let reelIdx = reelOrder[step];
-                let currentDelay = forceStopRequested ? (step * 40) : (baseWait + step * stepDelay);
+                let reelIdx = step; // من اليسار لليمن: 0 -> 1 -> 2 -> 3 -> 4
+                let currentWait = forceStopRequested ? (step * 50) : (initialDelay + step * staggerStep);
 
-                await new Promise(resolve => setTimeout(resolve, currentDelay));
+                await new Promise(resolve => setTimeout(resolve, currentWait));
 
                 let strip = reelStrips[reelIdx];
                 strip.classList.remove('spinning');
@@ -1319,9 +1248,8 @@
                 populateStrip(strip, columnData);
 
                 strip.classList.add('bounce-stop');
-                setTimeout(() => strip.classList.remove('bounce-stop'), 380);
+                setTimeout(() => strip.classList.remove('bounce-stop'), 350);
 
-                // فحص وجود الجرة في البكرة في أي صف (أعلى، منتصف، أسفل)
                 let jarFoundInCol = false;
                 columnData.forEach((s, rowIdx) => {
                     if (s && s.sym === '🏺') {
@@ -1361,7 +1289,7 @@
         }
 
         // ==========================================
-        //  عرض الأرباح وانيميشن الجرة والتعبئة والانفجار
+        //  عرض النتائج والتأثيرات المصاحبة
         // ==========================================
         async function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
@@ -1380,15 +1308,11 @@
 
                 let jarCols = findJarColumns(res.grid);
                 if (jarCols.length > 0) {
-                    playProSound('jar_fill');
-                    
                     jarCols.forEach(colIdx => {
                         expandJarInReel(colIdx);
                     });
 
-                    await new Promise(r => setTimeout(r, 650));
-
-                    playProSound('jar_explode');
+                    await new Promise(r => setTimeout(r, 550));
                     triggerGoldRain();
                 } else {
                     playProSound('win_sound');
@@ -1463,7 +1387,7 @@
         }
 
         function showKingWinModal(winAmount, multiplier) {
-            playProSound('win_king');
+            playProSound('win_sound');
 
             document.getElementById('kingMultText').innerText = `مضاعف ${multiplier.toFixed(1)}x! 🔥`;
             let modal = document.getElementById('kingModal');
@@ -1524,10 +1448,6 @@
         function closeModal() {
             playProSound('click');
             document.getElementById('msg-modal').style.display = 'none';
-        }
-
-        function showVipModal() {
-            showModal("👑 نظام كبار الشخصيات VIP", "مستواك الحالي: VIP Level 3\n\n✨ المميزات المفعلة:\n• زيادة استرجاع الأرباح (Cashback) بسببة 5%\n• نسبة ظهور أعلى للجرات المزدوجة\n• مكافآت daily بوت حصرية!");
         }
     </script>
 </body>
