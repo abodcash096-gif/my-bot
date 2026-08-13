@@ -336,7 +336,7 @@ def run_flask():
 def main_menu_keyboard(is_admin=False):
     games_url = f"{SERVER_URL}/games"
     keyboard = [
-        [InlineKeyboardButton("Golden Tree 2026 🎰", web_app=WebAppInfo(url=games_url))],
+        [InlineKeyboardButton("Golden Lera 2026 🎰", web_app=WebAppInfo(url=games_url))],
         [InlineKeyboardButton("👤 حسابي ورصيدي", callback_data="btn_account"), InlineKeyboardButton("💸 سحب رصيدي", callback_data="btn_withdraw")],
         [InlineKeyboardButton("🔗 رابط إحالاتي", callback_data="btn_referral"), InlineKeyboardButton("🤖 شراء بوت", callback_data="btn_buy_bot")],
         [InlineKeyboardButton("💬 مراسلة الدعم", callback_data="btn_support"), InlineKeyboardButton("🎁 إدخال كود هدية", callback_data="btn_gift")],
