@@ -188,25 +188,28 @@
             flex-shrink: 0;
         }
 
+        /* تحسين مظهر شارة الفاكهة والعناصر بأسلوب HD الحديث */
         .symbol-badge {
             width: 68px;
             height: 68px;
-            border-radius: 18px;
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.25), rgba(0,10,25,0.85));
-            border: 1.5px solid rgba(0, 243, 255, 0.3);
+            border-radius: 20px;
+            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.35), rgba(4, 20, 45, 0.95));
+            border: 1.5px solid rgba(0, 243, 255, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.5);
-            font-size: 40px;
+            box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.15), 0 6px 15px rgba(0,0,0,0.6);
+            font-size: 42px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
 
         /* الجرة الذهبية النادرة */
         .symbol.jar-rare .symbol-badge {
-            background: radial-gradient(circle, #ffe600 0%, #ff6600 70%, #883300 100%);
+            background: radial-gradient(circle at 35% 35%, #fff7a1 0%, #ffaa00 50%, #662200 100%);
             border: 2px solid var(--gold);
-            box-shadow: 0 0 25px var(--gold-glow), inset 0 0 15px #fff;
+            box-shadow: 0 0 30px var(--gold-glow), inset 0 0 15px #fff;
             animation: jarPulse 0.8s infinite alternate ease-in-out;
         }
 
@@ -258,7 +261,7 @@
 
         /* الرقم 7 */
         .symbol.seven .symbol-badge {
-            background: radial-gradient(circle, #ff0055 0%, #770022 100%);
+            background: radial-gradient(circle at 35% 35%, #ff3377 0%, #770022 100%);
             border: 2px solid #ff3377;
             box-shadow: 0 0 25px rgba(255, 0, 85, 0.85);
             color: #fff;
@@ -268,16 +271,16 @@
             font-size: 42px;
         }
 
-        /* تأثير لمعان الربح */
+        /* تأثير لمعان وأنيميشن الربح الحديث المريح للمشاهدة */
         .symbol.win-pop .symbol-badge {
-            animation: symbolWinAnim 0.6s infinite alternate cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: symbolWinAnim 0.7s infinite alternate cubic-bezier(0.25, 1, 0.5, 1);
             border-color: var(--gold);
             z-index: 10;
         }
 
         @keyframes symbolWinAnim {
-            0% { transform: scale(1); filter: brightness(1); box-shadow: 0 0 10px var(--gold-glow); }
-            100% { transform: scale(1.18); filter: brightness(1.5); box-shadow: 0 0 35px var(--gold), inset 0 0 15px #fff; }
+            0% { transform: scale(1) rotate(0deg); filter: brightness(1); box-shadow: 0 0 12px var(--gold-glow); }
+            100% { transform: scale(1.15) rotate(2deg); filter: brightness(1.4); box-shadow: 0 0 40px var(--gold), inset 0 0 20px #ffffff; }
         }
 
         /* بنر الجرة العائم */
@@ -584,7 +587,7 @@
         const reelStrips = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // Audio Engine
+        // Audio Engine 2026 - نظام محاكاة الصوت المحترف والمريح للأذن
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
@@ -601,87 +604,92 @@
             let now = audioCtx.currentTime;
 
             if (type === 'click') {
+                // صوت نقر ناعم ومريح (Soft Organic UI Click)
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(600, now);
-                osc.frequency.exponentialRampToValueAtTime(300, now + 0.04);
-                gain.gain.setValueAtTime(0.08, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.04);
+                osc.frequency.setValueAtTime(480, now);
+                osc.frequency.exponentialRampToValueAtTime(240, now + 0.05);
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.05);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.04);
+                osc.start(now); osc.stop(now + 0.05);
             } 
             else if (type === 'spin_tick') {
-                // صوت تك تك متكرر أثناء الدوران السريع
+                // صوت دوران مائي خفيف جدًا ومريح للأذن لمنع الخلل أو الانزعاج
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(120 + Math.random() * 40, now);
-                gain.gain.setValueAtTime(0.04, now);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(280 + Math.random() * 30, now);
+                gain.gain.setValueAtTime(0.02, now);
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.03);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.03);
             }
             else if (type === 'reel_stop') {
-                // صوت توقف واستقرار البكرة
+                // صوت استقرار وتوقف البكرة بنغمة رخيمة مهدئة
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.exponentialRampToValueAtTime(50, now + 0.08);
-                gain.gain.setValueAtTime(0.15, now);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(110, now + 0.08);
+                gain.gain.setValueAtTime(0.08, now);
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.08);
             }
             else if (type === 'jar_appear_win') {
+                // صدى سينث ثلاثي الأبعاد وصاعد بشكل ساحر للجرة
                 [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.05));
-                    gain.gain.setValueAtTime(0.2, now + (i * 0.05));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.35);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.04));
+                    gain.gain.setValueAtTime(0.12, now + (i * 0.04));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.04) + 0.4);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.05));
-                    osc.stop(now + (i * 0.05) + 0.35);
+                    osc.start(now + (i * 0.04));
+                    osc.stop(now + (i * 0.04) + 0.4);
                 });
             }
             else if (type === 'jar_appear_lose') {
+                // صوت انخفاض لطيف وغير مزعج
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(90, now + 0.25);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.25);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(260, now);
+                osc.frequency.exponentialRampToValueAtTime(140, now + 0.2);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.2);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.25);
+                osc.start(now); osc.stop(now + 0.2);
             }
             else if (type === 'win_fruit') {
-                [440, 554.37, 659.25].forEach((freq, i) => {
+                // كورد نغمي احترافي (C-Major Harmonic Chime)
+                [523.25, 659.25, 783.99].forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.06));
-                    gain.gain.setValueAtTime(0.1, now + (i * 0.06));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.06) + 0.2);
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.06));
-                    osc.stop(now + (i * 0.06) + 0.2);
-                });
-            }
-            else if (type === 'win_seven') {
-                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    osc.type = 'triangle';
                     osc.frequency.setValueAtTime(freq, now + (i * 0.05));
-                    gain.gain.setValueAtTime(0.15, now + (i * 0.05));
+                    gain.gain.setValueAtTime(0.09, now + (i * 0.05));
                     gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.3);
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.start(now + (i * 0.05));
                     osc.stop(now + (i * 0.05) + 0.3);
+                });
+            }
+            else if (type === 'win_seven') {
+                // نغمة كريستالية حماسية ومريحة للفوز بالرقم 7
+                [523.25, 659.25, 783.99, 1046.50, 1567.98].forEach((freq, i) => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.04));
+                    gain.gain.setValueAtTime(0.12, now + (i * 0.04));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.04) + 0.35);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now + (i * 0.04));
+                    osc.stop(now + (i * 0.04) + 0.35);
                 });
             }
         }
