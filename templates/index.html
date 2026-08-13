@@ -178,36 +178,6 @@
             40%, 60% { transform: translate3d(7px, 0, 0); }
         }
 
-        /* --- خط الأرباح الليزري المعكوس (يمين -> يسار) --- */
-        .win-line-svg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 80;
-        }
-
-        .win-line-path {
-            stroke: url(#laserGradientRTL);
-            stroke-width: 8;
-            stroke-linecap: round;
-            stroke-dasharray: 12, 6;
-            filter: drop-shadow(0 0 18px var(--neon-blue)) drop-shadow(0 0 35px var(--gold));
-            animation: laserFlowRTL 0.8s linear infinite, pulseNeonLine 0.5s infinite alternate ease-in-out;
-        }
-
-        @keyframes laserFlowRTL {
-            0% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: -36; }
-        }
-
-        @keyframes pulseNeonLine {
-            0% { stroke-width: 6; opacity: 0.85; }
-            100% { stroke-width: 10; opacity: 1; filter: drop-shadow(0 0 30px var(--neon-blue)) drop-shadow(0 0 50px #ffffff); }
-        }
-
         .reel {
             flex: 1;
             height: 240px;
@@ -277,7 +247,6 @@
             font-size: 56px;
         }
 
-        /* توهج ونبض الجرة المطور */
         .symbol.jar-rare .symbol-badge {
             background: radial-gradient(circle, rgba(255,223,0,0.7) 0%, rgba(255,140,0,0.3) 55%, transparent 80%);
             font-size: 56px;
@@ -571,21 +540,12 @@
     <div class="game-container">
         <div class="jar-banner" id="jarBanner"><span id="jarWinRating">ربح كبير! 🔥</span><br><span id="jarMultText" style="font-size: 28px; color: var(--gold);">5x</span></div>
         <div class="slots-frame" id="slotsFrame">
-            <svg class="win-line-svg" id="winLineSvg">
-                <defs>
-                    <!-- تدرج ليزري متوهج مخصص للاتجاه المعكوس (من اليمين إلى اليسار) -->
-                    <linearGradient id="laserGradientRTL" x1="100%" y1="0%" x2="0%" y2="0%">
-                        <stop offset="0%" stop-color="#ffdf00" />
-                        <stop offset="50%" stop-color="#ff00aa" />
-                        <stop offset="100%" stop-color="#00f3ff" />
-                    </linearGradient>
-                </defs>
-            </svg>
+            <!-- تم إلغاء عنصر SVG بالكامل لإلغاء رسم الخط الرابح -->
         </div>
     </div>
 
     <div class="info-panel">
-        <div class="line-info" id="lineInfo">اختر الرهان واضغط ↻ أو اسحب للبدء (حساب الربح من اليمين)</div>
+        <div class="line-info" id="lineInfo">اختر الرهان واضغط ↻ أو اسحب للبدء</div>
         <div class="win-display">ربح <span id="winAmount">0.00</span> NSP</div>
     </div>
 
@@ -625,7 +585,7 @@
         </div>
     </div>
 
-    <!-- modal شراء المكافأة أسعار فئة 3 ليرات (150 / 300 / 750) -->
+    <!-- modal شراء المكافأة -->
     <div class="modal" id="bonus-modal">
         <div class="modal-body">
             <div style="font-size: 1.15rem; font-weight: 900; color: var(--gold); margin-bottom: 6px;">🛒 شراء مكافأة الجرات (5 ضربات)</div>
@@ -683,13 +643,12 @@
         let speedLevel = 1;
         let autoInterval = null;
 
-        // نظام شراء المكافأة (تتبع 5 ضربات متتالية وإجمالي الأرباح)
+        // نظام شراء المكافأة
         let activeBonus = null; // { jars: 1|2|3, remaining: 5, totalWin: 0 }
 
         const reelsCount = 5;
         const reelStrips = [];
         const slotsFrame = document.getElementById('slotsFrame');
-        const winLineSvg = document.getElementById('winLineSvg');
 
         // ==========================================
         //  محرك الصوت الاحترافي السينمائي المطور 2026
@@ -728,7 +687,6 @@
                 osc.start(now); osc.stop(now + 0.02);
             }
             else if (type === 'reel_stop') {
-                // صوت توقف ناعم وفخم مع نغمة عميقة
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
@@ -740,7 +698,6 @@
                 osc.start(now); osc.stop(now + 0.12);
             }
             else if (type === 'jar_thud') {
-                // صوت ارتطام الجرة العميق فخم بجهير عالي (Sub-Bass drop)
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
@@ -752,7 +709,6 @@
                 osc.start(now); osc.stop(now + 0.35);
             }
             else if (type === 'jar_growing_gold') {
-                // صوت توهج وتوسع الذهب السينمائي
                 let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
                 notes.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
@@ -767,7 +723,6 @@
                 });
             }
             else if (type === 'jar_explode') {
-                // صوت انفجار الذهب والأرباح الكبيرة
                 let chord = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
                 chord.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
@@ -782,7 +737,6 @@
                 });
             }
             else if (type === 'win_sound') {
-                // معزوفة ناعمة ومريحة للأذن عند الربح
                 let notes = [523.25, 659.25, 783.99, 1046.50];
                 notes.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
@@ -911,7 +865,6 @@
             let ratio = currentBet / 3;
             document.getElementById('bonusBetLabel').innerText = currentBet;
             
-            // حساب الأسعار بحسب الفئة (150 / 300 / 750) مضاعفة مع فئة الرهان
             document.getElementById('price1').innerText = (150 * ratio).toFixed(0) + ' NSP';
             document.getElementById('price2').innerText = (300 * ratio).toFixed(0) + ' NSP';
             document.getElementById('price3').innerText = (750 * ratio).toFixed(0) + ' NSP';
@@ -934,15 +887,15 @@
                 return;
             }
 
+            // خصم ثمن المكافأة فور الشراء
             currentBalance -= cost;
             document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
             activeBonus = { jars: jarCount, remaining: 5, totalWin: 0 };
             
             updateBonusBadgeUI();
             closeBonusModal();
-            showModal("🎁 تم شراء المكافأة!", `تم شراء 5 لفات بميزة ${jarCount} جرة! سيتم بدء الضربات تلقائياً.`);
+            showModal("🎁 تم شراء المكافأة!", `تم خصم ${cost} NSP. تبدأ الآن 5 ضربات متتالية وسيتم تطبيق أرباحها فور الانتهاء!`);
             
-            // بدء التدويرة الأولى من المكافأة مباشرة
             setTimeout(() => { if (!isSpinning) startSpin(); }, 600);
         }
 
@@ -1009,7 +962,7 @@
         }
 
         // ==========================================
-        //  بدء التدوير (توقف البكرات من اليمين للجميع)
+        //  بدء التدوير (توقف البكرات بالاتجاه الأصلي)
         // ==========================================
         async function startSpin() {
             if (isSpinning) return;
@@ -1029,7 +982,6 @@
             document.getElementById('spinBtn').innerText = '⏹️';
             clearShineEffects();
             hideJarBanner();
-            clearWinLine();
             document.getElementById('lineInfo').innerText = 'جاري التدوير والاتصال بالخادم...';
 
             let spinSoundInterval = setInterval(() => {
@@ -1084,7 +1036,6 @@
             let baseWait = speedLevel === 1 ? 550 : (speedLevel === 2 ? 300 : 120);
             let stepDelay = speedLevel === 1 ? 220 : (speedLevel === 2 ? 110 : 50);
 
-            // توقف البكرات بالترتيب المعكوس (من البكرة 4 "اليمين" إلى البكرة 0 "اليسار")
             let rightToLeftOrder = [4, 3, 2, 1, 0];
 
             for (let step = 0; step < reelsCount; step++) {
@@ -1117,13 +1068,11 @@
             if (isBonusRound && activeBonus) {
                 activeBonus.totalWin += parseFloat(serverResult.win_amount);
                 if (activeBonus.remaining === 0) {
-                    // الانتهاء من ضربات المكافأة الـ 5 وعرض النتيجة الإجمالية
                     let finalBonusWin = activeBonus.totalWin;
                     activeBonus = null;
                     updateBonusBadgeUI();
-                    showModal("🎉 مكتملة ضربات المكافأة!", `انتهت الـ 5 ضربات للمكافأة.\nإجمالي الأرباح المحققة: ${finalBonusWin.toFixed(2)} NSP`);
+                    showModal("🎉 اكتملت ضربات المكافأة!", `انتهت الـ 5 ضربات للمكافأة.\nإجمالي الأرباح المحققة: ${finalBonusWin.toFixed(2)} NSP`);
                 } else {
-                    // تدوير الضربات المتبقية تلقائياً
                     setTimeout(() => { if (!isSpinning) startSpin(); }, 1200);
                 }
             }
@@ -1134,31 +1083,16 @@
         }
 
         // ==========================================
-        //  عرض الأرباح ورسم خطوط النيون من اليمين
+        //  عرض الأرباح وإضاءة الرموز فقط (بدون خط رسم)
         // ==========================================
         async function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
             document.getElementById('winAmount').innerText = winAmount.toFixed(2);
 
-            let totalJarsCount = 0;
-            if (res.grid) {
-                res.grid.forEach(col => {
-                    col.forEach(cell => {
-                        if (cell.sym === '🏺') totalJarsCount++;
-                    });
-                });
-            }
-
             if (winAmount > 0) {
                 playProSound('win_sound');
                 
-                let winExplanation = `مبروك! تحقق خط فوز بـ ${winAmount.toFixed(2)} NSP (من اليمين)`;
-                if (totalJarsCount === 3) {
-                    winExplanation = `🔥 ظهور 3 جرات أسطورية! مجموع الأرباح: ${winAmount.toFixed(2)} NSP`;
-                } else if (totalJarsCount === 2) {
-                    winExplanation = `✨ ظهور جرتين نادرتين! مجموع الأرباح: ${winAmount.toFixed(2)} NSP`;
-                }
-                document.getElementById('lineInfo').innerText = winExplanation;
+                document.getElementById('lineInfo').innerText = `مبروك! أرباح الضربة: ${winAmount.toFixed(2)} NSP`;
                 document.getElementById('lastWin').innerText = winAmount.toFixed(2);
 
                 let best = parseFloat(document.getElementById('bestWin').innerText);
@@ -1166,37 +1100,30 @@
 
                 hideJarBanner();
 
-                if (res.winning_coords && res.winning_coords.length > 0) {
-                    drawWinningLineRTL(res.winning_coords);
-                }
-
+                // إضاءة الرموز الرابحة فقط بدون رسم أي خط ليزري
                 applyShineToWinners(res.winning_coords || []);
 
-                // مطر ذهب عند الربح الكبيرة (أكبر أو يساوي 5 أضعاف الرهان)
-                if (winAmount >= (currentBet * 5) || res.has_jar) {
+                // التوسع والافتجار للجرة فقط إذا كانت مشاركة فعلياً في خط ربح (res.has_jar)
+                if (res.has_jar && res.jar_reel_index >= 0) {
+                    await expandJarToFullReel(res.jar_reel_index, res.jar_multiplier || 1, winAmount);
+                }
+
+                // عدم إظهار لافتات وقوائم الأرباح البارزة والمفرقعات إلا إذا كان الربح فوق 10 NSP
+                if (winAmount > 10.0) {
                     confetti({
                         particleCount: 220,
                         spread: 120,
                         origin: { y: 0.5 },
                         colors: ['#ffdf00', '#ffd700', '#00f3ff', '#ffffff']
                     });
-                }
-
-                if (res.has_jar) {
-                    await expandJarToFullReel(res.jar_reel_index, res.jar_multiplier || 1, winAmount, totalJarsCount);
+                    showJarBanner(winAmount, "🔥 ربح مميز يتجاوز 10 NSP!");
                 }
             } else {
-                if (totalJarsCount === 3) {
-                    document.getElementById('lineInfo').innerText = '🔥 ظهرت 3 جرات بدون خط أرقام متطابق!';
-                } else if (totalJarsCount === 2) {
-                    document.getElementById('lineInfo').innerText = '✨ ظهرت جرتان نادرتان!';
-                } else {
-                    document.getElementById('lineInfo').innerText = 'حظ أوفر في المحاولة القادمة';
-                }
+                document.getElementById('lineInfo').innerText = 'حظ أوفر في المحاولة القادمة';
             }
         }
 
-        async function expandJarToFullReel(reelIndex, mult, winAmount, jarsCount) {
+        async function expandJarToFullReel(reelIndex, mult, winAmount) {
             if (reelIndex === undefined || reelIndex < 0 || reelIndex >= reelsCount) return;
 
             hideJarBanner();
@@ -1231,56 +1158,9 @@
             await new Promise(resolve => setTimeout(resolve, 600));
             playProSound('jar_explode');
 
-            confetti({
-                particleCount: 280,
-                spread: 140,
-                origin: { x: (reelIndex + 0.5) / reelsCount, y: 0.5 },
-                colors: ['#ffdf00', '#ffd700', '#00f3ff', '#ffffff']
-            });
-
-            let ratingText = jarsCount === 3 ? '3 جرات أسطورية! 👑' : (mult >= 5 ? 'ربح ضخم جداً! 🔥' : 'ربح ممتاز! ✨');
-            showJarBanner(mult, ratingText);
-        }
-
-        // رسم خط الربح الليزري بالتسلسل من اليمين إلى اليسار
-        function drawWinningLineRTL(coords) {
-            winLineSvg.innerHTML = `
-                <defs>
-                    <linearGradient id="laserGradientRTL" x1="100%" y1="0%" x2="0%" y2="0%">
-                        <stop offset="0%" stop-color="#ffdf00" />
-                        <stop offset="50%" stop-color="#ff00aa" />
-                        <stop offset="100%" stop-color="#00f3ff" />
-                    </linearGradient>
-                </defs>
-            `;
-            if (!coords || coords.length < 2) return;
-
-            // فرز الإحداثيات لتبدأ دائماً من اليمين (البكرة ذات المؤشر الأكبر) باتجاه اليسار
-            let sortedCoords = [...coords].sort((a, b) => b[0] - a[0]);
-
-            let frameRect = slotsFrame.getBoundingClientRect();
-            let points = [];
-
-            sortedCoords.forEach(([reelIdx, rowIdx]) => {
-                let reel = reelStrips[reelIdx];
-                if (reel && reel.children[rowIdx]) {
-                    let cellRect = reel.children[rowIdx].getBoundingClientRect();
-                    let x = cellRect.left + cellRect.width / 2 - frameRect.left;
-                    let y = cellRect.top + cellRect.height / 2 - frameRect.top;
-                    points.push(`${x},${y}`);
-                }
-            });
-
-            if (points.length >= 2) {
-                let path = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-                path.setAttribute('points', points.join(' '));
-                path.setAttribute('class', 'win-line-path');
-                winLineSvg.appendChild(path);
+            if (winAmount > 10.0) {
+                showJarBanner(winAmount, "🏺 جرة أسطورية مكتملة!");
             }
-        }
-
-        function clearWinLine() {
-            winLineSvg.innerHTML = '';
         }
 
         function triggerScreenShake() {
@@ -1291,7 +1171,7 @@
         function showJarBanner(mult, ratingText) {
             const banner = document.getElementById('jarBanner');
             document.getElementById('jarWinRating').innerText = ratingText || 'ربح ممتاز! ✨';
-            document.getElementById('jarMultText').innerText = mult + 'x';
+            document.getElementById('jarMultText').innerText = mult + ' NSP';
             banner.classList.add('show');
             setTimeout(() => banner.classList.remove('show'), 2500);
         }
