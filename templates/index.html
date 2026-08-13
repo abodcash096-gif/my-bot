@@ -37,144 +37,40 @@
             overflow-x: hidden;
         }
 
-        /* --- 1. شاشة التحميل الافتتاحية --- */
+        /* --- 1. شاشة التحميل الافتتاحية المحدثة --- */
         .splash-screen {
             position: fixed;
             inset: 0;
-            background: url('file_00000000736481f4bc45230db95dcdaf.png') no-repeat center center / cover;
+            background: radial-gradient(circle at center, rgba(10,48,90,0.85), rgba(0,2,6,0.98)),
+                        url('watermarked_img_1291144981411835225.png') no-repeat center center / cover;
             z-index: 999;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             align-items: center;
             padding-bottom: 60px;
+            transition: opacity 0.5s ease-out;
         }
 
         .loader-container {
             width: 80%;
             max-width: 320px;
-            height: 16px;
-            background: rgba(0, 10, 25, 0.85);
-            border: 2px solid var(--neon-blue);
-            border-radius: 10px;
+            height: 18px;
+            background: rgba(0, 10, 25, 0.9);
+            border: 2px solid var(--gold);
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 0 20px var(--neon-glow);
+            box-shadow: 0 0 25px var(--gold-glow);
             position: relative;
         }
 
         .loader-bar {
             width: 0%;
             height: 100%;
-            background: linear-gradient(90deg, #0088ff, var(--neon-blue), #ffffff);
-            box-shadow: 0 0 15px var(--neon-blue);
+            background: linear-gradient(90deg, #ff8800, var(--gold), #ffffff);
+            box-shadow: 0 0 20px var(--gold);
             transition: width 0.08s linear;
         }
-
-        /* --- 2. شاشة العرض التوضيحي للجرات --- */
-        .showcase-screen {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 2, 8, 0.95);
-            backdrop-filter: blur(12px);
-            z-index: 900;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 24px;
-            text-align: center;
-        }
-
-        .showcase-card {
-            background: radial-gradient(circle, rgba(10, 48, 90, 0.95), rgba(1, 8, 20, 0.98));
-            border: 2px solid var(--gold);
-            border-radius: 24px;
-            padding: 24px 18px;
-            max-width: 360px;
-            width: 100%;
-            box-shadow: 0 0 45px var(--gold-glow);
-            animation: pulseGlow 2s infinite alternate;
-        }
-
-        @keyframes pulseGlow {
-            0% { box-shadow: 0 0 25px rgba(255, 223, 0, 0.5); }
-            100% { box-shadow: 0 0 55px rgba(255, 223, 0, 0.9); }
-        }
-
-        .showcase-title {
-            font-size: 22px;
-            font-weight: 900;
-            color: var(--gold);
-            margin-bottom: 6px;
-            text-shadow: 0 0 15px var(--gold-glow);
-        }
-
-        .showcase-desc {
-            font-size: 13px;
-            color: #a1e5ff;
-            line-height: 1.5;
-            margin-bottom: 16px;
-        }
-
-        /* إطار العرض التوضيحي المصغر المصمم لشرح الجرات */
-        .demo-showcase-frame {
-            display: flex;
-            height: 125px;
-            background: #010a17;
-            border: 2px solid var(--neon-blue);
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 18px;
-            position: relative;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
-        }
-
-        .demo-reel-col {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            align-items: center;
-            position: relative;
-            font-size: 24px;
-            border-left: 1px solid rgba(0,243,255,0.25);
-        }
-        .demo-reel-col:last-child { border-left: none; }
-
-        .demo-jar-expand {
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle, #ffea00 0%, #ff8800 80%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 45px;
-            z-index: 10;
-            opacity: 0;
-            transform: scale(0.15) translateY(50px);
-            transition: all 4s cubic-bezier(0.1, 0.8, 0.25, 1);
-            box-shadow: 0 0 30px var(--gold);
-            border-radius: 6px;
-        }
-
-        .demo-jar-expand.active-grow {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-
-        .start-game-btn {
-            background: linear-gradient(135deg, #ffdf00 0%, #ff8800 100%);
-            border: none;
-            color: #000;
-            font-size: 17px;
-            font-weight: 900;
-            padding: 10px 32px;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 0 25px var(--gold-glow);
-            transition: transform 0.15s;
-        }
-        .start-game-btn:active { transform: scale(0.92); }
 
         /* --- الشريط العلوي --- */
         .top-bar {
@@ -206,13 +102,14 @@
 
         .logo {
             text-align: center;
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 900;
-            background: linear-gradient(180deg, #fff 0%, var(--gold) 50%, #b38f00 100%);
+            background: linear-gradient(180deg, #fff 0%, var(--gold) 55%, #ff8800 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 18px rgba(255, 223, 0, 0.6);
+            text-shadow: 0 0 20px rgba(255, 223, 0, 0.7);
             line-height: 1.1;
+            letter-spacing: 0.5px;
         }
 
         .user-info { display: flex; align-items: center; gap: 6px; }
@@ -280,8 +177,8 @@
         /* --- إطار بكرات اللعبة وخطوط الليزر الزرقاء --- */
         .game-container {
             position: relative;
-            width: 95%;
-            max-width: 420px;
+            width: 96%;
+            max-width: 430px;
             margin: 2px auto 0;
             perspective: 1000px;
         }
@@ -290,9 +187,9 @@
             display: flex;
             flex-direction: row;
             background: rgba(1, 5, 12, 0.99);
-            border: 3px solid var(--neon-blue);
-            box-shadow: 0 0 45px var(--neon-glow), inset 0 0 25px var(--neon-glow);
-            border-radius: 18px;
+            border: 3px solid var(--gold);
+            box-shadow: 0 0 40px var(--gold-glow), inset 0 0 25px rgba(0, 243, 255, 0.3);
+            border-radius: 20px;
             padding: 6px;
             position: relative;
             overflow: hidden;
@@ -306,23 +203,23 @@
         }
 
         @keyframes screenShake {
-            10%, 90% { transform: translate3d(-3px, 0, 0); }
-            20%, 80% { transform: translate3d(5px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-7px, 0, 0); }
-            40%, 60% { transform: translate3d(7px, 0, 0); }
+            10%, 90% { transform: translate3d(-4px, 0, 0); }
+            20%, 80% { transform: translate3d(6px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
         }
 
         .reel {
             flex: 1;
             height: 240px;
-            background: radial-gradient(circle at center, rgba(8,25,50,0.6), rgba(2, 12, 25, 0.9));
+            background: radial-gradient(circle at center, rgba(12, 38, 70, 0.7), rgba(1, 8, 20, 0.95));
             border-radius: 8px;
             overflow: hidden;
             position: relative;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
         }
 
-        /* خط أزرق ليزري يتخلل البكرات ليفصل بينها */
+        /* خط ليزري يفصل بين البكرات */
         .reel:not(:last-child)::after {
             content: '';
             position: absolute;
@@ -330,8 +227,8 @@
             left: 0;
             width: 2px;
             height: 100%;
-            background: var(--neon-blue);
-            box-shadow: 0 0 8px var(--neon-blue), 0 0 15px var(--neon-glow);
+            background: linear-gradient(180deg, transparent, var(--neon-blue), transparent);
+            box-shadow: 0 0 10px var(--neon-blue);
             z-index: 10;
         }
 
@@ -365,6 +262,7 @@
             100% { transform: translateY(0); }
         }
 
+        /* --- تصميم الفواكه المطورة الفاخرة 3D --- */
         .symbol {
             height: 80px;
             display: flex;
@@ -372,41 +270,60 @@
             align-items: center;
             position: relative;
             flex-shrink: 0;
+            padding: 4px;
         }
 
         .symbol-badge {
-            width: 100%;
-            height: 100%;
+            width: 90%;
+            height: 90%;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            font-size: 48px;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            filter: drop-shadow(0 6px 10px rgba(0,0,0,0.7));
+            border-radius: 14px;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.4));
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.3);
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
+        .symbol-icon {
+            font-size: 42px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.8));
+            transition: transform 0.2s;
+        }
+
+        /* تخصيص الرموز المحددة بلمسات راقية */
         .symbol.seven .symbol-badge {
-            color: #ff0055;
-            text-shadow: 0 0 25px #ff0055, 0 0 10px #ffffff;
+            background: radial-gradient(circle at center, rgba(255,0,85,0.4), rgba(40,0,10,0.8));
+            border: 1.5px solid #ff0055;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+        }
+        .symbol.seven .symbol-icon {
+            color: #ffffff;
+            text-shadow: 0 0 20px #ff0055, 0 0 10px #ffffff;
             font-weight: 900;
             font-style: italic;
-            font-size: 56px;
+            font-size: 48px;
         }
 
         .symbol.jar-rare .symbol-badge {
-            background: radial-gradient(circle, rgba(255,223,0,0.7) 0%, rgba(255,140,0,0.3) 55%, transparent 80%);
-            font-size: 56px;
-            filter: drop-shadow(0 0 20px var(--gold));
-            animation: jarGlowPulse 1s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            background: radial-gradient(circle at center, rgba(255,223,0,0.5), rgba(120,70,0,0.8));
+            border: 1.5px solid var(--gold);
+            box-shadow: 0 0 25px var(--gold-glow);
+            animation: jarGlowPulse 1.2s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .symbol.jar-rare .symbol-icon {
+            font-size: 48px;
+            filter: drop-shadow(0 0 15px var(--gold));
         }
 
         @keyframes jarGlowPulse {
-            0% { transform: scale(0.95); filter: drop-shadow(0 0 15px var(--gold)); }
-            100% { transform: scale(1.12); filter: drop-shadow(0 0 40px var(--gold)) brightness(1.4); }
+            0% { transform: scale(0.96); box-shadow: 0 0 15px var(--gold); }
+            100% { transform: scale(1.08); box-shadow: 0 0 35px var(--gold) brightness(1.3); }
         }
 
-        /* أنيميشن نمو وتمدد الجرة البطيء جداً (8 ثوانٍ) */
+        /* أنيميشن تكبير الجرة المرن والسريع (1.2 ثانية) */
         .symbol.jar-win-full {
             position: absolute;
             top: 0;
@@ -414,35 +331,39 @@
             width: 100%;
             height: 240px !important;
             z-index: 90;
-            animation: jarSlowGrowth8s 8s forwards cubic-bezier(0.1, 0.8, 0.25, 1);
+            animation: jarElasticPopFast 1.2s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .symbol.jar-win-full .symbol-badge {
             width: 100%;
             height: 100%;
-            font-size: 110px;
-            background: radial-gradient(circle, rgba(255, 255, 230, 1) 0%, rgba(255, 180, 0, 0.95) 50%, rgba(255,100,0,0.3) 85%);
-            border-radius: 8px;
-            box-shadow: 0 0 75px var(--gold);
+            background: radial-gradient(circle, rgba(255, 255, 200, 1) 0%, rgba(255, 180, 0, 0.95) 45%, rgba(180,80,0,0.85) 90%);
+            border: 2px solid var(--gold);
+            border-radius: 12px;
+            box-shadow: 0 0 80px var(--gold-glow);
         }
 
-        @keyframes jarSlowGrowth8s {
-            0% { transform: scale(0.15) translateY(100px); opacity: 0.2; }
-            35% { transform: scale(0.5) translateY(30px); opacity: 0.7; }
-            75% { transform: scale(1.08) translateY(-4px); opacity: 0.95; }
-            88% { transform: scale(0.98); opacity: 1; }
-            100% { transform: scale(1) translateY(0); opacity: 1; filter: drop-shadow(0 0 55px var(--gold)); }
+        .symbol.jar-win-full .symbol-icon {
+            font-size: 115px;
+            filter: drop-shadow(0 0 30px #ffffff);
+        }
+
+        @keyframes jarElasticPopFast {
+            0% { transform: scale(0.15) translateY(60px); opacity: 0; filter: brightness(2); }
+            50% { transform: scale(1.15) translateY(-10px); opacity: 0.95; filter: brightness(1.4); }
+            75% { transform: scale(0.92) translateY(4px); opacity: 1; }
+            100% { transform: scale(1) translateY(0); opacity: 1; filter: brightness(1.1) drop-shadow(0 0 45px var(--gold)); }
         }
 
         .jar-mult-tag {
             position: absolute;
-            bottom: 5px;
-            right: 5px;
+            bottom: 6px;
+            right: 6px;
             background: linear-gradient(135deg, #ff0055, #ff00aa);
             color: #fff;
             font-size: 14px;
             font-weight: 900;
-            padding: 2px 8px;
+            padding: 3px 9px;
             border-radius: 12px;
             border: 1px solid #fff;
             box-shadow: 0 0 15px #ff0055;
@@ -452,11 +373,12 @@
         .symbol.win-pop-blue .symbol-badge {
             animation: symbolWinNeonBlue 0.4s infinite alternate ease-in-out;
             z-index: 10;
+            border-color: var(--neon-blue);
         }
 
         @keyframes symbolWinNeonBlue {
-            0% { transform: scale(1); filter: drop-shadow(0 0 15px var(--neon-blue)); }
-            100% { transform: scale(1.35); filter: drop-shadow(0 0 45px var(--neon-blue)) brightness(1.8); }
+            0% { transform: scale(1); box-shadow: 0 0 15px var(--neon-blue); }
+            100% { transform: scale(1.15); box-shadow: 0 0 35px var(--neon-blue) brightness(1.6); }
         }
 
         .jar-banner {
@@ -474,7 +396,7 @@
             box-shadow: 0 0 70px var(--gold);
             z-index: 100;
             pointer-events: none;
-            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             text-align: center;
         }
         .jar-banner.show { transform: translate(-50%, -50%) scale(1.15); }
@@ -542,9 +464,9 @@
             width: 76px;
             height: 76px;
             border-radius: 50%;
-            border: 3.5px solid var(--neon-blue);
-            background: radial-gradient(circle, rgba(0,243,255,0.95) 0%, rgba(1,5,12,0.99) 100%);
-            box-shadow: 0 0 40px var(--neon-blue);
+            border: 3.5px solid var(--gold);
+            background: radial-gradient(circle, rgba(255,223,0,0.95) 0%, rgba(1,5,12,0.99) 100%);
+            box-shadow: 0 0 40px var(--gold-glow);
             color: #fff;
             font-size: 36px;
             display: flex;
@@ -600,9 +522,9 @@
             color: #5d7a97;
             cursor: pointer;
         }
-        .nav-item.active { color: var(--neon-blue); }
+        .nav-item.active { color: var(--gold); }
 
-        /* --- 3. لوحة مبروك يا ملك للأرباح من 10x وما فوق --- */
+        /* --- لوحة مبروك يا ملك للأرباح من 10x وما فوق --- */
         .king-modal {
             display: none;
             position: fixed;
@@ -643,7 +565,6 @@
             text-shadow: 0 0 30px var(--gold);
         }
 
-        /* --- النوافذ العادية --- */
         .modal {
             display: none;
             position: fixed;
@@ -697,35 +618,17 @@
 </head>
 <body>
 
+    <!-- شاشة البداية والتحميل مباشرة -->
     <div class="splash-screen" id="splashScreen">
         <div class="loader-container">
             <div class="loader-bar" id="loaderBar"></div>
         </div>
     </div>
 
-    <div class="showcase-screen" id="showcaseScreen">
-        <div class="showcase-card">
-            <div class="showcase-title">🏺 شرح الجرات الذهبية ✨</div>
-            <div class="showcase-desc">
-                عند ظهور الجرة الذهبية وتأدية ربح مع الفواكه المجاورة، تتوسع الجرة بطيئاً لتغطي البكرة بالكامل وتضاعف الأرباح!
-            </div>
-            
-            <!-- إطار العرض التوضيحي للجرات (7 | 🏺+🍇 | 🏺+🍊 | 🏺+🍍 | 7) -->
-            <div class="demo-showcase-frame">
-                <div class="demo-reel-col"><span>🎰</span></div>
-                <div class="demo-reel-col"><div class="demo-jar-expand" id="demoJar1">🏺</div><span>🍇</span></div>
-                <div class="demo-reel-col"><div class="demo-jar-expand" id="demoJar2">🏺</div><span>🍊</span></div>
-                <div class="demo-reel-col"><div class="demo-jar-expand" id="demoJar3">🏺</div><span>🍍</span></div>
-                <div class="demo-reel-col"><span>🎰</span></div>
-            </div>
-
-            <button class="start-game-btn" onclick="startGame()">ابدأ اللعب الآن 🚀</button>
-        </div>
-    </div>
-
+    <!-- الشريط العلوي -->
     <div class="top-bar">
         <button class="buy-bonus-btn" onclick="openBonusModal()">🛒 شراء مكافأة</button>
-        <div class="logo">Golden Tree<br><span style="font-size: 10px; color: #a1e5ff;">Pro Master 2026</span></div>
+        <div class="logo">Golden Lera<br><span style="font-size: 10px; color: #a1e5ff;">Pro Master 2026</span></div>
         <div class="user-info">
             <div class="avatar" id="u-avatar">U</div>
             <div class="balance-badge">
@@ -751,6 +654,7 @@
         🔥 مكافأة جرات مفعلة: متبقي 5 ضربات
     </div>
 
+    <!-- إطار البكرات -->
     <div class="game-container">
         <div class="jar-banner" id="jarBanner"><span id="jarWinRating">ربح كبير! 🔥</span><br><span id="jarMultText" style="font-size: 28px; color: var(--gold);">5x</span></div>
         <div class="slots-frame" id="slotsFrame"></div>
@@ -797,6 +701,7 @@
         </div>
     </div>
 
+    <!-- نافذة شراء المكافأة -->
     <div class="modal" id="bonus-modal">
         <div class="modal-body">
             <div style="font-size: 1.15rem; font-weight: 900; color: var(--gold); margin-bottom: 6px;">🛒 شراء مكافأة الجرات (5 ضربات)</div>
@@ -830,6 +735,7 @@
         </div>
     </div>
 
+    <!-- لوحة مبروك يا ملك -->
     <div class="king-modal" id="kingModal">
         <div class="king-box">
             <div class="king-crown">👑</div>
@@ -852,39 +758,21 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        // --- محاكاة شريط التحميل (8 ثوانٍ) ثم الانتقال للتوضيح ---
+        // --- محاكاة شريط التحميل ثم الدخول المباشر للعبة ---
         let loadProgress = 0;
         const loaderInterval = setInterval(() => {
-            loadProgress += 1.25; // يصل إلى 100% خلال 8 ثوانٍ
+            loadProgress += 4; 
             document.getElementById('loaderBar').style.width = loadProgress + '%';
             if (loadProgress >= 100) {
                 clearInterval(loaderInterval);
-                document.getElementById('splashScreen').style.display = 'none';
-                document.getElementById('showcaseScreen').style.display = 'flex';
-                runShowcaseDemoAnimation();
+                const splash = document.getElementById('splashScreen');
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 500);
+                initAudio();
             }
-        }, 100);
-
-        function runShowcaseDemoAnimation() {
-            setTimeout(() => {
-                document.getElementById('demoJar1').classList.add('active-grow');
-                playProSound('jar_growing_gold');
-            }, 600);
-            setTimeout(() => {
-                document.getElementById('demoJar2').classList.add('active-grow');
-                playProSound('jar_growing_gold');
-            }, 1800);
-            setTimeout(() => {
-                document.getElementById('demoJar3').classList.add('active-grow');
-                playProSound('jar_growing_gold');
-            }, 3000);
-        }
-
-        function startGame() {
-            initAudio();
-            playProSound('click');
-            document.getElementById('showcaseScreen').style.display = 'none';
-        }
+        }, 50);
 
         let currentBet = 3;
         let isSpinning = false;
@@ -901,7 +789,7 @@
         const slotsFrame = document.getElementById('slotsFrame');
 
         // ==========================================
-        //  محرك الصوت السينمائي الاحترافي
+        //  محرك الصوت السريع والسينمائي
         // ==========================================
         let audioCtx = null;
         function initAudio() {
@@ -929,8 +817,8 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(260, now);
-                osc.frequency.exponentialRampToValueAtTime(90, now + 0.02);
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.02);
                 gain.gain.setValueAtTime(0.025, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
                 osc.connect(gain); gain.connect(audioCtx.destination);
@@ -940,48 +828,49 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(35, now + 0.12);
-                gain.gain.setValueAtTime(0.28, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.12);
+                osc.start(now); osc.stop(now + 0.1);
             }
             else if (type === 'jar_thud') {
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(220, now);
-                osc.frequency.exponentialRampToValueAtTime(25, now + 0.35);
-                gain.gain.setValueAtTime(0.8, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+                gain.gain.setValueAtTime(0.9, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.35);
+                osc.start(now); osc.stop(now + 0.25);
             }
             else if (type === 'jar_growing_gold') {
-                let notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                // نغمة نمو وتكبير ديناميكية وسريعة
+                let notes = [220, 330, 440, 550, 660, 880, 1100];
                 notes.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.12));
-                    gain.gain.setValueAtTime(0.18, now + (i * 0.12));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.12) + 0.4);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.05));
+                    gain.gain.setValueAtTime(0.2, now + (i * 0.05));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.25);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.12)); osc.stop(now + (i * 0.12) + 0.4);
+                    osc.start(now + (i * 0.05)); osc.stop(now + (i * 0.05) + 0.25);
                 });
             }
             else if (type === 'jar_explode') {
-                let chord = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                let chord = [300, 450, 600, 900, 1200];
                 chord.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.025));
-                    gain.gain.setValueAtTime(0.22, now + (i * 0.025));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.025) + 0.8);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.02));
+                    gain.gain.setValueAtTime(0.3, now + (i * 0.02));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.02) + 0.5);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.025)); osc.stop(now + (i * 0.025) + 0.8);
+                    osc.start(now + (i * 0.02)); osc.stop(now + (i * 0.02) + 0.5);
                 });
             }
             else if (type === 'win_sound') {
@@ -991,7 +880,7 @@
                     let gain = audioCtx.createGain();
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, now + (i * 0.05));
-                    gain.gain.setValueAtTime(0.16, now + (i * 0.05));
+                    gain.gain.setValueAtTime(0.2, now + (i * 0.05));
                     gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.35);
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.start(now + (i * 0.05)); osc.stop(now + (i * 0.05) + 0.35);
@@ -1004,7 +893,7 @@
                     let gain = audioCtx.createGain();
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(freq, now + (i * 0.08));
-                    gain.gain.setValueAtTime(0.2, now + (i * 0.08));
+                    gain.gain.setValueAtTime(0.25, now + (i * 0.08));
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.start(now + (i * 0.08)); osc.stop(now + (i * 0.08) + 0.4);
                 });
@@ -1080,6 +969,7 @@
             return list;
         }
 
+        // إنشاء وتصميم كروت الفواكه المحدثة
         function createSymbolNode(symObj) {
             const div = document.createElement('div');
             div.className = 'symbol';
@@ -1087,12 +977,15 @@
             const badge = document.createElement('div');
             badge.className = 'symbol-badge';
 
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'symbol-icon';
+
             if (symObj.sym === '7') {
                 div.classList.add('seven');
-                badge.innerText = '7';
+                iconSpan.innerText = '7';
             } else if (symObj.sym === '🏺') {
                 div.classList.add('jar-rare');
-                badge.innerText = '🏺';
+                iconSpan.innerText = '🏺';
                 if (symObj.mult > 1) {
                     const multTag = document.createElement('div');
                     multTag.className = 'jar-mult-tag';
@@ -1100,9 +993,10 @@
                     badge.appendChild(multTag);
                 }
             } else {
-                badge.innerText = symObj.sym;
+                iconSpan.innerText = symObj.sym;
             }
 
+            badge.appendChild(iconSpan);
             div.appendChild(badge);
             return div;
         }
@@ -1352,7 +1246,6 @@
                 hideJarBanner();
                 applyShineToWinners(res.winning_coords || []);
 
-                // فحص جميع البكرات التي تحتوي على جرات رابحة لتتوسع كلها سوية (1 أو 2 أو 3 جرات)
                 if (res.has_jar) {
                     let jarReelIndices = [];
                     if (res.winning_coords) {
@@ -1372,10 +1265,8 @@
                     }
                 }
 
-                // حساب المضاعف مقارنة بالرهان الحالي
                 let winMultiplier = winAmount / currentBet;
 
-                // ظهور لوحة "مبروك يا ملك" فقط عند تجاوز الربح من 10x وما فوق
                 if (winMultiplier >= 10.0) {
                     showKingWinModal(winAmount, winMultiplier);
                 }
@@ -1384,7 +1275,6 @@
             }
         }
 
-        // --- إظهار لوحة مبروك يا ملك والعد الحركي من 0 ---
         function showKingWinModal(winAmount, multiplier) {
             playProSound('win_king');
             confetti({ particleCount: 250, spread: 120, origin: { y: 0.5 } });
@@ -1413,7 +1303,7 @@
             document.getElementById('kingModal').style.display = 'none';
         }
 
-        // --- تمدد كافة الجرات الرابحة (1 أو 2 أو 3 جرات) بطيئاً لمدة 8 ثوانٍ ---
+        // --- تمدد الجرات الرابحة بطريقة مرنة وسريعة وحية ---
         async function expandJarsToFullReels(reelIndices, mult, winAmount) {
             if (!Array.isArray(reelIndices)) reelIndices = [reelIndices];
             if (reelIndices.length === 0) return;
@@ -1430,7 +1320,11 @@
 
                     const badge = document.createElement('div');
                     badge.className = 'symbol-badge';
-                    badge.innerText = '🏺';
+
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'symbol-icon';
+                    iconSpan.innerText = '🏺';
+                    badge.appendChild(iconSpan);
 
                     if (mult > 1) {
                         const multTag = document.createElement('div');
@@ -1447,25 +1341,16 @@
 
             playProSound('jar_thud');
             triggerScreenShake();
-
             playProSound('jar_growing_gold');
 
-            // الانتظار 8 ثوانٍ لاكتمال نمو الجرات البطيء على الأشرطة
-            await new Promise(resolve => setTimeout(resolve, 8000));
+            // انتظار 1.2 ثانية لاكتمال تكبير الجرة
+            await new Promise(resolve => setTimeout(resolve, 1200));
             playProSound('jar_explode');
         }
 
         function triggerScreenShake() {
             slotsFrame.classList.add('shake');
             setTimeout(() => slotsFrame.classList.remove('shake'), 450);
-        }
-
-        function showJarBanner(mult, ratingText) {
-            const banner = document.getElementById('jarBanner');
-            document.getElementById('jarWinRating').innerText = ratingText || 'ربح ممتاز! ✨';
-            document.getElementById('jarMultText').innerText = mult + ' NSP';
-            banner.classList.add('show');
-            setTimeout(() => banner.classList.remove('show'), 2500);
         }
 
         function hideJarBanner() {
