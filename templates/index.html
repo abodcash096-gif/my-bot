@@ -586,7 +586,6 @@
                 osc.start(now); osc.stop(now + 0.03);
             }
             else if (type === 'reel_stop') {
-                // صوت ارتطام البكرة (Mechanical Thud)
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'triangle';
@@ -804,7 +803,7 @@
             isSpinning = true;
             forceStopRequested = false;
             
-            // خصم رصيد الرهان فورياً ظاهرياً لحين استلام نتيجة السيرفر
+            // خصم الرهان ظاهرياً لبدء اللعب
             currentBalance -= currentBet;
             document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
             document.getElementById('spinBtn').innerText = '⏹️';
@@ -821,11 +820,7 @@
                     body: JSON.stringify({ user_id: userId, bet: currentBet, game: 'golden_tree' })
                 });
                 serverResponse = await res.json();
-                
-                if (serverResponse && serverResponse.new_balance !== undefined) {
-                    currentBalance = serverResponse.new_balance;
-                    document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
-                }
+                // تم إزالة تحديث الرصيد هنا لكي لا ينكشف الربح قبل توقف البكرات
             } catch (e) {
                 console.warn("تنبيه اتصال السيرفر، جاري استخدام محاكاة النتائج", e);
             }
@@ -843,7 +838,6 @@
             let baseWait = speedLevel === 1 ? 550 : (speedLevel === 2 ? 300 : 100);
             let stepDelay = speedLevel === 1 ? 180 : (speedLevel === 2 ? 90 : 40);
 
-            // توقف البكرات من اليسار إلى اليمين لتطابق السلوتس الحقيقية
             const stopOrder = [0, 1, 2, 3, 4];
 
             for (let step = 0; step < stopOrder.length; step++) {
@@ -859,16 +853,15 @@
                 if (serverResponse && serverResponse.grid && serverResponse.grid[reelIdx]) {
                     finalSyms = serverResponse.grid[reelIdx];
                 } else {
+                    // الاعتماد كلياً على السيرفر في تحديد الربح، وهنا مجرد شكل عشوائي في حال انقطع النت
                     finalSyms = [generateRandomSymbolObj(true), generateRandomSymbolObj(false), generateRandomSymbolObj(false)];
                 }
 
                 populateStrip(strip, finalSyms);
                 finalGrid[reelIdx] = finalSyms;
 
-                // إضافة تأثير الارتداد والحركة أثناء التوقف
                 strip.classList.add('bounce-stop');
                 setTimeout(() => strip.classList.remove('bounce-stop'), 220);
-
                 playProSound('reel_stop');
             }
 
@@ -973,7 +966,12 @@
             }
 
             if (finalWinAmount > 0) {
-                currentBalance += finalWinAmount;
+                // مزامنة الرصيد الدقيقة مع السيرفر بعد توقف البكرات
+                if (serverResponse && serverResponse.new_balance !== undefined) {
+                    currentBalance = serverResponse.new_balance;
+                } else {
+                    currentBalance += finalWinAmount;
+                }
                 document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
 
                 if (isJarInWin) {
@@ -997,6 +995,11 @@
                 confetti({ particleCount: 160, spread: 110, origin: { y: 0.6 } });
                 applyShineToWinners(matchedCoords);
             } else {
+                // في حال الخسارة، مزامنة الرصيد النهائي لضمان تطابق الأرقام
+                if (serverResponse && serverResponse.new_balance !== undefined) {
+                    currentBalance = serverResponse.new_balance;
+                    document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+                }
                 document.getElementById('winAmount').innerText = '0.00';
                 document.getElementById('lineInfo').innerText = 'حظ أوفر في المحاولة القادمة';
             }
