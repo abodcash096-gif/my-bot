@@ -32,13 +32,18 @@ def init_db():
         )
     ''')
     
-    # القيم الافتراضية
+    # الإعدادات الافتراضية لخوارزميات التحكم (خسارة / عادي / متوسط / عالي / ضخم)
     default_settings = {
-        "win_rate": "30",          # نسبة الربح العامة (30%)
-        "bonus_win_rate": "40",    # نسبة الربح عند شراء المكافأة (40%)
-        "bonus_cap_1": "200",      # سقف ربح 1 جرة (200 ليرة لفئة 3)
-        "bonus_cap_2": "500",      # سقف ربح 2 جرة (500 ليرة لفئة 3)
-        "bonus_cap_3": "1000"      # سقف ربح 3 جرات (1000 ليرة لفئة 3)
+        "win_rate": "30",          # نسبة الربح العامة
+        "bonus_win_rate": "40",    # نسبة الربح عند شراء المكافأة
+        "bonus_cap_1": "200",      # سقف ربح 1 جرة (فئة 3)
+        "bonus_cap_2": "500",      # سقف ربح 2 جرة (فئة 3)
+        "bonus_cap_3": "1000",     # سقف ربح 3 جرات (فئة 3)
+        "chance_loss": "50",       # نسبة الخسارة العامة (50%)
+        "chance_normal": "30",     # نسبة الربح العادي (30%)
+        "chance_medium": "12",     # نسبة الربح المتوسط (12%)
+        "chance_high": "6",        # نسبة الربح العالي (6%)
+        "chance_huge": "2"         # نسبة الربح الضخم (2%)
     }
     
     for k, v in default_settings.items():
@@ -49,7 +54,7 @@ def init_db():
 
 init_db()
 
-# --- دالة جلب وتحديث الإعدادات ---
+# --- جلب وتحديث الإعدادات ---
 def get_setting(key, default_val):
     conn = get_db_connection()
     res = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
@@ -80,9 +85,9 @@ def update_user_balance(user_id, new_balance):
     conn.commit()
     conn.close()
 
-# --- دالة تقييم شبكة اللعبة وحساب الربح من اليمين إلى اليسار (RTL) ---
+# --- دالة تقييم شبكة اللعبة مع الحفاظ التام على الاتجاه الأصلي (من اليمين للجميع) ---
 def evaluate_grid(grid, bet):
-    # خطوط الربح من اليمين إلى اليسار (تبدأ من البكرة 4 إلى 0)
+    # خطوط الربح الأصلية الخاصة بك (من اليمين إلى اليسار: البكرة 4 إلى 0)
     paylines = [
         [(4,0), (3,0), (2,0), (1,0), (0,0)],
         [(4,1), (3,1), (2,1), (1,1), (0,1)],
@@ -101,18 +106,17 @@ def evaluate_grid(grid, bet):
                 jars_count += 1
                 if r_idx not in jar_reels:
                     jar_reels.append(r_idx)
-                if cell["mult"] > max_jar_mult:
-                    max_jar_mult = cell["mult"]
+                if cell.get("mult", 1) > max_jar_mult:
+                    max_jar_mult = cell.get("mult", 1)
 
-    # عند ظهور 3 جرات، تلغى المضاعفات
     if jars_count >= 3:
         max_jar_mult = 1
 
     win_amount = 0.0
     winning_coords = []
+    winning_jar_reels = set() # تتبع البكرات التي ساهمت فيها الجرة في إكمال الربح
 
     for line in paylines:
-        # تحديد الرمز الأساسي للخط (أول رمز ليس جرة من اليمين)
         first_sym = None
         for coord in line:
             sym = grid[coord[0]][coord[1]]["sym"]
@@ -125,68 +129,92 @@ def evaluate_grid(grid, bet):
 
         count = 0
         current_coords = []
+        line_jars = []
 
         for coord in line:
             c_sym = grid[coord[0]][coord[1]]["sym"]
             if c_sym == first_sym or c_sym == "🏺":
                 count += 1
                 current_coords.append(list(coord))
+                if c_sym == "🏺":
+                    line_jars.append(coord[0])
             else:
                 break
 
         line_mult = 0
         
-        # ربح السبعات (تتحقق عند 2 سبعة فما فوق من اليمين)
+        # ربح السبعات (تتحقق عند وجود 1 سبعة + جرة أو 2 سبعة من اليمين)
         if first_sym == '7':
             if count == 2:
                 line_mult = 1.5
             elif count == 3:
-                line_mult = 3
+                line_mult = 3.5
             elif count == 4:
-                line_mult = 6
+                line_mult = 8.0
             elif count >= 5:
-                line_mult = 20
-        else:
+                line_mult = 25.0
+        else: # الفواكه
             if count == 3:
-                line_mult = 2 if first_sym == '🍇' else 1
+                line_mult = 2.5 if first_sym == '🍇' else 1.5
             elif count == 4:
-                line_mult = 4 if first_sym == '🍇' else 2
+                line_mult = 5.0 if first_sym == '🍇' else 3.0
             elif count >= 5:
-                line_mult = 10 if first_sym == '🍇' else 5
+                line_mult = 12.0 if first_sym == '🍇' else 6.0
 
         if line_mult > 0:
-            # تطبيق مضاعف الجرة عند ظهور 1 أو 2 جرة فقط
             if 0 < jars_count < 3:
                 line_mult *= max_jar_mult
             win_amount += line_mult * bet
             winning_coords.extend(current_coords)
+            
+            # تسجيل البكرة التي ساهمت الجرة في إكمال ربحها
+            for r in line_jars:
+                winning_jar_reels.add(r)
 
-    has_jar = jars_count > 0
-    primary_jar_reel = jar_reels[0] if jar_reels else -1
+    # تتوسع الجرة فقط إذا شاركت بالفعل في إكمال خط ربح رابح
+    has_jar = len(winning_jar_reels) > 0
+    primary_jar_reel = list(winning_jar_reels)[0] if has_jar else -1
 
     return win_amount, winning_coords, has_jar, primary_jar_reel, max_jar_mult, jars_count
 
-# --- توليد الشبكة بناءً على الخوارزمية والسقوف والشروط ---
-def generate_controlled_grid(should_win, bet, forced_jars=0, max_win_cap=None):
+# --- دالة اختيار درجة النتيجة المطلوبة بناءً على الإعدادات ---
+def choose_tier(is_bonus_buy=False):
+    if is_bonus_buy:
+        bonus_win_rate = int(get_setting("bonus_win_rate", 40))
+        if random.randint(1, 100) > bonus_win_rate:
+            return "loss"
+        return random.choices(["normal", "medium", "high", "huge"], weights=[50, 30, 15, 5])[0]
+    else:
+        c_loss = float(get_setting("chance_loss", 50))
+        c_normal = float(get_setting("chance_normal", 30))
+        c_medium = float(get_setting("chance_medium", 12))
+        c_high = float(get_setting("chance_high", 6))
+        c_huge = float(get_setting("chance_huge", 2))
+        
+        tiers = ["loss", "normal", "medium", "high", "huge"]
+        weights = [c_loss, c_normal, c_medium, c_high, c_huge]
+        total = sum(weights)
+        if total <= 0: return "loss"
+        return random.choices(tiers, weights=weights)[0]
+
+# --- توليد الشبكة بناءً على الخوارزمية والشروط والسقوف ---
+def generate_controlled_grid(tier, bet, forced_jars=0, max_win_cap=None):
     symbols = ['🍋', '🍍', '🍊', '🍒', '🔔', '🍇', '7']
     jar_mults = [1, 2, 3, 5]
 
     for _ in range(150):
         grid = []
-        
-        # تحديد عدد الجرات المستهدفة
         if forced_jars > 0:
             target_jars = forced_jars
         else:
-            rnd = random.random()
-            if rnd < 0.015:
-                target_jars = 3  # نادر جداً
-            elif rnd < 0.06:
-                target_jars = 2  # نادر أكثر
-            elif rnd < 0.18:
-                target_jars = 1  # نادر
+            if tier == "huge":
+                target_jars = random.choice([2, 3])
+            elif tier in ["medium", "high"]:
+                target_jars = random.choice([1, 2])
+            elif tier == "normal":
+                target_jars = 1 if random.random() < 0.2 else 0
             else:
-                target_jars = 0
+                target_jars = 1 if random.random() < 0.05 else 0
 
         jar_reels = random.sample(range(5), min(target_jars, 5)) if target_jars > 0 else []
 
@@ -197,7 +225,6 @@ def generate_controlled_grid(should_win, bet, forced_jars=0, max_win_cap=None):
 
             for row_idx in range(3):
                 if row_idx == jar_row:
-                    # بدون مضاعفات عند ظهور 3 جرات
                     mult = 1 if target_jars >= 3 else random.choice(jar_mults)
                     column.append({"sym": "🏺", "mult": mult})
                 else:
@@ -205,17 +232,25 @@ def generate_controlled_grid(should_win, bet, forced_jars=0, max_win_cap=None):
             grid.append(column)
 
         win_amount, winning_coords, h_jar, j_idx, j_mult, j_count = evaluate_grid(grid, bet)
+        win_ratio = win_amount / bet if bet > 0 else 0
 
-        # التحقق من سقف الأرباح المحدد
+        # التحقق من عدم تجاوز سقف الربح المسموح
         if max_win_cap is not None and win_amount > max_win_cap:
             continue
 
-        if should_win and win_amount > 0:
-            return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
-        elif not should_win and win_amount == 0:
+        # التحقق من ملاءمة النتيجة للمستوى المختار
+        if tier == "loss" and win_amount == 0:
             return grid, 0.0, [], h_jar, j_idx, j_mult
+        elif tier == "normal" and 0 < win_ratio <= 3.0:
+            return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
+        elif tier == "medium" and 3.0 < win_ratio <= 10.0:
+            return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
+        elif tier == "high" and 10.0 < win_ratio <= 25.0:
+            return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
+        elif tier == "huge" and win_ratio > 25.0:
+            return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
 
-    # شبكة خاسرة مضمونة في حال عدم الوصول لنتيجة خلال المحاولات
+    # شبكة خاسرة احتياطية عند عدم تحقق الشروط
     safe_symbols = ['🍋', '🍍', '🍊', '🍒', '🔔']
     grid = []
     for reel_idx in range(5):
@@ -237,7 +272,7 @@ def generate_controlled_grid(should_win, bet, forced_jars=0, max_win_cap=None):
 
     return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
 
-# --- APIs التواصل والربط مع البوت واللعبة ---
+# --- APIs التواصل والتكامل مع البوت واللعبة ---
 
 @app.route('/api/get_user', methods=['POST'])
 def get_user():
@@ -248,7 +283,6 @@ def get_user():
 
 @app.route('/api/get_settings', methods=['GET', 'POST'])
 def get_settings_api():
-    """ جلب جميع الإعدادات الحالية للتحكم بها من البوت """
     conn = get_db_connection()
     rows = conn.execute('SELECT key, value FROM settings').fetchall()
     conn.close()
@@ -257,7 +291,6 @@ def get_settings_api():
 
 @app.route('/api/set_settings', methods=['POST'])
 def set_settings_api():
-    """ أندبوينت لتحديث أي إعدادات مباشرة من البوت """
     data = request.get_json() or {}
     for key, value in data.items():
         if key != 'user_id':
@@ -266,31 +299,20 @@ def set_settings_api():
 
 @app.route('/api/update_balance', methods=['POST'])
 def update_balance_api():
-    """ شحن أو خصم رصيد مستخدم من البوت """
     data = request.get_json() or {}
     user_id = data.get('user_id')
     amount = data.get('amount')
-    action = data.get('action', 'add') # add | set
+    action = data.get('action', 'add')
     
     if not user_id or amount is None:
         return jsonify({"success": False, "message": "بيانات غير مكتملة"})
     
     current = get_user_balance(user_id)
     new_bal = (current + float(amount)) if action == 'add' else float(amount)
-    if new_bal < 0:
-        new_bal = 0.0
+    if new_bal < 0: new_bal = 0.0
         
     update_user_balance(user_id, new_bal)
     return jsonify({"success": True, "new_balance": new_bal})
-
-@app.route('/api/set_win_rate', methods=['POST'])
-def set_win_rate_api():
-    data = request.get_json() or {}
-    rate = data.get('rate')
-    if rate is not None and 0 <= int(rate) <= 100:
-        set_setting("win_rate", str(rate))
-        return jsonify({"success": True, "win_rate": int(rate)})
-    return jsonify({"success": False, "message": "نسبة غير صالحة"})
 
 @app.route('/api/play_spin', methods=['POST'])
 def play_spin():
@@ -305,30 +327,24 @@ def play_spin():
 
     current_balance = get_user_balance(user_id)
 
-    # عند الدورة العادية نتحقق من وجود رصيد الرهان
     if buy_bonus_jars == 0 and current_balance < bet:
         return jsonify({"success": False, "message": "رصيدك غير كافٍ للعب!"})
 
     if buy_bonus_jars == 0:
         current_balance -= bet
 
-    # تحديد الشروط بناءً على الوضع (عادي / شراء مكافأة)
     if buy_bonus_jars > 0:
-        bonus_win_rate = int(get_setting("bonus_win_rate", 40))
-        should_win = (random.randint(1, 100) <= bonus_win_rate)
-        
-        # تحديد سقف الأرباح بحسب الجرات ومضاعفة السقف مع فئة الرهان
         bet_ratio = bet / 3.0
         cap_key = f"bonus_cap_{buy_bonus_jars}"
         base_cap = float(get_setting(cap_key, 200 * buy_bonus_jars))
         max_win_cap = base_cap * bet_ratio
+        tier = choose_tier(is_bonus_buy=True)
     else:
-        win_rate = int(get_setting("win_rate", 30))
-        should_win = (random.randint(1, 100) <= win_rate)
         max_win_cap = None
+        tier = choose_tier(is_bonus_buy=False)
 
     grid, win_amount, winning_coords, has_jar, jar_reel_index, jar_multiplier = generate_controlled_grid(
-        should_win=should_win, 
+        tier=tier,
         bet=bet, 
         forced_jars=buy_bonus_jars,
         max_win_cap=max_win_cap
