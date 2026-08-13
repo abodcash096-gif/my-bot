@@ -13,12 +13,21 @@ DB_NAME = 'database.db'
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+    # جدول المستخدمين والأرصدة
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id TEXT PRIMARY KEY,
             balance REAL DEFAULT 100.0
         )
     ''')
+    # جدول الإعدادات للتحكم بنسبة الربح
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+    cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES ("win_rate", "30")')
     conn.commit()
     conn.close()
 
@@ -46,6 +55,12 @@ def update_user_balance(user_id, new_balance):
     conn.commit()
     conn.close()
 
+def get_win_rate():
+    conn = get_db_connection()
+    res = conn.execute('SELECT value FROM settings WHERE key = "win_rate"').fetchone()
+    conn.close()
+    return int(res['value']) if res else 30
+
 # --- مسارات API لخدمة البيانات ---
 @app.route('/api/get_user', methods=['POST'])
 def get_user():
@@ -71,24 +86,38 @@ def play_spin():
 
     current_balance -= bet
 
+    win_rate = get_win_rate()
+    should_win = (random.randint(1, 100) <= win_rate)
+
     symbols = ['🍋', '🍍', '🍊', '🍒', '🔔', '🍇', '7']
     grid = []
     has_jar = False
     jar_reel_index = -1
     jar_multiplier = 1
 
-    for reel_idx in range(5):
-        column = []
-        for row_idx in range(3):
-            if random.random() < 0.03 and not has_jar:
-                has_jar = True
-                jar_reel_index = reel_idx
-                jar_multiplier = random.choice([2, 3, 5])
-                column.append({"sym": "🏺", "mult": jar_multiplier})
-            else:
-                sym = random.choice(symbols)
-                column.append({"sym": sym, "mult": 1})
-        grid.append(column)
+    if should_win:
+        winning_sym = random.choice(symbols)
+        for reel_idx in range(5):
+            column = []
+            for row_idx in range(3):
+                if row_idx == 1:
+                    column.append({"sym": winning_sym, "mult": 1})
+                else:
+                    column.append({"sym": random.choice(symbols), "mult": 1})
+            grid.append(column)
+    else:
+        for reel_idx in range(5):
+            column = []
+            for row_idx in range(3):
+                if random.random() < 0.03 and not has_jar:
+                    has_jar = True
+                    jar_reel_index = reel_idx
+                    jar_multiplier = random.choice([2, 3, 5])
+                    column.append({"sym": "🏺", "mult": jar_multiplier})
+                else:
+                    sym = random.choice(symbols)
+                    column.append({"sym": sym, "mult": 1})
+            grid.append(column)
 
     paylines = [
         [(0,0), (1,0), (2,0), (3,0), (4,0)],
