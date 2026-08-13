@@ -48,8 +48,6 @@ RAW_SERVER_URL = os.getenv("SERVER_URL", "https://my-bot-j658.onrender.com")
 extracted_urls = re.findall(r'https?://[^\s\)\]]+', RAW_SERVER_URL)
 SERVER_URL = extracted_urls[0].rstrip('/') if extracted_urls else "https://my-bot-j658.onrender.com"
 
-ALLOWED_STRIKE_PRICES = [1, 2, 3, 5, 6, 9, 10, 12, 15, 20, 25, 50, 100, 200, 500, 1000]
-
 ALLOWED_GAMES = [
     'wheel', 'aviator', 'mines', 'slots', 'chests', 
     'dice', 'coinflip', 'cards', 'thimbles', 'roulette', 'goold_lera'
@@ -100,6 +98,7 @@ def init_db():
             channel_link TEXT
         )
     ''')
+    
     cols = [
         ("full_name", "TEXT"),
         ("phone", "TEXT"),
@@ -148,13 +147,19 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_withdraw', '1000')")
     
-    # إعدادات الخوارزمية
+    # إعدادات خوارزمية الربح وشراء المكافأة المباشرة
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('win_rate', '30')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_win_rate', '40')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_1', '200')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_2', '500')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_3', '1000')")
+    
+    # خوارزميات إضافية للألعاب الأخرى
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_loss', '60')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_normal', '60')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_medium', '25')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '10')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '5')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('win_rate', '30')")
 
     conn.commit()
     conn.close()
@@ -162,7 +167,7 @@ def init_db():
 init_db()
 
 # ----------------------------------------------------
-# 3. دالة إرسال رسائل تليجرام متزامنة (تُستخدم من خادم Flask)
+# 3. دالة إرسال رسائل تليجرام متزامنة
 # ----------------------------------------------------
 def send_telegram_msg_sync(chat_id, text, reply_markup=None):
     try:
@@ -234,7 +239,7 @@ def build_sub_keyboard(unsubscribed_channels: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
-# 6. خادم Flask API والألعاب وخوارزمية التحكم الذكية
+# 6. خادم Flask API والألعاب
 # ----------------------------------------------------
 flask_app = Flask(__name__, template_folder="templates", static_folder="templates")
 
@@ -282,117 +287,6 @@ def api_get_user():
         logger.error(f"Error in api_get_user: {e}")
         return jsonify({"error": "حدث خطأ داخلي في السيرفر"}), 500
 
-@flask_app.route("/api/play_game", methods=["POST"])
-def api_play_game():
-    try:
-        data = request.json or {}
-        user_id = data.get("user_id")
-        bet = float(data.get("bet", 0))
-        game_type = data.get("game", "goold_lera")
-        init_data = data.get("init_data", "")
-
-        if init_data and not verify_telegram_webapp_data(init_data, BOT_TOKEN):
-            return jsonify({"error": "فشل التحقق الأمني من الجلسة"}), 403
-
-        if not user_id or bet <= 0:
-            return jsonify({"error": "بيانات الرهان غير صحيحة"}), 400
-
-        if game_type not in ALLOWED_GAMES:
-            return jsonify({"error": "نوع اللعبة غير مدعوم"}), 400
-
-        conn = get_db()
-        user = conn.execute(
-            "SELECT balance, is_banned, games_played, custom_boost, consecutive_losses, consecutive_wins FROM users WHERE user_id = ?", 
-            (user_id,)
-        ).fetchone()
-        
-        if not user or user["is_banned"]:
-            conn.close()
-            return jsonify({"error": "الحساب محظور أو غير موجود"}), 403
-
-        if user["balance"] < bet:
-            conn.close()
-            return jsonify({"error": "رصيدك غير كافٍ لتغطية هذه الضربة"}), 400
-
-        # خصم مبلغ الرهان بشكل قطعي أولاً
-        new_balance = user["balance"] - bet
-
-        # جلب نسب الخوارزمية من قاعدة البيانات الحية
-        settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
-        chance_loss = float(settings.get("chance_loss", 60.0))
-        chance_normal = float(settings.get("chance_normal", 60.0))
-        chance_medium = float(settings.get("chance_medium", 25.0))
-        chance_high = float(settings.get("chance_high", 10.0))
-        chance_huge = float(settings.get("chance_huge", 5.0))
-
-        # حساب فرصة الربح الإجمالية وتعديلها بـ custom_boost والسلاسل
-        base_win_chance = 100.0 - chance_loss
-        user_boost = user["custom_boost"] or 0.0
-        c_losses = user["consecutive_losses"] or 0
-        c_wins = user["consecutive_wins"] or 0
-
-        streak_modifier = 0.0
-        if c_losses >= 3: streak_modifier += min(15.0, c_losses * 2.5)
-        elif c_wins >= 3: streak_modifier -= min(15.0, c_wins * 3.0)
-
-        calculated_chance = base_win_chance + user_boost + streak_modifier
-        final_win_chance = max(0.0, min(95.0, calculated_chance)) / 100.0
-
-        is_win = random.random() < final_win_chance
-        chosen_multiplier = 0
-        win_amount = 0
-
-        if is_win:
-            total_weights = chance_normal + chance_medium + chance_high + chance_huge
-            if total_weights == 0: total_weights = 1; chance_normal = 1
-            
-            r = random.uniform(0, total_weights)
-            if r <= chance_normal:
-                chosen_multiplier = random.choice([1.2, 1.5, 2.0])
-            elif r <= chance_normal + chance_medium:
-                chosen_multiplier = random.choice([3.0, 4.0, 5.0])
-            elif r <= chance_normal + chance_medium + chance_high:
-                chosen_multiplier = random.choice([8.0, 10.0, 15.0, 20.0])
-            else:
-                chosen_multiplier = random.choice([50.0, 100.0])
-
-            win_amount = round(bet * chosen_multiplier, 2)
-            new_balance += win_amount
-            
-            c_wins_new = c_wins + 1
-            c_losses_new = 0
-
-            conn.execute(
-                "UPDATE users SET balance = ?, games_played = games_played + 1, consecutive_wins = ?, consecutive_losses = ? WHERE user_id = ?",
-                (new_balance, c_wins_new, c_losses_new, user_id)
-            )
-            conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)",
-                         (user_id, f"فوز في {game_type} (x{chosen_multiplier})", win_amount))
-        else:
-            c_losses_new = c_losses + 1
-            c_wins_new = 0
-
-            conn.execute(
-                "UPDATE users SET balance = ?, games_played = games_played + 1, consecutive_losses = ?, consecutive_wins = ? WHERE user_id = ?",
-                (new_balance, c_losses_new, c_wins_new, user_id)
-            )
-            conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)",
-                         (user_id, f"خسارة ضربة في {game_type}", -bet))
-
-        conn.commit()
-        conn.close()
-
-        return jsonify({
-            "win": is_win,
-            "multiplier": chosen_multiplier if is_win else 0,
-            "win_amount": win_amount,
-            "new_balance": round(new_balance, 2),
-            "game": game_type
-        })
-    except Exception as e:
-        logger.error(f"Error in api_play_game: {e}")
-        return jsonify({"error": f"خطأ في السيرفر: {str(e)}"}), 500
-
 @flask_app.route("/api/sync_balance", methods=["POST"])
 def api_sync_balance():
     try:
@@ -409,7 +303,6 @@ def api_sync_balance():
         if not user:
             return jsonify({"error": "المستخدم غير موجود"}), 404
 
-        # إرسال إشعار فوري في التليجرام برصيد المستخدم عند الخروج من اللعبة
         games_url = f"{SERVER_URL}/games"
         kb = {
             "inline_keyboard": [
@@ -443,7 +336,7 @@ def run_flask():
 def main_menu_keyboard(is_admin=False):
     games_url = f"{SERVER_URL}/games"
     keyboard = [
-        [InlineKeyboardButton("goold Lera", web_app=WebAppInfo(url=games_url))],
+        [InlineKeyboardButton("Golden Tree 2026 🎰", web_app=WebAppInfo(url=games_url))],
         [InlineKeyboardButton("👤 حسابي ورصيدي", callback_data="btn_account"), InlineKeyboardButton("💸 سحب رصيدي", callback_data="btn_withdraw")],
         [InlineKeyboardButton("🔗 رابط إحالاتي", callback_data="btn_referral"), InlineKeyboardButton("🤖 شراء بوت", callback_data="btn_buy_bot")],
         [InlineKeyboardButton("💬 مراسلة الدعم", callback_data="btn_support"), InlineKeyboardButton("🎁 إدخال كود هدية", callback_data="btn_gift")],
@@ -455,7 +348,7 @@ def main_menu_keyboard(is_admin=False):
 
 def admin_panel_keyboard():
     keyboard = [
-        [InlineKeyboardButton("🎛️ تحكم بخوارزمية الربح والنسب", callback_data="adm_algo_menu")],
+        [InlineKeyboardButton("🎛️ تحكم بخوارزميات الربح والمكافآت", callback_data="adm_algo_menu")],
         [InlineKeyboardButton("🎯 حظ لاعب معين", callback_data="adm_user_boost"), InlineKeyboardButton("📢 قنوات الاشتراك", callback_data="adm_channels_menu")],
         [InlineKeyboardButton("➕ إضافة رصيد", callback_data="adm_add_bal"), InlineKeyboardButton("➖ خصم رصيد", callback_data="adm_sub_bal")],
         [InlineKeyboardButton("🎁 إنشاء كود هدية", callback_data="adm_make_gift"), InlineKeyboardButton("🔗 سعر الإحالة", callback_data="adm_set_ref")],
@@ -471,11 +364,12 @@ def admin_panel_keyboard():
 
 def algo_panel_keyboard():
     keyboard = [
-        [InlineKeyboardButton("📉 تعديل نسبة الخسارة", callback_data="adm_set_ch_loss")],
-        [InlineKeyboardButton("🥉 نسبة الربح العادي (أقل من 2x)", callback_data="adm_set_ch_normal")],
-        [InlineKeyboardButton("🥈 نسبة الربح المتوسط (أقل من 5x)", callback_data="adm_set_ch_medium")],
-        [InlineKeyboardButton("🥇 نسبة الربح العالي (أقل من 20x)", callback_data="adm_set_ch_high")],
-        [InlineKeyboardButton("🎰 نسبة الربح الضخم (الجرات والسبعات)", callback_data="adm_set_ch_huge")],
+        [InlineKeyboardButton("🎯 نسبة الربح العامة (Win Rate %)", callback_data="adm_set_win_rate")],
+        [InlineKeyboardButton("🎁 نسبة ربح شراء المكافأة %", callback_data="adm_set_bonus_win_rate")],
+        [InlineKeyboardButton("🏺 سقف أرباح 1 جرة (فئة 3)", callback_data="adm_set_bonus_cap_1")],
+        [InlineKeyboardButton("🏺🏺 سقف أرباح 2 جرة (فئة 3)", callback_data="adm_set_bonus_cap_2")],
+        [InlineKeyboardButton("🏺🏺🏺 سقف أرباح 3 جرات (فئة 3)", callback_data="adm_set_bonus_cap_3")],
+        [InlineKeyboardButton("📉 نسبة الخسارة العامة", callback_data="adm_set_ch_loss")],
         [InlineKeyboardButton("🔙 رجوع للإدارة", callback_data="open_admin_panel")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -542,7 +436,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await notify_admins(context, f"🔔 **دخول مستخدم جديد:**\n👤 **الاسم:** {user.full_name}\n🆔 **المعرف:** `{user.id}`")
 
         await update.message.reply_text(
-            f"👋 أهلاً بك يا {user.full_name} في لعبة goold Lera!\n\n"
+            f"👋 أهلاً بك يا {user.full_name} في لعبة Golden Tree 2026!\n\n"
             f"🛡️ للتأكد من أنك لست روبوت، يرجى كتابة الناتج:\n"
             f"❓ **{num1} + {num2} = ?**"
         )
@@ -568,7 +462,7 @@ async def send_main_dashboard(chat_id, user_id, full_name, is_admin, context):
     
     bal = u["balance"] if u else 0.0
     text = (
-        f"👑 **مرحباً بك في لعبة goold Lera**\n\n"
+        f"👑 **مرحباً بك في لعبة Golden Tree 2026**\n\n"
         f"👤 **الاسم:** {full_name}\n"
         f"🆔 **معرف الحساب (ID):** `{user_id}`\n"
         f"💰 **رصيدك الحالي:** `{bal:,.2f}` NSP\n\n"
@@ -683,6 +577,52 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             await update.message.reply_text("❌ إجابة خاطئة! يرجى كتابة الرقم المطلوب بدقة.")
         return
 
+    # معالجة إعدادات الخوارزمية وسقوف المكافآت من الإدارة
+    if step == "adm_set_win_rate":
+        try:
+            val = int(text)
+            if not (0 <= val <= 100): raise ValueError
+            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('win_rate', ?)", (str(val),))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            await update.message.reply_text(f"✅ تم تعديل نسبة الربح العامة إلى `{val}%` بنجاح.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+        except ValueError:
+            conn.close()
+            await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
+        return
+
+    if step == "adm_set_bonus_win_rate":
+        try:
+            val = int(text)
+            if not (0 <= val <= 100): raise ValueError
+            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('bonus_win_rate', ?)", (str(val),))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            await update.message.reply_text(f"✅ تم تعديل نسبة ربح شراء المكافأة إلى `{val}%` بنجاح.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+        except ValueError:
+            conn.close()
+            await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
+        return
+
+    if step in ["adm_set_bonus_cap_1", "adm_set_bonus_cap_2", "adm_set_bonus_cap_3"]:
+        try:
+            val = float(text)
+            if val < 0: raise ValueError
+            cap_key = step.replace("adm_set_", "")
+            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (cap_key, str(val)))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            
+            jar_num = cap_key.replace("bonus_cap_", "")
+            await update.message.reply_text(f"✅ تم ضبط سقف ربح شراء {jar_num} جرة إلى `{val}` ليرة (لفئة 3).", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+        except ValueError:
+            conn.close()
+            await update.message.reply_text("❌ يرجى إدخال مبلغ مالي صحيح بالأرقام.")
+        return
+
     if step == "withdraw_step_code":
         context.user_data["withdraw_code"] = text
         conn.execute("UPDATE users SET step = 'withdraw_step_amount' WHERE user_id = ?", (user.id,))
@@ -791,29 +731,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
             conn.commit()
             conn.close()
-            return
-            
-        if step.startswith("adm_set_ch_"):
-            key_map = {
-                "adm_set_ch_loss": "chance_loss",
-                "adm_set_ch_normal": "chance_normal",
-                "adm_set_ch_medium": "chance_medium",
-                "adm_set_ch_high": "chance_high",
-                "adm_set_ch_huge": "chance_huge"
-            }
-            db_key = key_map.get(step)
-            try:
-                pct = float(text)
-                if pct < 0 or pct > 100:
-                    raise ValueError
-                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (db_key, str(pct)))
-                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
-                conn.commit()
-                conn.close()
-                await update.message.reply_text(f"✅ تم تحديث النسبة لتصبح `{pct}%` بنجاح.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
-            except ValueError:
-                conn.close()
-                await update.message.reply_text("❌ خطأ: يرجى إدخال رقم صحيح بين 0 و 100.")
             return
 
         if step == "adm_input_add_admin":
@@ -1200,37 +1117,36 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
             
-        if data.startswith("adm_rep_supp_"):
-            target_id = data.replace("adm_rep_supp_", "")
-            context.user_data["support_target_id"] = target_id
-            conn.execute("UPDATE users SET step = 'adm_input_support_reply' WHERE user_id = ?", (user.id,))
-            conn.commit()
-            conn.close()
-            try: await query.message.edit_reply_markup(reply_markup=None)
-            except Exception: pass
-            await query.message.reply_text(f"✍️ اكتب ردك الآن للمستخدم صاحب الـ ID: `{target_id}`")
-            return
-
         if data == "adm_algo_menu":
             settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
             conn.close()
             msg = (
-                "🎛️ **لوحة تحكم خوارزمية الربح:**\n\n"
-                f"📉 الخسارة العامة: `{settings.get('chance_loss', 60)}%`\n"
-                f"🥉 الربح العادي: `{settings.get('chance_normal', 60)}%`\n"
-                f"🥈 الربح المتوسط: `{settings.get('chance_medium', 25)}%`\n"
-                f"🥇 الربح العالي: `{settings.get('chance_high', 10)}%`\n"
-                f"🎰 الربح الضخم (جرات): `{settings.get('chance_huge', 5)}%`\n\n"
-                "اختر النسبة التي تريد تعديلها:"
+                "🎛️ **لوحة تحكم خوارزمية الربح والمكافآت:**\n\n"
+                f"🎯 نسبة الربح العامة: `{settings.get('win_rate', 30)}%`\n"
+                f"🎁 نسبة ربح شراء المكافأة: `{settings.get('bonus_win_rate', 40)}%`\n"
+                f"🏺 سقف أرباح 1 جرة (فئة 3): `{settings.get('bonus_cap_1', 200)}` ليرة\n"
+                f"🏺🏺 سقف أرباح 2 جرة (فئة 3): `{settings.get('bonus_cap_2', 500)}` ليرة\n"
+                f"🏺🏺🏺 سقف أرباح 3 جرات (فئة 3): `{settings.get('bonus_cap_3', 1000)}` ليرة\n"
+                f"📉 الخسارة العامة: `{settings.get('chance_loss', 60)}%`\n\n"
+                "اختر القيمة المراد تعديلها:"
             )
             await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=algo_panel_keyboard())
             return
-            
-        if data.startswith("adm_set_ch_"):
+
+        if data in ["adm_set_win_rate", "adm_set_bonus_win_rate", "adm_set_bonus_cap_1", "adm_set_bonus_cap_2", "adm_set_bonus_cap_3", "adm_set_ch_loss"]:
             conn.execute("UPDATE users SET step = ? WHERE user_id = ?", (data, user.id))
             conn.commit()
             conn.close()
-            await query.message.edit_text("✍️ أرسل الآن النسبة المئوية الجديدة المطلوبة (أرقام من 0 إلى 100):")
+            
+            prompts = {
+                "adm_set_win_rate": "✍️ أرسل نسبة الربح العامة الجديدة (0 إلى 100):",
+                "adm_set_bonus_win_rate": "✍️ أرسل نسبة الربح الجديدة عند شراء المكافأة (0 إلى 100):",
+                "adm_set_bonus_cap_1": "✍️ أرسل سقف الأرباح الجديد لشراء 1 جرة (لفئة 3 ليرات):",
+                "adm_set_bonus_cap_2": "✍️ أرسل سقف الأرباح الجديد لشراء 2 جرة (لفئة 3 ليرات):",
+                "adm_set_bonus_cap_3": "✍️ أرسل سقف الأرباح الجديد لشراء 3 جرات (لفئة 3 ليرات):",
+                "adm_set_ch_loss": "✍️ أرسل نسبة الخسارة العامة الجديدة (0 إلى 100):"
+            }
+            await query.message.edit_text(prompts[data])
             return
 
         if data == "adm_add_admin":
