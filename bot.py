@@ -87,6 +87,8 @@ def init_db():
             captcha_answer INTEGER DEFAULT 0,
             step TEXT DEFAULT 'start',
             custom_boost REAL DEFAULT 0.0
+        )
+    ''')
     cursor.execute('CREATE TABLE IF NOT EXISTS admins (user_id INTEGER PRIMARY KEY)')
     cursor.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
     cursor.execute('CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, amount REAL, uses_left INTEGER)')
@@ -118,7 +120,6 @@ def init_db():
         try: cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
         except: pass
 
-    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
