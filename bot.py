@@ -79,6 +79,8 @@ def init_db():
             referred_by INTEGER,
             referrals_count INTEGER DEFAULT 0,
             games_played INTEGER DEFAULT 0,
+            consecutive_losses INTEGER DEFAULT 0,
+            consecutive_wins INTEGER DEFAULT 0,
             is_verified INTEGER DEFAULT 0,
             terms_accepted INTEGER DEFAULT 0,
             is_banned INTEGER DEFAULT 0,
@@ -88,8 +90,19 @@ def init_db():
         )
     ''')
     
+    # تحديثات الأعمدة في حال لم تكن موجودة سابقاً
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN custom_boost REAL DEFAULT 0.0")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN consecutive_losses INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN consecutive_wins INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
 
@@ -193,7 +206,7 @@ def build_sub_keyboard(unsubscribed_channels: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
-# 5. خادم Flask API والألعاب والخوارزمية اليدوية العامة
+# 5. خادم Flask API والألعاب وخوارزمية التحكم الذكية
 # ----------------------------------------------------
 flask_app = Flask(__name__, template_folder="templates")
 
@@ -256,7 +269,10 @@ def api_play_game():
             return jsonify({"error": "نوع اللعبة غير مدعوم"}), 400
 
         conn = get_db()
-        user = conn.execute("SELECT balance, is_banned, games_played, custom_boost FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        user = conn.execute(
+            "SELECT balance, is_banned, games_played, custom_boost, consecutive_losses, consecutive_wins FROM users WHERE user_id = ?", 
+            (user_id,)
+        ).fetchone()
         
         if not user or user["is_banned"]:
             conn.close()
@@ -266,17 +282,28 @@ def api_play_game():
             conn.close()
             return jsonify({"error": "رصيدك غير كافٍ لتغطية هذه الضربة"}), 400
 
+        # خصم مبلغ الرهان الأولي
         new_balance = user["balance"] - bet
-        conn.execute("UPDATE users SET balance = ?, games_played = games_played + 1 WHERE user_id = ?", (new_balance, user_id))
 
-        # جلب نسبة الربح العامة المحددة يدوياً من الإدارة (مثلاً 35%)
+        # ------------------------------------
+        # الخوارزمية المتقدمة للربح والخسارة
+        # ------------------------------------
         global_setting = conn.execute("SELECT value FROM settings WHERE key = 'global_win_chance'").fetchone()
         global_win_pct = float(global_setting["value"]) if global_setting else 35.0
 
         user_boost = user["custom_boost"] or 0.0
-        
-        # حساب النسبة النهائية مع مراعاة البوست الخاص إن وجد
-        final_win_chance = max(0.0, min(100.0, global_win_pct + user_boost)) / 100.0
+        c_losses = user["consecutive_losses"] or 0
+        c_wins = user["consecutive_wins"] or 0
+
+        # تعديل ديناميكي لنسبة الحظ حسب السلسلة
+        streak_modifier = 0.0
+        if c_losses >= 3:
+            streak_modifier += min(15.0, c_losses * 2.5)  # تعويض اللاعب لخسرانه المتتالي
+        elif c_wins >= 3:
+            streak_modifier -= min(15.0, c_wins * 3.0)   # كبح حظ اللاعب المتميز بسلسلة فوز
+
+        calculated_chance = global_win_pct + user_boost + streak_modifier
+        final_win_chance = max(0.0, min(95.0, calculated_chance)) / 100.0
 
         is_win = random.random() < final_win_chance
         chosen_multiplier = 0
@@ -287,10 +314,23 @@ def api_play_game():
             win_amount = round(bet * chosen_multiplier, 2)
             new_balance += win_amount
             
-            conn.execute("UPDATE users SET balance = ? WHERE user_id = ?", (new_balance, user_id))
+            c_wins_new = c_wins + 1
+            c_losses_new = 0
+
+            conn.execute(
+                "UPDATE users SET balance = ?, games_played = games_played + 1, consecutive_wins = ?, consecutive_losses = ? WHERE user_id = ?",
+                (new_balance, c_wins_new, c_losses_new, user_id)
+            )
             conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)",
                          (user_id, f"فوز في {game_type} (x{chosen_multiplier})", win_amount))
         else:
+            c_losses_new = c_losses + 1
+            c_wins_new = 0
+
+            conn.execute(
+                "UPDATE users SET balance = ?, games_played = games_played + 1, consecutive_losses = ?, consecutive_wins = ? WHERE user_id = ?",
+                (new_balance, c_losses_new, c_wins_new, user_id)
+            )
             conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)",
                          (user_id, f"خسارة ضربة في {game_type}", -bet))
 
@@ -641,7 +681,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
                 conn.commit()
                 conn.close()
                 await update.message.reply_text(f"✅ تم تحديث نسبة الربح العامة للعبة لتصبح بنسبة `{pct}%` لكل الدورات.")
-            except Exception as e:
+            except Exception:
                 conn.close()
                 await update.message.reply_text(f"❌ خطأ: يرجى إدخال رقم صحيح بين 0 و 100. (مثال: `35`)")
             return
@@ -1010,7 +1050,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"🎛️ **التحكم بنسبة الربح والخسارة العامة للعبة:**\n\n"
                 f"📊 النسبة الحالية لفرصة الربح: `{cur_rtp}%`\n\n"
                 f"✍️ أرسل الآن النسبة المئوية الجديدة المطلوبة (أرقام من 0 إلى 100):\n"
-                f"*(مثال: أرسل `30` لتعيين نسبة الربح العامة 30% والخصارة 70%)*",
+                f"*(مثال: أرسل `30` لتعيين نسبة الربح العامة 30% والخسارة 70%)*",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 إلغاء", callback_data="open_admin_panel")]])
             )
@@ -1131,6 +1171,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.commit()
             conn.close()
             await query.message.edit_text("✍️ **أدخل ID ثم مسافة ثم النص:**")
+            return
+
+        if data == "adm_all_logs":
+            logs = conn.execute("SELECT user_id, action, amount, timestamp FROM logs ORDER BY id DESC LIMIT 15").fetchall()
+            conn.close()
+            if not logs:
+                txt = "📜 لا توجد سجلات عامة حتى الآن."
+            else:
+                txt = "📜 **آخر 15 عملية على مستوى البوت:**\n\n"
+                for lg in logs:
+                    txt += f"• `{lg['timestamp']}` | `{lg['user_id']}` | {lg['action']} | `{lg['amount']}` NSP\n"
+            kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="open_admin_panel")]])
+            await query.message.edit_text(txt, parse_mode="Markdown", reply_markup=kb)
             return
 
         if data == "adm_stats":
