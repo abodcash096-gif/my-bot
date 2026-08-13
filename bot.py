@@ -56,9 +56,9 @@ ALLOWED_GAMES = [
 ]
 
 # ----------------------------------------------------
-# 2. إعداد قاعدة البيانات (SQLite) مع وضع WAL
+# 2. إعداد قاعدة البيانات الموحدة (database.db)
 # ----------------------------------------------------
-DB_NAME = "bot_database.db"
+DB_NAME = "database.db"
 
 def get_db():
     conn = sqlite3.connect(DB_NAME, timeout=30)
@@ -75,7 +75,7 @@ def init_db():
             user_id INTEGER PRIMARY KEY,
             full_name TEXT,
             phone TEXT,
-            balance REAL DEFAULT 0.0,
+            balance REAL DEFAULT 100.0,
             referred_by INTEGER,
             referrals_count INTEGER DEFAULT 0,
             games_played INTEGER DEFAULT 0,
@@ -143,6 +143,7 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_medium', '25')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '10')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '5')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('win_rate', '30')")
 
     conn.commit()
     conn.close()
@@ -224,7 +225,7 @@ def build_sub_keyboard(unsubscribed_channels: list) -> InlineKeyboardMarkup:
 # ----------------------------------------------------
 # 6. خادم Flask API والألعاب وخوارزمية التحكم الذكية
 # ----------------------------------------------------
-flask_app = Flask(__name__, template_folder="templates")
+flask_app = Flask(__name__, template_folder="templates", static_folder="templates")
 
 @flask_app.after_request
 def after_request(response):
@@ -235,7 +236,7 @@ def after_request(response):
 
 @flask_app.route("/")
 def home():
-    return "goold Lera Casino Engine Running!"
+    return render_template("index.html", server_url=SERVER_URL)
 
 @flask_app.route("/games")
 def games_page():
@@ -422,7 +423,7 @@ def api_sync_balance():
         return jsonify({"error": str(e)}), 500
 
 def run_flask():
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 5000))
     flask_app.run(host="0.0.0.0", port=port)
 
 # ----------------------------------------------------
