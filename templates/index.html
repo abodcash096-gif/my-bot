@@ -15,7 +15,6 @@
             --gold-glow: rgba(255, 223, 0, 0.9);
             --bg-dark: #000206;
             --card-bg: rgba(2, 12, 25, 0.99);
-            --purple-glow: rgba(187, 0, 255, 0.7);
         }
 
         * {
@@ -37,7 +36,7 @@
             overflow-x: hidden;
         }
 
-        /* --- 1. شاشة التحميل الافتتاحية بصورة البداية المرفقة --- */
+        /* --- 1. شاشة التحميل الافتتاحية مع الانتظار --- */
         .splash-screen {
             position: fixed;
             inset: 0;
@@ -67,113 +66,8 @@
             height: 100%;
             background: linear-gradient(90deg, #0088ff, var(--neon-blue), #ffffff);
             box-shadow: 0 0 15px var(--neon-blue);
-            transition: width 0.08s linear;
+            transition: width 0.1s linear;
         }
-
-        /* --- 2. شاشة العرض التوضيحي للجرات --- */
-        .showcase-screen {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 2, 8, 0.95);
-            backdrop-filter: blur(12px);
-            z-index: 900;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 24px;
-            text-align: center;
-        }
-
-        .showcase-card {
-            background: radial-gradient(circle, rgba(10, 48, 90, 0.95), rgba(1, 8, 20, 0.98));
-            border: 2px solid var(--gold);
-            border-radius: 24px;
-            padding: 24px 18px;
-            max-width: 360px;
-            width: 100%;
-            box-shadow: 0 0 45px var(--gold-glow);
-            animation: pulseGlow 2s infinite alternate;
-        }
-
-        @keyframes pulseGlow {
-            0% { box-shadow: 0 0 25px rgba(255, 223, 0, 0.5); }
-            100% { box-shadow: 0 0 55px rgba(255, 223, 0, 0.9); }
-        }
-
-        .showcase-title {
-            font-size: 22px;
-            font-weight: 900;
-            color: var(--gold);
-            margin-bottom: 6px;
-            text-shadow: 0 0 15px var(--gold-glow);
-        }
-
-        .showcase-desc {
-            font-size: 13px;
-            color: #a1e5ff;
-            line-height: 1.5;
-            margin-bottom: 16px;
-        }
-
-        .demo-showcase-frame {
-            display: flex;
-            height: 125px;
-            background: #010a17;
-            border: 2px solid var(--neon-blue);
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 18px;
-            position: relative;
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
-        }
-
-        .demo-reel-col {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            align-items: center;
-            position: relative;
-            font-size: 24px;
-            border-left: 1px solid rgba(0,243,255,0.25);
-        }
-        .demo-reel-col:last-child { border-left: none; }
-
-        .demo-jar-expand {
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle, #ffea00 0%, #ff8800 80%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 45px;
-            z-index: 10;
-            opacity: 0;
-            transform: scale(0.15) translateY(50px);
-            transition: all 4s cubic-bezier(0.1, 0.8, 0.25, 1);
-            box-shadow: 0 0 30px var(--gold);
-            border-radius: 6px;
-        }
-
-        .demo-jar-expand.active-grow {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-
-        .start-game-btn {
-            background: linear-gradient(135deg, #ffdf00 0%, #ff8800 100%);
-            border: none;
-            color: #000;
-            font-size: 17px;
-            font-weight: 900;
-            padding: 10px 32px;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 0 25px var(--gold-glow);
-            transition: transform 0.15s;
-        }
-        .start-game-btn:active { transform: scale(0.92); }
 
         /* --- الشريط العلوي --- */
         .top-bar {
@@ -281,7 +175,7 @@
             position: relative;
             width: 95%;
             max-width: 420px;
-            margin: 2px auto 0;
+            margin: 4px auto 0;
             perspective: 1000px;
         }
 
@@ -300,15 +194,16 @@
             cursor: grab;
         }
 
-        .slots-frame.shake {
-            animation: screenShake 0.45s cubic-bezier(.36,.07,.19,.97) both;
+        /* تأثير الهزة الأرضية للحاوية */
+        .slots-frame.earthquake {
+            animation: earthquakeAnim 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
 
-        @keyframes screenShake {
-            10%, 90% { transform: translate3d(-3px, 0, 0); }
-            20%, 80% { transform: translate3d(5px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-7px, 0, 0); }
-            40%, 60% { transform: translate3d(7px, 0, 0); }
+        @keyframes earthquakeAnim {
+            10%, 90% { transform: translate3d(-4px, 2px, 0) rotate(-0.5deg); }
+            20%, 80% { transform: translate3d(6px, -3px, 0) rotate(1deg); }
+            30%, 50%, 70% { transform: translate3d(-8px, 4px, 0) rotate(-1deg); }
+            40%, 60% { transform: translate3d(8px, -2px, 0) rotate(0.5deg); }
         }
 
         .reel {
@@ -344,26 +239,26 @@
         }
 
         .reel-strip.spinning {
-            animation: fastSpinReversed 0.08s linear infinite;
+            animation: ultraSmoothSpin 0.09s linear infinite;
         }
 
         .reel-strip.bounce-stop {
-            animation: reelSmoothEaseStopReversed 0.42s cubic-bezier(0.23, 1, 0.32, 1);
+            animation: reelSmoothStop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        @keyframes fastSpinReversed {
+        @keyframes ultraSmoothSpin {
             0% { transform: translateY(-240px); }
             100% { transform: translateY(0px); }
         }
 
-        @keyframes reelSmoothEaseStopReversed {
-            0% { transform: translateY(30px); }
-            60% { transform: translateY(-8px); }
-            85% { transform: translateY(3px); }
+        @keyframes reelSmoothStop {
+            0% { transform: translateY(35px); }
+            60% { transform: translateY(-10px); }
+            85% { transform: translateY(4px); }
             100% { transform: translateY(0); }
         }
 
-        /* --- تحسين وتجميل وتحديث مظهر الفاكهة والرموز --- */
+        /* --- 2. الرموز والفاكهة (تمت إزالة المربعات الصلبة) --- */
         .symbol {
             height: 80px;
             display: flex;
@@ -371,130 +266,113 @@
             align-items: center;
             position: relative;
             flex-shrink: 0;
-            padding: 4px;
+            padding: 2px;
         }
 
+        /* إلغاء مربع الإطار وتصميمه بشكل طافٍ وأملس */
         .symbol-badge {
-            width: 90%;
-            height: 90%;
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            font-size: 46px;
-            border-radius: 16px;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.22), rgba(2,12,25,0.75));
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 18px rgba(0,0,0,0.65), inset 0 2px 4px rgba(255,255,255,0.3);
+            font-size: 48px;
+            background: transparent;
+            border: none;
+            box-shadow: none;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* توهجات مخصصة ملونة ثلاثية الأبعاد لكل فاكهة */
-        .symbol.fruit-grape .symbol-badge { filter: drop-shadow(0 0 12px #a855f7); border-color: rgba(168, 85, 247, 0.6); }
-        .symbol.fruit-orange .symbol-badge { filter: drop-shadow(0 0 12px #ff8c00); border-color: rgba(255, 140, 0, 0.6); }
-        .symbol.fruit-pineapple .symbol-badge { filter: drop-shadow(0 0 12px #eab308); border-color: rgba(234, 179, 8, 0.6); }
-        .symbol.fruit-lemon .symbol-badge { filter: drop-shadow(0 0 12px #facc15); border-color: rgba(250, 204, 21, 0.6); }
-        .symbol.fruit-cherry .symbol-badge { filter: drop-shadow(0 0 12px #f43f5e); border-color: rgba(244, 63, 94, 0.6); }
-        .symbol.bell .symbol-badge { filter: drop-shadow(0 0 14px #ffdf00); border-color: rgba(255, 223, 0, 0.7); }
+        /* توهجات النيون والتأثيرات الضوئية بدون مربعات */
+        .symbol.fruit-grape .symbol-badge { filter: drop-shadow(0 0 10px #a855f7); }
+        .symbol.fruit-orange .symbol-badge { filter: drop-shadow(0 0 10px #ff8c00); }
+        .symbol.fruit-pineapple .symbol-badge { filter: drop-shadow(0 0 10px #eab308); }
+        .symbol.fruit-lemon .symbol-badge { filter: drop-shadow(0 0 10px #facc15); }
+        .symbol.fruit-cherry .symbol-badge { filter: drop-shadow(0 0 10px #f43f5e); }
+        .symbol.bell .symbol-badge { filter: drop-shadow(0 0 12px #ffdf00); }
 
         .symbol.seven .symbol-badge {
             color: #ff0055;
-            background: radial-gradient(circle at 30% 30%, rgba(255,0,85,0.35), rgba(15,0,20,0.95));
-            border-color: #ff0055;
-            text-shadow: 0 0 25px #ff0055, 0 0 10px #ffffff;
+            text-shadow: 0 0 20px #ff0055, 0 0 10px #ffffff;
             font-weight: 900;
             font-style: italic;
             font-size: 54px;
-            filter: drop-shadow(0 0 18px #ff0055);
+            filter: drop-shadow(0 0 15px #ff0055);
         }
 
+        /* تصميم الجرة وتطور شكلها */
         .symbol.jar-rare .symbol-badge {
-            background: radial-gradient(circle, rgba(255,223,0,0.8) 0%, rgba(255,140,0,0.4) 60%, rgba(10,5,0,0.9) 100%);
-            border-color: var(--gold);
-            font-size: 52px;
-            filter: drop-shadow(0 0 20px var(--gold));
-            animation: jarGlowPulse 1s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 54px;
+            filter: drop-shadow(0 0 22px var(--gold));
+            animation: jarPulseGlow 1.2s infinite alternate ease-in-out;
         }
 
-        /* وقوف وتجميد الجرة الرابحة عند تداخلها مع بكرات الفواكه أو 7 */
-        .symbol.jar-stopped {
-            z-index: 50;
-            animation: jarLockStop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
-        }
-        .symbol.jar-stopped .symbol-badge {
-            border: 2px solid var(--gold) !important;
-            box-shadow: 0 0 35px var(--gold), inset 0 0 20px var(--gold) !important;
-            background: radial-gradient(circle, #ffe600 0%, #ff6600 100%) !important;
-        }
-
-        @keyframes jarLockStop {
-            0% { transform: scale(1.4); }
-            50% { transform: scale(0.85); }
-            75% { transform: scale(1.15); }
-            100% { transform: scale(1); }
-        }
-
-        /* انفجار الجرة البصري عند الربح */
-        @keyframes jarExplodeAnim {
-            0% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 20px #ffdf00); }
-            40% { transform: scale(1.5) rotate(10deg); filter: brightness(3) drop-shadow(0 0 60px #ffffff); }
-            70% { transform: scale(1.8) rotate(-10deg); filter: brightness(4) drop-shadow(0 0 90px #ffea00); opacity: 0.9; }
-            100% { transform: scale(0); opacity: 0; filter: brightness(5); }
-        }
-
-        .symbol.jar-exploding .symbol-badge {
-            animation: jarExplodeAnim 0.75s forwards ease-out !important;
-        }
-
-        @keyframes jarGlowPulse {
+        @keyframes jarPulseGlow {
             0% { transform: scale(0.95); filter: drop-shadow(0 0 15px var(--gold)); }
-            100% { transform: scale(1.12); filter: drop-shadow(0 0 40px var(--gold)) brightness(1.4); }
+            100% { transform: scale(1.12); filter: drop-shadow(0 0 35px var(--gold)) brightness(1.3); }
         }
 
+        /* شارة الرقم على الجرة عند وجود مضاعف */
         .jar-mult-tag {
             position: absolute;
-            bottom: 5px;
-            right: 5px;
+            bottom: 6px;
+            right: 6px;
             background: linear-gradient(135deg, #ff0055, #ff00aa);
             color: #fff;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 900;
-            padding: 2px 7px;
-            border-radius: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
             border: 1px solid #fff;
-            box-shadow: 0 0 12px #ff0055;
+            box-shadow: 0 0 10px #ff0055;
             z-index: 95;
         }
 
+        /* --- أنيميشن التوسع للجرة لملء البكرة بالكامل عند الربح --- */
+        .symbol.jar-expanding {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 240px; /* ملء ارتفاع البكرة الكامل */
+            z-index: 85;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: jarFillReel 0.6s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .symbol.jar-expanding .symbol-badge {
+            font-size: 110px;
+            filter: drop-shadow(0 0 50px var(--gold)) brightness(1.4);
+        }
+
+        @keyframes jarFillReel {
+            0% { transform: scale(0.3); opacity: 0.5; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* حالة الانفجار وخروج الذهب مع النبض والاستمرار في البكرة */
+        .symbol.jar-fountain .symbol-badge {
+            animation: jarGoldSpout 0.8s infinite alternate ease-in-out !important;
+        }
+
+        @keyframes jarGoldSpout {
+            0% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 30px var(--gold)) brightness(1.2); }
+            100% { transform: scale(1.1) rotate(3deg); filter: drop-shadow(0 0 60px #ffea00) brightness(1.6); }
+        }
+
         .symbol.win-pop-blue .symbol-badge {
-            animation: symbolWinNeonBlue 0.4s infinite alternate ease-in-out;
+            animation: symbolWinGlow 0.4s infinite alternate ease-in-out;
             z-index: 10;
         }
 
-        @keyframes symbolWinNeonBlue {
+        @keyframes symbolWinGlow {
             0% { transform: scale(1); filter: drop-shadow(0 0 15px var(--neon-blue)); }
-            100% { transform: scale(1.28); filter: drop-shadow(0 0 40px var(--neon-blue)) brightness(1.8); }
+            100% { transform: scale(1.25); filter: drop-shadow(0 0 35px var(--neon-blue)) brightness(1.8); }
         }
-
-        .jar-banner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            background: linear-gradient(135deg, rgba(0,243,255,0.95), rgba(255,0,85,0.95));
-            border: 3px solid #fff;
-            padding: 16px 30px;
-            border-radius: 24px;
-            font-weight: 900;
-            font-size: 22px;
-            color: #fff;
-            box-shadow: 0 0 70px var(--gold);
-            z-index: 100;
-            pointer-events: none;
-            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            text-align: center;
-        }
-        .jar-banner.show { transform: translate(-50%, -50%) scale(1.15); }
 
         .info-panel {
             text-align: center;
@@ -619,7 +497,7 @@
         }
         .nav-item.active { color: var(--neon-blue); }
 
-        /* --- لوحة الملوك للأرباح المرتفعة --- */
+        /* --- لوحة الملوك للأرباح المرتفعة 10x --- */
         .king-modal {
             display: none;
             position: fixed;
@@ -713,32 +591,14 @@
 </head>
 <body>
 
-    <!-- الشاشة الافتتاحية مع الصورة المرفقة 13156.png -->
+    <!-- الشاشة الافتتاحية 13156.png وتعمل لمدة 10 ثوانٍ -->
     <div class="splash-screen" id="splashScreen">
         <div class="loader-container">
             <div class="loader-bar" id="loaderBar"></div>
         </div>
     </div>
 
-    <div class="showcase-screen" id="showcaseScreen">
-        <div class="showcase-card">
-            <div class="showcase-title">🏺 شرح الجرات الذهبية ✨</div>
-            <div class="showcase-desc">
-                عند ظهور الجرة في أي مكان مع فاكهة أو 7 متماثلة في بقية البكرات، تتوقف الجرة فوراً وتحسب ربحاً ثم تنفجر بذهب غريز!
-            </div>
-            
-            <div class="demo-showcase-frame">
-                <div class="demo-reel-col"><span>🎰</span></div>
-                <div class="demo-reel-col"><div class="demo-jar-expand" id="demoJar1">🏺</div><span>🍇</span></div>
-                <div class="demo-reel-col"><div class="demo-jar-expand" id="demoJar2">🏺</div><span>🍊</span></div>
-                <div class="demo-reel-col"><div class="demo-jar-expand" id="demoJar3">🏺</div><span>🍍</span></div>
-                <div class="demo-reel-col"><span>🎰</span></div>
-            </div>
-
-            <button class="start-game-btn" onclick="startGame()">ابدأ اللعب الآن 🚀</button>
-        </div>
-    </div>
-
+    <!-- الشريط العلوي -->
     <div class="top-bar">
         <button class="buy-bonus-btn" onclick="openBonusModal()">🛒 شراء مكافأة</button>
         <div class="logo">Golden Lera<br><span style="font-size: 10px; color: #a1e5ff;">Pro Master 2026</span></div>
@@ -767,8 +627,8 @@
         🔥 مكافأة جرات مفعلة: متبقي 5 ضربات
     </div>
 
+    <!-- إطار بكرات اللعبة -->
     <div class="game-container">
-        <div class="jar-banner" id="jarBanner"><span id="jarWinRating">ربح كبير! 🔥</span><br><span id="jarMultText" style="font-size: 28px; color: var(--gold);">5x</span></div>
         <div class="slots-frame" id="slotsFrame"></div>
     </div>
 
@@ -837,7 +697,7 @@
             <div class="bonus-option-card" onclick="confirmBuyBonus(3)">
                 <div>
                     <div style="font-weight: 900; color: #fff; font-size: 0.9rem;">🏺🏺🏺 ظهور 3 جرات</div>
-                    <div style="font-size: 0.75rem; color: #8cf;">3 جرات بدون مضاعفات (5 ضربات)</div>
+                    <div style="font-size: 0.75rem; color: #8cf;">3 جرات (5 ضربات)</div>
                 </div>
                 <div style="color: var(--gold); font-weight: 900; font-size: 0.95rem;" id="price3">750 NSP</div>
             </div>
@@ -846,6 +706,7 @@
         </div>
     </div>
 
+    <!-- نافذة الأرباح العالية 10x Big Win -->
     <div class="king-modal" id="kingModal">
         <div class="king-box">
             <div class="king-crown">👑</div>
@@ -868,39 +729,17 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        // محاكاة تحميل شريط شاشة البداية
+        // --- 1. شاشة التحميل الافتتاحية (تنتظر 10 ثوانٍ) ---
         let loadProgress = 0;
         const loaderInterval = setInterval(() => {
-            loadProgress += 2.5; 
+            loadProgress += 1; // 100 خطوة * 100ms = 10 ثوانٍ
             document.getElementById('loaderBar').style.width = loadProgress + '%';
             if (loadProgress >= 100) {
                 clearInterval(loaderInterval);
                 document.getElementById('splashScreen').style.display = 'none';
-                document.getElementById('showcaseScreen').style.display = 'flex';
-                runShowcaseDemoAnimation();
+                initAudio();
             }
-        }, 80);
-
-        function runShowcaseDemoAnimation() {
-            setTimeout(() => {
-                document.getElementById('demoJar1').classList.add('active-grow');
-                playProSound('jar_stop');
-            }, 500);
-            setTimeout(() => {
-                document.getElementById('demoJar2').classList.add('active-grow');
-                playProSound('jar_stop');
-            }, 1200);
-            setTimeout(() => {
-                document.getElementById('demoJar3').classList.add('active-grow');
-                playProSound('jar_stop');
-            }, 1900);
-        }
-
-        function startGame() {
-            initAudio();
-            playProSound('click');
-            document.getElementById('showcaseScreen').style.display = 'none';
-        }
+        }, 100);
 
         let currentBet = 3;
         let isSpinning = false;
@@ -909,7 +748,6 @@
         let autoSpinActive = false;
         let speedLevel = 1;
         let autoInterval = null;
-
         let activeBonus = null;
 
         const reelsCount = 5;
@@ -917,7 +755,7 @@
         const slotsFrame = document.getElementById('slotsFrame');
 
         // ==========================================
-        //  محرّك الأصوات والمؤثرات الصوتية الحديثة
+        //  محرّك الأصوات والمؤثرات الصوتية المطورة
         // ==========================================
         let audioCtx = null;
         function initAudio() {
@@ -963,46 +801,54 @@
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.12);
             }
-            else if (type === 'jar_stop') {
-                // صوت وقوف الجرة مع نغمة تجميد ذهبية
-                let osc1 = audioCtx.createOscillator();
-                let osc2 = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc1.type = 'sine';
-                osc2.type = 'triangle';
-                osc1.frequency.setValueAtTime(320, now);
-                osc1.frequency.exponentialRampToValueAtTime(80, now + 0.25);
-                osc2.frequency.setValueAtTime(640, now);
-                osc2.frequency.exponentialRampToValueAtTime(160, now + 0.25);
-                gain.gain.setValueAtTime(0.5, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-                osc1.connect(gain); osc2.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc1.start(now); osc2.start(now);
-                osc1.stop(now + 0.25); osc2.stop(now + 0.25);
-            }
-            else if (type === 'jar_explode') {
-                // صوت انفجار الجرة القوي مع نغمات الذهب
+            else if (type === 'jar_earthquake') {
+                // صوت الهزة الأرضية ونزول الجرة
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.45);
-                gain.gain.setValueAtTime(0.7, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                osc.frequency.setValueAtTime(90, now);
+                osc.frequency.exponentialRampToValueAtTime(25, now + 0.35);
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.45);
+                osc.start(now); osc.stop(now + 0.35);
+            }
+            else if (type === 'reel_fill') {
+                // صوت امتلأ البكرة بالجرة النغمي
+                let notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+                notes.forEach((freq, i) => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.04));
+                    gain.gain.setValueAtTime(0.18, now + (i * 0.04));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.04) + 0.3);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now + (i * 0.04)); osc.stop(now + (i * 0.04) + 0.3);
+                });
+            }
+            else if (type === 'jar_explode') {
+                // صوت انفجار الجرة وتطاير الليرات الذهبية
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.4);
 
-                let chord = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                let chord = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
                 chord.forEach((freq, i) => {
                     let o = audioCtx.createOscillator();
                     let g = audioCtx.createGain();
                     o.type = 'sine';
                     o.frequency.setValueAtTime(freq, now + (i * 0.03));
                     g.gain.setValueAtTime(0.2, now + (i * 0.03));
-                    g.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.03) + 0.5);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.03) + 0.45);
                     o.connect(g); g.connect(audioCtx.destination);
-                    o.start(now + (i * 0.03)); o.stop(now + (i * 0.03) + 0.5);
+                    o.start(now + (i * 0.03)); o.stop(now + (i * 0.03) + 0.45);
                 });
             }
             else if (type === 'win_sound') {
@@ -1025,7 +871,7 @@
                     let gain = audioCtx.createGain();
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(freq, now + (i * 0.08));
-                    gain.gain.setValueAtTime(0.2, now + (i * 0.08));
+                    gain.gain.setValueAtTime(0.25, now + (i * 0.08));
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.start(now + (i * 0.08)); osc.stop(now + (i * 0.08) + 0.4);
                 });
@@ -1050,7 +896,7 @@
         }, { passive: true });
 
         // ==========================================
-        //  بيانات المستخدم
+        //  تحميل بيانات المستخدم
         // ==========================================
         async function loadUserData() {
             let tgUser = tg?.initDataUnsafe?.user;
@@ -1077,7 +923,7 @@
         }
         loadUserData();
 
-        // بناء بكرات اللعبة 5
+        // بناء البكرات الـ 5
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -1091,12 +937,32 @@
             populateStrip(reelStrip, generateInitialList(6));
         }
 
+        // خوارزمية التوزيع وتخصيص الندرة للسبيعات والجرات
         function generateInitialList(count) {
-            const items = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '7'];
             let list = [];
             for (let i = 0; i < count; i++) {
-                let sym = items[Math.floor(Math.random() * items.length)];
-                list.push({ sym: sym, mult: 1 });
+                let rand = Math.random();
+                let sym = '🍇';
+                
+                if (rand < 0.05) sym = '🏺';       // 5% احتمال جرة (ظهور خفيف جداً)
+                else if (rand < 0.11) sym = '7';   // 6% احتمال 7 (ظهور خفيف)
+                else if (rand < 0.23) sym = '🔔';
+                else if (rand < 0.38) sym = '🍒';
+                else if (rand < 0.53) sym = '🍋';
+                else if (rand < 0.68) sym = '🍍';
+                else if (rand < 0.83) sym = '🍊';
+                else sym = '🍇';
+
+                // ظهور الجرة بأوقات معها رقم مضاعف وأوقات بدون رقم
+                let mult = 1;
+                if (sym === '🏺') {
+                    let hasNumber = Math.random() < 0.5; // 50% يكون لها رقم
+                    if (hasNumber) {
+                        let possibleMults = [2, 3, 5, 10];
+                        mult = possibleMults[Math.floor(Math.random() * possibleMults.length)];
+                    }
+                }
+                list.push({ sym: sym, mult: mult });
             }
             return list;
         }
@@ -1239,7 +1105,7 @@
         }
 
         // ==========================================
-        //  بدء التدوير وتطبيق منطق وقوف الجرات
+        //  بدء التدوير والتوقف المتتابع مع الهزة
         // ==========================================
         async function startSpin() {
             if (isSpinning) return;
@@ -1256,9 +1122,8 @@
             let userId = tgUser?.id || "demo_user";
 
             document.getElementById('spinBtn').innerText = '⏹️';
-            clearShineEffects();
-            hideJarBanner();
-            document.getElementById('lineInfo').innerText = 'جاري التدوير والاتصال...';
+            clearEffects();
+            document.getElementById('lineInfo').innerText = 'جاري التدوير...';
 
             let spinSoundInterval = setInterval(() => {
                 if (isSpinning) playProSound('spin_tick');
@@ -1291,7 +1156,7 @@
                 });
                 serverResult = await response.json();
             } catch (err) {
-                console.error("خطأ معالجة التدويرة:", err);
+                console.error("خطأ التدوير:", err);
             }
 
             if (!serverResult || !serverResult.success) {
@@ -1307,14 +1172,13 @@
             document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
 
             let finalGrid = serverResult.grid;
-            let baseWait = speedLevel === 1 ? 500 : (speedLevel === 2 ? 280 : 100);
-            let stepDelay = speedLevel === 1 ? 200 : (speedLevel === 2 ? 100 : 40);
+            
+            // التوقف الأملس والمتتابع بفوارق ثوانٍ
+            let baseWait = speedLevel === 1 ? 550 : (speedLevel === 2 ? 300 : 120);
+            let stepDelay = speedLevel === 1 ? 250 : (speedLevel === 2 ? 120 : 50);
 
-            let rightToLeftOrder = [4, 3, 2, 1, 0];
-
-            for (let step = 0; step < reelsCount; step++) {
-                let reelIdx = rightToLeftOrder[step];
-                let currentDelay = forceStopRequested ? (step * 30) : (baseWait + step * stepDelay);
+            for (let reelIdx = 0; reelIdx < reelsCount; reelIdx++) {
+                let currentDelay = forceStopRequested ? (reelIdx * 35) : (baseWait + reelIdx * stepDelay);
 
                 await new Promise(resolve => setTimeout(resolve, currentDelay));
 
@@ -1325,29 +1189,21 @@
                 populateStrip(strip, columnData);
 
                 strip.classList.add('bounce-stop');
-                setTimeout(() => strip.classList.remove('bounce-stop'), 420);
+                setTimeout(() => strip.classList.remove('bounce-stop'), 450);
 
-                // فحص وتجميد أي جرة رابحة تقف في صفين أو مكان آخر
-                let hasJarInCol = false;
-                columnData.forEach((s, rowIdx) => {
-                    if (s && s.sym === '🏺') {
-                        hasJarInCol = true;
-                        if (strip.children[rowIdx]) {
-                            strip.children[rowIdx].classList.add('jar-stopped');
-                        }
-                    }
-                });
+                // التأكد مما إذا كانت هذه البكرة تحتوي على جرة
+                let hasJarInCol = columnData.some(s => s && s.sym === '🏺');
 
                 if (hasJarInCol) {
-                    playProSound('jar_stop'); // صوت وقوف وتجميد الجرة
-                    triggerScreenShake();
+                    playProSound('jar_earthquake'); // صوت هزة الجرة
+                    triggerEarthquake();            // تأثير الهزة الأرضية
                 } else {
                     playProSound('reel_stop');
                 }
             }
 
             clearInterval(spinSoundInterval);
-            await displaySpinResults(serverResult);
+            await processWinMechanics(serverResult);
 
             if (isBonusRound && activeBonus) {
                 activeBonus.totalWin += parseFloat(serverResult.win_amount);
@@ -1355,7 +1211,7 @@
                     let finalBonusWin = activeBonus.totalWin;
                     activeBonus = null;
                     updateBonusBadgeUI();
-                    showModal("🎉 اكتملت ضربات المكافأة!", `انتهت الـ 5 ضربات للمكافأة.\nإجمالي الأرباح المحققة: ${finalBonusWin.toFixed(2)} NSP`);
+                    showModal("🎉 اكتملت ضربات المكافأة!", `انتهت الـ 5 ضربات للمكافأة.\nإجمالي الأرباح: ${finalBonusWin.toFixed(2)} NSP`);
                 } else {
                     setTimeout(() => { if (!isSpinning) startSpin(); }, 1200);
                 }
@@ -1367,9 +1223,9 @@
         }
 
         // ==========================================
-        //  عرض الأرباح وانفجار الجرات وتساقط الذهب
+        //  معالجة الجرات وتمددها وتطاير الذهب
         // ==========================================
-        async function displaySpinResults(res) {
+        async function processWinMechanics(res) {
             let winAmount = parseFloat(res.win_amount);
             document.getElementById('winAmount').innerText = winAmount.toFixed(2);
 
@@ -1382,21 +1238,39 @@
                 let best = parseFloat(document.getElementById('bestWin').innerText);
                 if (winAmount > best) document.getElementById('bestWin').innerText = winAmount.toFixed(2);
 
-                hideJarBanner();
-                applyShineToWinners(res.winning_coords || []);
+                applyWinGlow(res.winning_coords || []);
 
-                // في حال وجود جرات رابحة: تشغيل أنيميشن الانفجار وتساقط الذهب
-                let jarNodes = document.querySelectorAll('.symbol.jar-stopped');
-                if (jarNodes.length > 0 || res.has_jar) {
-                    playProSound('jar_explode');
-                    jarNodes.forEach(node => {
-                        node.classList.add('jar-exploding');
+                // في حال وجود ربح وجرة/جرات على الشاشة (واحدة أو أكثر):
+                let allReelsWithJars = [];
+                res.grid.forEach((col, reelIdx) => {
+                    if (col.some(s => s && s.sym === '🏺')) {
+                        allReelsWithJars.push(reelIdx);
+                    }
+                });
+
+                if (allReelsWithJars.length > 0) {
+                    playProSound('reel_fill'); // صوت امتلاء البكرة
+
+                    // جعل كل الجرات تتوسع لتملأ البكرة بالكامل
+                    allReelsWithJars.forEach(reelIdx => {
+                        let reelContainer = reelStrips[reelIdx].parentElement;
+                        
+                        let expandingJar = document.createElement('div');
+                        expandingJar.className = 'symbol jar-rare jar-expanding';
+                        expandingJar.innerHTML = `<div class="symbol-badge">🏺</div>`;
+                        reelContainer.appendChild(expandingJar);
+
+                        setTimeout(() => {
+                            playProSound('jar_explode'); // صوت الانفجار وتطاير الذهب
+                            expandingJar.classList.add('jar-fountain');
+                        }, 500);
                     });
-                    
-                    // إطلاق تساقط قطع الذهب من الشاشة (Gold Rain)
-                    triggerGoldRain();
+
+                    // تساقط ليرات ذهبية
+                    triggerGoldCoinsRain();
                 }
 
+                // عند الحصول على ربح 10x الرهان
                 let winMultiplier = winAmount / currentBet;
                 if (winMultiplier >= 10.0) {
                     showKingWinModal(winAmount, winMultiplier);
@@ -1406,25 +1280,25 @@
             }
         }
 
-        // --- ميزة تساقطقطع الذهب عند ربح وانفجار الجرة ---
-        function triggerGoldRain() {
-            var duration = 2.5 * 1000;
+        // --- تساقط وتطاير الليرات الذهبية (Gold Coins Explosion) ---
+        function triggerGoldCoinsRain() {
+            var duration = 2.8 * 1000;
             var end = Date.now() + duration;
 
             (function frame() {
                 confetti({
-                    particleCount: 8,
+                    particleCount: 12,
                     angle: 60,
-                    spread: 55,
+                    spread: 60,
                     origin: { x: 0 },
-                    colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
+                    colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700', '#eab308']
                 });
                 confetti({
-                    particleCount: 8,
+                    particleCount: 12,
                     angle: 120,
-                    spread: 55,
+                    spread: 60,
                     origin: { x: 1 },
-                    colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
+                    colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700', '#eab308']
                 });
 
                 if (Date.now() < end) {
@@ -1435,7 +1309,7 @@
 
         function showKingWinModal(winAmount, multiplier) {
             playProSound('win_king');
-            triggerGoldRain();
+            triggerGoldCoinsRain();
 
             document.getElementById('kingMultText').innerText = `مضاعف ${multiplier.toFixed(1)}x! 🔥`;
             let modal = document.getElementById('kingModal');
@@ -1461,16 +1335,12 @@
             document.getElementById('kingModal').style.display = 'none';
         }
 
-        function triggerScreenShake() {
-            slotsFrame.classList.add('shake');
-            setTimeout(() => slotsFrame.classList.remove('shake'), 450);
+        function triggerEarthquake() {
+            slotsFrame.classList.add('earthquake');
+            setTimeout(() => slotsFrame.classList.remove('earthquake'), 500);
         }
 
-        function hideJarBanner() {
-            document.getElementById('jarBanner').classList.remove('show');
-        }
-
-        function applyShineToWinners(coords) {
+        function applyWinGlow(coords) {
             coords.forEach(([reelIdx, rowIdx]) => {
                 let reelStrip = reelStrips[reelIdx];
                 if (reelStrip && reelStrip.children[rowIdx]) {
@@ -1479,12 +1349,11 @@
             });
         }
 
-        function clearShineEffects() {
+        function clearEffects() {
             document.querySelectorAll('.symbol').forEach(s => {
                 s.classList.remove('win-pop-blue');
-                s.classList.remove('jar-stopped');
-                s.classList.remove('jar-exploding');
             });
+            document.querySelectorAll('.jar-expanding').forEach(el => el.remove());
         }
 
         function showModal(title, desc) {
