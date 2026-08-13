@@ -386,6 +386,7 @@ def admin_panel_keyboard():
         [InlineKeyboardButton("🔍 تفاصيل عميل", callback_data="adm_user_info"), InlineKeyboardButton("🚫 حظر مستخدم", callback_data="adm_ban")],
         [InlineKeyboardButton("✅ فك الحظر", callback_data="adm_unban"), InlineKeyboardButton("📢 رسالة جماعية (نص)", callback_data="adm_bc_txt")],
         [InlineKeyboardButton("📸 رسالة جماعية (صورة)", callback_data="adm_bc_img"), InlineKeyboardButton("📩 رسالة خاصة (نص)", callback_data="adm_pm_txt")],
+        [InlineKeyboardButton("👮 إضافة أدمن", callback_data="adm_add_admin"), InlineKeyboardButton("❌ إزالة أدمن", callback_data="adm_del_admin")],
         [InlineKeyboardButton("📊 الإحصائيات الشاملة", callback_data="adm_stats"), InlineKeyboardButton("📜 سجلات العملاء", callback_data="adm_all_logs")],
         [InlineKeyboardButton("📥 طلبات السحب", callback_data="adm_withdraws"), InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="back_to_main")]
     ]
@@ -517,15 +518,25 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.execute("UPDATE users SET phone = ?, is_verified = 1, balance = ?, step = 'main' WHERE user_id = ?", (contact.phone_number, new_bal, user.id))
     
     if u and u["referred_by"]:
-        ref_user = conn.execute("SELECT balance, referrals_count FROM users WHERE user_id = ?", (u["referred_by"],)).fetchone()
+        ref_user = conn.execute("SELECT full_name, balance, referrals_count FROM users WHERE user_id = ?", (u["referred_by"],)).fetchone()
         if ref_user:
             ref_new_bal = ref_user["balance"] + ref_reward
             ref_count = ref_user["referrals_count"] + 1
             conn.execute("UPDATE users SET balance = ?, referrals_count = ? WHERE user_id = ?", (ref_new_bal, ref_count, u["referred_by"]))
             conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (u["referred_by"], f"مكافأة إحالة {user.id}", ref_reward))
             try:
-                await context.bot.send_message(u["referred_by"], f"🎉 قام المستخدم {user.full_name} بالتسجيل عبر رابطك!")
+                await context.bot.send_message(u["referred_by"], f"🎉 قام المستخدم {user.full_name} بالتسجيل عبر رابطك وحصلت على مكافأة!")
             except Exception: pass
+
+            # إرسال إشعار كامل ومفصل للإدارة بخصوص الإحالة
+            admin_ref_msg = (
+                f"🔔 **إشعار إحالة جديد!**\n\n"
+                f"👤 **اللاعب الجديد:** {user.full_name} (`{user.id}`)\n"
+                f"📱 **رقم هاتفه:** `{contact.phone_number}`\n"
+                f"🔗 **تمت إحالته بواسطة:** {ref_user['full_name']} (`{u['referred_by']}`)\n"
+                f"🎁 **المكافأة الممنوحة للمحيل:** `{ref_reward}` NSP"
+            )
+            await notify_admins(context, admin_ref_msg)
 
     conn.commit()
     conn.close()
@@ -676,12 +687,38 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
         conn.commit()
         conn.close()
-        await update.message.reply_text("✅ تم إرسال رسالتك لفريق الدعم.")
-        await notify_admins(context, f"💬 **رسالة دعم جديدة من:** {user.full_name} (`{user.id}`)\n\nالرسالة:\n{text}")
+        await update.message.reply_text("✅ تم إرسال رسالتك لفريق الدعم وسيتم الرد عليك قريباً.")
+        
+        # إضافة زر الرد للإدارة
+        kb = InlineKeyboardMarkup([[InlineKeyboardButton("↩️ الرد على الرسالة", callback_data=f"adm_rep_supp_{user.id}")]])
+        support_msg = (
+            f"💬 **رسالة دعم جديدة:**\n\n"
+            f"👤 **من:** {user.full_name} (`{user.id}`)\n\n"
+            f"📝 **الرسالة:**\n{text}"
+        )
+        await notify_admins(context, support_msg, reply_markup=kb)
         return
 
     is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
     if is_admin:
+        # إرسال رد الدعم للعميل
+        if step == "adm_input_support_reply":
+            target_id = context.user_data.get("support_target_id")
+            if target_id:
+                try:
+                    await context.bot.send_message(
+                        chat_id=int(target_id),
+                        text=f"👨‍💻 **رد من الدعم الفني:**\n\n{text}",
+                        parse_mode="Markdown"
+                    )
+                    await update.message.reply_text(f"✅ تم إرسال الرد للمستخدم `{target_id}` بنجاح.")
+                except Exception as e:
+                    await update.message.reply_text(f"❌ فشل إرسال الرد: {e}")
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            return
+            
         # إدارة نسب الخوارزمية الجديدة
         if step.startswith("adm_set_ch_"):
             key_map = {
@@ -706,7 +743,38 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
                 await update.message.reply_text("❌ خطأ: يرجى إدخال رقم صحيح بين 0 و 100.")
             return
 
-        # باقي أوامر الإدارة الحالية
+        # إضافة أدمن
+        if step == "adm_input_add_admin":
+            try:
+                new_admin_id = int(text)
+                conn.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (new_admin_id,))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+                conn.commit()
+                await update.message.reply_text(f"✅ تم إضافة `{new_admin_id}` كأدمن بنجاح.")
+                try:
+                    await context.bot.send_message(chat_id=new_admin_id, text="👮 تم ترقيتك لتكون أدمن في البوت.")
+                except Exception: pass
+            except ValueError:
+                await update.message.reply_text("❌ يرجى إدخال ID صحيح بالأرقام.")
+            conn.close()
+            return
+
+        # إزالة أدمن
+        if step == "adm_input_del_admin":
+            try:
+                del_admin_id = int(text)
+                if del_admin_id == DEFAULT_ADMIN_ID:
+                    await update.message.reply_text("❌ لا يمكنك إزالة الأدمن الأساسي للبوت.")
+                else:
+                    conn.execute("DELETE FROM admins WHERE user_id = ?", (del_admin_id,))
+                    await update.message.reply_text(f"✅ تم إزالة `{del_admin_id}` من قائمة الأدمنية.")
+            except ValueError:
+                await update.message.reply_text("❌ يرجى إدخال ID صحيح بالأرقام.")
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            return
+
         if step == "adm_input_add_ch_id":
             context.user_data["new_ch_id"] = text
             conn.execute("UPDATE users SET step = 'adm_input_add_ch_title' WHERE user_id = ?", (user.id,))
@@ -1061,6 +1129,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
             
+        # إدارة الدعم الفني للرد المباشر
+        if data.startswith("adm_rep_supp_"):
+            target_id = data.replace("adm_rep_supp_", "")
+            context.user_data["support_target_id"] = target_id
+            conn.execute("UPDATE users SET step = 'adm_input_support_reply' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            # إزالة زر الرد حتى لا يضغط عليه أدمن آخر
+            try: await query.message.edit_reply_markup(reply_markup=None)
+            except Exception: pass
+            await query.message.reply_text(f"✍️ اكتب ردك الآن للمستخدم صاحب الـ ID: `{target_id}`")
+            return
+
         # قسم الخوارزمية الجديد
         if data == "adm_algo_menu":
             settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
@@ -1082,6 +1163,21 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.commit()
             conn.close()
             await query.message.edit_text("✍️ أرسل الآن النسبة المئوية الجديدة المطلوبة (أرقام من 0 إلى 100):")
+            return
+
+        # إضافة/إزالة مشرفين (أدمن)
+        if data == "adm_add_admin":
+            conn.execute("UPDATE users SET step = 'adm_input_add_admin' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            await query.message.edit_text("✍️ **أدخل ID المستخدم لترقيته كأدمن:**")
+            return
+            
+        if data == "adm_del_admin":
+            conn.execute("UPDATE users SET step = 'adm_input_del_admin' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            await query.message.edit_text("✍️ **أدخل ID الأدمن لإزالته من الإدارة:**")
             return
 
         # باقي أقسام الإدارة
