@@ -3,7 +3,10 @@ import sqlite3
 import random
 from flask import Flask, render_template, request, jsonify
 
-app = Flask(__name__, template_folder='.', static_folder='.')
+# ربط السيرفر بمجلد templates
+GAME_FOLDER = 'templates'
+
+app = Flask(__name__, template_folder=GAME_FOLDER, static_folder=GAME_FOLDER)
 
 DB_NAME = 'database.db'
 
@@ -43,12 +46,7 @@ def update_user_balance(user_id, new_balance):
     conn.commit()
     conn.close()
 
-# استقبال جميع روابط الصفحة الرئيسية
-@app.route('/')
-@app.route('/index.html')
-def index():
-    return render_template('index.html')
-
+# --- مسارات API لخدمة البيانات ---
 @app.route('/api/get_user', methods=['POST'])
 def get_user():
     data = request.get_json() or {}
@@ -149,6 +147,12 @@ def play_spin():
         "jar_multiplier": jar_multiplier,
         "winning_coords": winning_coords
     })
+
+# --- المسار الشامل لفتح اللعبة من داخل مجلد templates ---
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    return render_template('index.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
