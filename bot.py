@@ -8,6 +8,8 @@ import threading
 import re
 import hmac
 import hashlib
+import json
+import urllib.request
 from urllib.parse import parse_qsl
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
@@ -46,7 +48,7 @@ RAW_SERVER_URL = os.getenv("SERVER_URL", "https://my-bot-j658.onrender.com")
 extracted_urls = re.findall(r'https?://[^\s\)\]]+', RAW_SERVER_URL)
 SERVER_URL = extracted_urls[0].rstrip('/') if extracted_urls else "https://my-bot-j658.onrender.com"
 
-ALLOWED_STRIKE_PRICES = [3, 6, 9, 12, 15, 20, 50, 100]
+ALLOWED_STRIKE_PRICES = [1, 2, 3, 5, 6, 9, 10, 12, 15, 20, 25, 50, 100, 200, 500, 1000]
 
 ALLOWED_GAMES = [
     'wheel', 'aviator', 'mines', 'slots', 'chests', 
@@ -135,9 +137,9 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_withdraw', '1000')")
     
-    # إعدادات الخوارزمية الجديدة
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_loss', '60')") # نسبة الخسارة 60%
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_normal', '60')") # من حالات الربح
+    # إعدادات الخوارزمية
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_loss', '60')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_normal', '60')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_medium', '25')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '10')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '5')")
@@ -148,7 +150,27 @@ def init_db():
 init_db()
 
 # ----------------------------------------------------
-# 3. التحقق أمنياً من بيانات Telegram WebApp
+# 3. دالة إرسال رسائل تليجرام متزامنة (تُستخدم من خادم Flask)
+# ----------------------------------------------------
+def send_telegram_msg_sync(chat_id, text, reply_markup=None):
+    try:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "Markdown"
+        }
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            pass
+    except Exception as e:
+        logger.error(f"Error in send_telegram_msg_sync: {e}")
+
+# ----------------------------------------------------
+# 4. التحقق أمنياً من بيانات Telegram WebApp
 # ----------------------------------------------------
 def verify_telegram_webapp_data(init_data: str, token: str) -> bool:
     if not init_data:
@@ -164,7 +186,7 @@ def verify_telegram_webapp_data(init_data: str, token: str) -> bool:
         return False
 
 # ----------------------------------------------------
-# 4. فحص الاشتراك الإجباري بالقنوات
+# 5. فحص الاشتراك الإجباري بالقنوات
 # ----------------------------------------------------
 async def check_user_channels_subscription(bot, user_id: int) -> tuple[bool, list]:
     conn = get_db()
@@ -200,9 +222,16 @@ def build_sub_keyboard(unsubscribed_channels: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
-# 5. خادم Flask API والألعاب وخوارزمية التحكم الذكية
+# 6. خادم Flask API والألعاب وخوارزمية التحكم الذكية
 # ----------------------------------------------------
 flask_app = Flask(__name__, template_folder="templates")
+
+@flask_app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 @flask_app.route("/")
 def home():
@@ -256,9 +285,6 @@ def api_play_game():
         if not user_id or bet <= 0:
             return jsonify({"error": "بيانات الرهان غير صحيحة"}), 400
 
-        if int(bet) not in ALLOWED_STRIKE_PRICES:
-            return jsonify({"error": "سعر الضربة المختار غير مسموح به"}), 400
-
         if game_type not in ALLOWED_GAMES:
             return jsonify({"error": "نوع اللعبة غير مدعوم"}), 400
 
@@ -276,10 +302,10 @@ def api_play_game():
             conn.close()
             return jsonify({"error": "رصيدك غير كافٍ لتغطية هذه الضربة"}), 400
 
-        # خصم مبلغ الرهان الأولي بشكل قطعي
+        # خصم مبلغ الرهان بشكل قطعي أولاً
         new_balance = user["balance"] - bet
 
-        # جلب نسب الخوارزمية من الداتا بيز
+        # جلب نسب الخوارزمية من قاعدة البيانات الحية
         settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
         chance_loss = float(settings.get("chance_loss", 60.0))
         chance_normal = float(settings.get("chance_normal", 60.0))
@@ -287,7 +313,7 @@ def api_play_game():
         chance_high = float(settings.get("chance_high", 10.0))
         chance_huge = float(settings.get("chance_huge", 5.0))
 
-        # حساب فرصة الربح الإجمالية وتعديلها بالحظ والسلاسل
+        # حساب فرصة الربح الإجمالية وتعديلها بـ custom_boost والسلاسل
         base_win_chance = 100.0 - chance_loss
         user_boost = user["custom_boost"] or 0.0
         c_losses = user["consecutive_losses"] or 0
@@ -305,7 +331,6 @@ def api_play_game():
         win_amount = 0
 
         if is_win:
-            # تحديد فئة الربح
             total_weights = chance_normal + chance_medium + chance_high + chance_huge
             if total_weights == 0: total_weights = 1; chance_normal = 1
             
@@ -317,7 +342,7 @@ def api_play_game():
             elif r <= chance_normal + chance_medium + chance_high:
                 chosen_multiplier = random.choice([8.0, 10.0, 15.0, 20.0])
             else:
-                chosen_multiplier = random.choice([50.0, 100.0]) # الجرات والسبعات
+                chosen_multiplier = random.choice([50.0, 100.0])
 
             win_amount = round(bet * chosen_multiplier, 2)
             new_balance += win_amount
@@ -356,12 +381,52 @@ def api_play_game():
         logger.error(f"Error in api_play_game: {e}")
         return jsonify({"error": f"خطأ في السيرفر: {str(e)}"}), 500
 
+@flask_app.route("/api/sync_balance", methods=["POST"])
+def api_sync_balance():
+    try:
+        data = request.json or {}
+        user_id = data.get("user_id")
+
+        if not user_id:
+            return jsonify({"error": "معرف المستخدم مفقود"}), 400
+
+        conn = get_db()
+        user = conn.execute("SELECT user_id, full_name, balance FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        conn.close()
+
+        if not user:
+            return jsonify({"error": "المستخدم غير موجود"}), 404
+
+        # إرسال إشعار فوري في التليجرام برصيد المستخدم عند الخروج من اللعبة
+        games_url = f"{SERVER_URL}/games"
+        kb = {
+            "inline_keyboard": [
+                [{"text": "🎮 دخول اللعبة مجدداً", "web_app": {"url": games_url}}],
+                [{"text": "👤 حسابي ورصيدي", "callback_data": "btn_account"}]
+            ]
+        }
+        msg = (
+            f"🔔 **تحديث الرصيد بعد اللعب:**\n\n"
+            f"👤 **اللاعب:** {user['full_name']}\n"
+            f"💰 **رصيدك الحالي في البوت:** `{user['balance']:,.2f}` NSP"
+        )
+        send_telegram_msg_sync(user_id, msg, reply_markup=kb)
+
+        return jsonify({
+            "status": "success",
+            "user_id": user["user_id"],
+            "balance": user["balance"]
+        })
+    except Exception as e:
+        logger.error(f"Error in api_sync_balance: {e}")
+        return jsonify({"error": str(e)}), 500
+
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     flask_app.run(host="0.0.0.0", port=port)
 
 # ----------------------------------------------------
-# 6. لوحات التحكم والأوامر (Telegram Engine)
+# 7. لوحات التحكم والأوامر (Telegram Engine)
 # ----------------------------------------------------
 def main_menu_keyboard(is_admin=False):
     games_url = f"{SERVER_URL}/games"
@@ -528,7 +593,6 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(u["referred_by"], f"🎉 قام المستخدم {user.full_name} بالتسجيل عبر رابطك وحصلت على مكافأة!")
             except Exception: pass
 
-            # إرسال إشعار كامل ومفصل للإدارة بخصوص الإحالة
             admin_ref_msg = (
                 f"🔔 **إشعار إحالة جديد!**\n\n"
                 f"👤 **اللاعب الجديد:** {user.full_name} (`{user.id}`)\n"
@@ -689,7 +753,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         conn.close()
         await update.message.reply_text("✅ تم إرسال رسالتك لفريق الدعم وسيتم الرد عليك قريباً.")
         
-        # إضافة زر الرد للإدارة
         kb = InlineKeyboardMarkup([[InlineKeyboardButton("↩️ الرد على الرسالة", callback_data=f"adm_rep_supp_{user.id}")]])
         support_msg = (
             f"💬 **رسالة دعم جديدة:**\n\n"
@@ -701,7 +764,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
 
     is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
     if is_admin:
-        # إرسال رد الدعم للعميل
         if step == "adm_input_support_reply":
             target_id = context.user_data.get("support_target_id")
             if target_id:
@@ -719,7 +781,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             conn.close()
             return
             
-        # إدارة نسب الخوارزمية الجديدة
         if step.startswith("adm_set_ch_"):
             key_map = {
                 "adm_set_ch_loss": "chance_loss",
@@ -743,7 +804,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
                 await update.message.reply_text("❌ خطأ: يرجى إدخال رقم صحيح بين 0 و 100.")
             return
 
-        # إضافة أدمن
         if step == "adm_input_add_admin":
             try:
                 new_admin_id = int(text)
@@ -759,7 +819,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             conn.close()
             return
 
-        # إزالة أدمن
         if step == "adm_input_del_admin":
             try:
                 del_admin_id = int(text)
@@ -989,7 +1048,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     conn.close()
 
 # ----------------------------------------------------
-# 9. معالجة النقرات (Callback Queries)
+# 8. معالجة النقرات (Callback Queries)
 # ----------------------------------------------------
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1129,20 +1188,17 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
             
-        # إدارة الدعم الفني للرد المباشر
         if data.startswith("adm_rep_supp_"):
             target_id = data.replace("adm_rep_supp_", "")
             context.user_data["support_target_id"] = target_id
             conn.execute("UPDATE users SET step = 'adm_input_support_reply' WHERE user_id = ?", (user.id,))
             conn.commit()
             conn.close()
-            # إزالة زر الرد حتى لا يضغط عليه أدمن آخر
             try: await query.message.edit_reply_markup(reply_markup=None)
             except Exception: pass
             await query.message.reply_text(f"✍️ اكتب ردك الآن للمستخدم صاحب الـ ID: `{target_id}`")
             return
 
-        # قسم الخوارزمية الجديد
         if data == "adm_algo_menu":
             settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
             conn.close()
@@ -1165,7 +1221,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("✍️ أرسل الآن النسبة المئوية الجديدة المطلوبة (أرقام من 0 إلى 100):")
             return
 
-        # إضافة/إزالة مشرفين (أدمن)
         if data == "adm_add_admin":
             conn.execute("UPDATE users SET step = 'adm_input_add_admin' WHERE user_id = ?", (user.id,))
             conn.commit()
@@ -1180,7 +1235,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("✍️ **أدخل ID الأدمن لإزالته من الإدارة:**")
             return
 
-        # باقي أقسام الإدارة
         if data == "adm_channels_menu":
             channels = conn.execute("SELECT * FROM channels").fetchall()
             kb = [[InlineKeyboardButton("➕ إضافة قناة", callback_data="adm_add_channel")]]
@@ -1375,7 +1429,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
 # ----------------------------------------------------
-# 10. تشغيل التطبيق
+# 9. تشغيل التطبيق
 # ----------------------------------------------------
 def main():
     threading.Thread(target=run_flask, daemon=True).start()
