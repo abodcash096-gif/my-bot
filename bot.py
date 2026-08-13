@@ -47,8 +47,6 @@ extracted_urls = re.findall(r'https?://[^\s\)\]]+', RAW_SERVER_URL)
 SERVER_URL = extracted_urls[0].rstrip('/') if extracted_urls else "https://my-bot-j658.onrender.com"
 
 ALLOWED_STRIKE_PRICES = [3, 6, 9, 12, 15, 20, 50, 100]
-MULTIPLIERS = [1, 2, 4, 5, 8, 10, 20, 100]
-MULTIPLIER_WEIGHTS = [40, 25, 15, 10, 5, 3, 1.8, 0.2]
 
 ALLOWED_GAMES = [
     'wheel', 'aviator', 'mines', 'slots', 'chests', 
@@ -90,21 +88,12 @@ def init_db():
         )
     ''')
     
-    # تحديثات الأعمدة في حال لم تكن موجودة سابقاً
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN custom_boost REAL DEFAULT 0.0")
-    except sqlite3.OperationalError:
-        pass
-
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN consecutive_losses INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
-
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN consecutive_wins INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
+    try: cursor.execute("ALTER TABLE users ADD COLUMN custom_boost REAL DEFAULT 0.0")
+    except: pass
+    try: cursor.execute("ALTER TABLE users ADD COLUMN consecutive_losses INTEGER DEFAULT 0")
+    except: pass
+    try: cursor.execute("ALTER TABLE users ADD COLUMN consecutive_wins INTEGER DEFAULT 0")
+    except: pass
 
     cursor.execute('CREATE TABLE IF NOT EXISTS admins (user_id INTEGER PRIMARY KEY)')
     cursor.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
@@ -145,8 +134,13 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus_enabled', '1')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_withdraw', '1000')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('game_algorithm', 'normal')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('global_win_chance', '35')") # نسبة الربح العامة الافتراضية 35%
+    
+    # إعدادات الخوارزمية الجديدة
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_loss', '60')") # نسبة الخسارة 60%
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_normal', '60')") # من حالات الربح
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_medium', '25')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '10')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '5')")
 
     conn.commit()
     conn.close()
@@ -282,27 +276,28 @@ def api_play_game():
             conn.close()
             return jsonify({"error": "رصيدك غير كافٍ لتغطية هذه الضربة"}), 400
 
-        # خصم مبلغ الرهان الأولي
+        # خصم مبلغ الرهان الأولي بشكل قطعي
         new_balance = user["balance"] - bet
 
-        # ------------------------------------
-        # الخوارزمية المتقدمة للربح والخسارة
-        # ------------------------------------
-        global_setting = conn.execute("SELECT value FROM settings WHERE key = 'global_win_chance'").fetchone()
-        global_win_pct = float(global_setting["value"]) if global_setting else 35.0
+        # جلب نسب الخوارزمية من الداتا بيز
+        settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
+        chance_loss = float(settings.get("chance_loss", 60.0))
+        chance_normal = float(settings.get("chance_normal", 60.0))
+        chance_medium = float(settings.get("chance_medium", 25.0))
+        chance_high = float(settings.get("chance_high", 10.0))
+        chance_huge = float(settings.get("chance_huge", 5.0))
 
+        # حساب فرصة الربح الإجمالية وتعديلها بالحظ والسلاسل
+        base_win_chance = 100.0 - chance_loss
         user_boost = user["custom_boost"] or 0.0
         c_losses = user["consecutive_losses"] or 0
         c_wins = user["consecutive_wins"] or 0
 
-        # تعديل ديناميكي لنسبة الحظ حسب السلسلة
         streak_modifier = 0.0
-        if c_losses >= 3:
-            streak_modifier += min(15.0, c_losses * 2.5)  # تعويض اللاعب لخسرانه المتتالي
-        elif c_wins >= 3:
-            streak_modifier -= min(15.0, c_wins * 3.0)   # كبح حظ اللاعب المتميز بسلسلة فوز
+        if c_losses >= 3: streak_modifier += min(15.0, c_losses * 2.5)
+        elif c_wins >= 3: streak_modifier -= min(15.0, c_wins * 3.0)
 
-        calculated_chance = global_win_pct + user_boost + streak_modifier
+        calculated_chance = base_win_chance + user_boost + streak_modifier
         final_win_chance = max(0.0, min(95.0, calculated_chance)) / 100.0
 
         is_win = random.random() < final_win_chance
@@ -310,7 +305,20 @@ def api_play_game():
         win_amount = 0
 
         if is_win:
-            chosen_multiplier = random.choices(MULTIPLIERS, weights=MULTIPLIER_WEIGHTS)[0]
+            # تحديد فئة الربح
+            total_weights = chance_normal + chance_medium + chance_high + chance_huge
+            if total_weights == 0: total_weights = 1; chance_normal = 1
+            
+            r = random.uniform(0, total_weights)
+            if r <= chance_normal:
+                chosen_multiplier = random.choice([1.2, 1.5, 2.0])
+            elif r <= chance_normal + chance_medium:
+                chosen_multiplier = random.choice([3.0, 4.0, 5.0])
+            elif r <= chance_normal + chance_medium + chance_high:
+                chosen_multiplier = random.choice([8.0, 10.0, 15.0, 20.0])
+            else:
+                chosen_multiplier = random.choice([50.0, 100.0]) # الجرات والسبعات
+
             win_amount = round(bet * chosen_multiplier, 2)
             new_balance += win_amount
             
@@ -341,7 +349,7 @@ def api_play_game():
             "win": is_win,
             "multiplier": chosen_multiplier if is_win else 0,
             "win_amount": win_amount,
-            "new_balance": new_balance,
+            "new_balance": round(new_balance, 2),
             "game": game_type
         })
     except Exception as e:
@@ -370,7 +378,7 @@ def main_menu_keyboard(is_admin=False):
 
 def admin_panel_keyboard():
     keyboard = [
-        [InlineKeyboardButton("🎛️ نسبة الربح والخسارة العامة (%)", callback_data="adm_global_rtp")],
+        [InlineKeyboardButton("🎛️ تحكم بخوارزمية الربح والنسب", callback_data="adm_algo_menu")],
         [InlineKeyboardButton("🎯 حظ لاعب معين", callback_data="adm_user_boost"), InlineKeyboardButton("📢 قنوات الاشتراك", callback_data="adm_channels_menu")],
         [InlineKeyboardButton("➕ إضافة رصيد", callback_data="adm_add_bal"), InlineKeyboardButton("➖ خصم رصيد", callback_data="adm_sub_bal")],
         [InlineKeyboardButton("🎁 إنشاء كود هدية", callback_data="adm_make_gift"), InlineKeyboardButton("🔗 سعر الإحالة", callback_data="adm_set_ref")],
@@ -380,6 +388,17 @@ def admin_panel_keyboard():
         [InlineKeyboardButton("📸 رسالة جماعية (صورة)", callback_data="adm_bc_img"), InlineKeyboardButton("📩 رسالة خاصة (نص)", callback_data="adm_pm_txt")],
         [InlineKeyboardButton("📊 الإحصائيات الشاملة", callback_data="adm_stats"), InlineKeyboardButton("📜 سجلات العملاء", callback_data="adm_all_logs")],
         [InlineKeyboardButton("📥 طلبات السحب", callback_data="adm_withdraws"), InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="back_to_main")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def algo_panel_keyboard():
+    keyboard = [
+        [InlineKeyboardButton("📉 تعديل نسبة الخسارة", callback_data="adm_set_ch_loss")],
+        [InlineKeyboardButton("🥉 نسبة الربح العادي (أقل من 2x)", callback_data="adm_set_ch_normal")],
+        [InlineKeyboardButton("🥈 نسبة الربح المتوسط (أقل من 5x)", callback_data="adm_set_ch_medium")],
+        [InlineKeyboardButton("🥇 نسبة الربح العالي (أقل من 20x)", callback_data="adm_set_ch_high")],
+        [InlineKeyboardButton("🎰 نسبة الربح الضخم (الجرات والسبعات)", callback_data="adm_set_ch_huge")],
+        [InlineKeyboardButton("🔙 رجوع للإدارة", callback_data="open_admin_panel")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -520,9 +539,6 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await send_main_dashboard(update.effective_chat.id, user.id, user.full_name, is_admin, context)
 
-# ----------------------------------------------------
-# 7. معالج الصور (للإذاعة الجماعية)
-# ----------------------------------------------------
 async def handle_photo_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     conn = get_db()
@@ -546,9 +562,6 @@ async def handle_photo_messages(update: Update, context: ContextTypes.DEFAULT_TY
     
     conn.close()
 
-# ----------------------------------------------------
-# 8. معالجة الرسائل النصية والمدخلات الإدارية والعامة
-# ----------------------------------------------------
 async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     text = update.message.text.strip() if update.message.text else ""
@@ -663,29 +676,37 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
         conn.commit()
         conn.close()
-        
         await update.message.reply_text("✅ تم إرسال رسالتك لفريق الدعم.")
         await notify_admins(context, f"💬 **رسالة دعم جديدة من:** {user.full_name} (`{user.id}`)\n\nالرسالة:\n{text}")
         return
 
     is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
     if is_admin:
-        if step == "adm_input_global_rtp":
+        # إدارة نسب الخوارزمية الجديدة
+        if step.startswith("adm_set_ch_"):
+            key_map = {
+                "adm_set_ch_loss": "chance_loss",
+                "adm_set_ch_normal": "chance_normal",
+                "adm_set_ch_medium": "chance_medium",
+                "adm_set_ch_high": "chance_high",
+                "adm_set_ch_huge": "chance_huge"
+            }
+            db_key = key_map.get(step)
             try:
                 pct = float(text)
                 if pct < 0 or pct > 100:
-                    raise ValueError("النسبة يجب أن تكون بين 0 و 100")
-                
-                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('global_win_chance', ?)", (str(pct),))
+                    raise ValueError
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (db_key, str(pct)))
                 conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
                 conn.commit()
                 conn.close()
-                await update.message.reply_text(f"✅ تم تحديث نسبة الربح العامة للعبة لتصبح بنسبة `{pct}%` لكل الدورات.")
-            except Exception:
+                await update.message.reply_text(f"✅ تم تحديث النسبة لتصبح `{pct}%` بنجاح.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+            except ValueError:
                 conn.close()
-                await update.message.reply_text(f"❌ خطأ: يرجى إدخال رقم صحيح بين 0 و 100. (مثال: `35`)")
+                await update.message.reply_text("❌ خطأ: يرجى إدخال رقم صحيح بين 0 و 100.")
             return
 
+        # باقي أوامر الإدارة الحالية
         if step == "adm_input_add_ch_id":
             context.user_data["new_ch_id"] = text
             conn.execute("UPDATE users SET step = 'adm_input_add_ch_title' WHERE user_id = ?", (user.id,))
@@ -727,7 +748,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             try:
                 target_id = int(context.user_data.get("boost_user_id"))
                 boost_val = float(text)
-                
                 conn.execute("UPDATE users SET custom_boost = ? WHERE user_id = ?", (boost_val, target_id))
                 conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
                 conn.commit()
@@ -1040,22 +1060,31 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.close()
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
-
-        if data == "adm_global_rtp":
-            cur_rtp = conn.execute("SELECT value FROM settings WHERE key='global_win_chance'").fetchone()["value"]
-            conn.execute("UPDATE users SET step = 'adm_input_global_rtp' WHERE user_id = ?", (user.id,))
+            
+        # قسم الخوارزمية الجديد
+        if data == "adm_algo_menu":
+            settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
+            conn.close()
+            msg = (
+                "🎛️ **لوحة تحكم خوارزمية الربح:**\n\n"
+                f"📉 الخسارة العامة: `{settings.get('chance_loss', 60)}%`\n"
+                f"🥉 الربح العادي: `{settings.get('chance_normal', 60)}%`\n"
+                f"🥈 الربح المتوسط: `{settings.get('chance_medium', 25)}%`\n"
+                f"🥇 الربح العالي: `{settings.get('chance_high', 10)}%`\n"
+                f"🎰 الربح الضخم (جرات): `{settings.get('chance_huge', 5)}%`\n\n"
+                "اختر النسبة التي تريد تعديلها:"
+            )
+            await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=algo_panel_keyboard())
+            return
+            
+        if data.startswith("adm_set_ch_"):
+            conn.execute("UPDATE users SET step = ? WHERE user_id = ?", (data, user.id))
             conn.commit()
             conn.close()
-            await query.message.edit_text(
-                f"🎛️ **التحكم بنسبة الربح والخسارة العامة للعبة:**\n\n"
-                f"📊 النسبة الحالية لفرصة الربح: `{cur_rtp}%`\n\n"
-                f"✍️ أرسل الآن النسبة المئوية الجديدة المطلوبة (أرقام من 0 إلى 100):\n"
-                f"*(مثال: أرسل `30` لتعيين نسبة الربح العامة 30% والخسارة 70%)*",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 إلغاء", callback_data="open_admin_panel")]])
-            )
+            await query.message.edit_text("✍️ أرسل الآن النسبة المئوية الجديدة المطلوبة (أرقام من 0 إلى 100):")
             return
 
+        # باقي أقسام الإدارة
         if data == "adm_channels_menu":
             channels = conn.execute("SELECT * FROM channels").fetchall()
             kb = [[InlineKeyboardButton("➕ إضافة قناة", callback_data="adm_add_channel")]]
