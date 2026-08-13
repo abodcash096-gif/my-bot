@@ -85,9 +85,9 @@ def update_user_balance(user_id, new_balance):
     conn.commit()
     conn.close()
 
-# --- دالة تقييم شبكة اللعبة مع الحفاظ التام على الاتجاه الأصلي (من اليمين للجميع) ---
+# --- دالة تقييم شبكة اللعبة ---
 def evaluate_grid(grid, bet):
-    # خطوط الربح الأصلية الخاصة بك (من اليمين إلى اليسار: البكرة 4 إلى 0)
+    # خطوط الربح الأصلية (من اليمين إلى اليسار: البكرة 4 إلى 0)
     paylines = [
         [(4,0), (3,0), (2,0), (1,0), (0,0)],
         [(4,1), (3,1), (2,1), (1,1), (0,1)],
@@ -143,7 +143,7 @@ def evaluate_grid(grid, bet):
 
         line_mult = 0
         
-        # ربح السبعات (تتحقق عند وجود 1 سبعة + جرة أو 2 سبعة من اليمين)
+        # ربح السبعات
         if first_sym == '7':
             if count == 2:
                 line_mult = 1.5
@@ -167,17 +167,15 @@ def evaluate_grid(grid, bet):
             win_amount += line_mult * bet
             winning_coords.extend(current_coords)
             
-            # تسجيل البكرة التي ساهمت الجرة في إكمال ربحها
             for r in line_jars:
                 winning_jar_reels.add(r)
 
-    # تتوسع الجرة فقط إذا شاركت بالفعل في إكمال خط ربح رابح
     has_jar = len(winning_jar_reels) > 0
     primary_jar_reel = list(winning_jar_reels)[0] if has_jar else -1
 
     return win_amount, winning_coords, has_jar, primary_jar_reel, max_jar_mult, jars_count
 
-# --- دالة اختيار درجة النتيجة المطلوبة بناءً على الإعدادات ---
+# --- دالة اختيار درجة النتيجة المطلوبة ---
 def choose_tier(is_bonus_buy=False):
     if is_bonus_buy:
         bonus_win_rate = int(get_setting("bonus_win_rate", 40))
@@ -232,13 +230,12 @@ def generate_controlled_grid(tier, bet, forced_jars=0, max_win_cap=None):
             grid.append(column)
 
         win_amount, winning_coords, h_jar, j_idx, j_mult, j_count = evaluate_grid(grid, bet)
-        win_ratio = win_amount / bet if bet > 0 else 0
 
-        # التحقق من عدم تجاوز سقف الربح المسموح
         if max_win_cap is not None and win_amount > max_win_cap:
             continue
 
-        # التحقق من ملاءمة النتيجة للمستوى المختار
+        win_ratio = win_amount / bet if bet > 0 else 0
+
         if tier == "loss" and win_amount == 0:
             return grid, 0.0, [], h_jar, j_idx, j_mult
         elif tier == "normal" and 0 < win_ratio <= 3.0:
@@ -250,7 +247,6 @@ def generate_controlled_grid(tier, bet, forced_jars=0, max_win_cap=None):
         elif tier == "huge" and win_ratio > 25.0:
             return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
 
-    # شبكة خاسرة احتياطية عند عدم تحقق الشروط
     safe_symbols = ['🍋', '🍍', '🍊', '🍒', '🔔']
     grid = []
     for reel_idx in range(5):
@@ -272,7 +268,7 @@ def generate_controlled_grid(tier, bet, forced_jars=0, max_win_cap=None):
 
     return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
 
-# --- APIs التواصل والتكامل مع البوت واللعبة ---
+# --- APIs التواصل والتكامل ---
 
 @app.route('/api/get_user', methods=['POST'])
 def get_user():
@@ -327,22 +323,41 @@ def play_spin():
 
     current_balance = get_user_balance(user_id)
 
-    if buy_bonus_jars == 0 and current_balance < bet:
-        return jsonify({"success": False, "message": "رصيدك غير كافٍ للعب!"})
-
-    if buy_bonus_jars == 0:
-        current_balance -= bet
-
+    # --- تحديد تكلفة الدورة أو خصم شراء المكافأة ---
     if buy_bonus_jars > 0:
+        # استقبال سعر المكافأة الصريح من طلب الواجهة أو حسابه افتراضياً
+        bonus_cost = data.get('bonus_cost') or data.get('cost')
+        if bonus_cost is not None:
+            try:
+                spin_cost = float(bonus_cost)
+            except (ValueError, TypeError):
+                spin_cost = bet * 10 * buy_bonus_jars
+        else:
+            spin_cost = bet * 10 * buy_bonus_jars
+
+        # التحقق من كفاية الرصيد لشراء المكافأة
+        if current_balance < spin_cost:
+            return jsonify({"success": False, "message": "رصيدك غير كافٍ لشراء المكافأة!"})
+
+        # خصم سعر المكافأة فوراً
+        current_balance -= spin_cost
+
         bet_ratio = bet / 3.0
         cap_key = f"bonus_cap_{buy_bonus_jars}"
         base_cap = float(get_setting(cap_key, 200 * buy_bonus_jars))
         max_win_cap = base_cap * bet_ratio
         tier = choose_tier(is_bonus_buy=True)
     else:
+        spin_cost = bet
+        if current_balance < spin_cost:
+            return jsonify({"success": False, "message": "رصيدك غير كافٍ للعب!"})
+
+        # خصم الرهان العادي
+        current_balance -= spin_cost
         max_win_cap = None
         tier = choose_tier(is_bonus_buy=False)
 
+    # توليد شبكة اللعبة وحساب الأرباح
     grid, win_amount, winning_coords, has_jar, jar_reel_index, jar_multiplier = generate_controlled_grid(
         tier=tier,
         bet=bet, 
@@ -350,6 +365,7 @@ def play_spin():
         max_win_cap=max_win_cap
     )
 
+    # إضافة الأرباح إلى الرصيد المتبقي وتحديثه في قاعدة البيانات
     new_balance = current_balance + win_amount
     update_user_balance(user_id, new_balance)
 
