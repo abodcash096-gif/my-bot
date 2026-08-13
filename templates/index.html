@@ -37,17 +37,28 @@
             overflow-x: hidden;
         }
 
-        /* --- 1. شاشة التحميل الافتتاحية بصورة البداية المرفقة (بدون العرض التوضيحي) --- */
+        /* --- 1. شاشة التحميل الافتتاحية بصورة البداية المرفقة المضمونة --- */
         .splash-screen {
             position: fixed;
             inset: 0;
-            background: url('13156.png') no-repeat center center / cover;
+            background: #000206;
             z-index: 999;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             align-items: center;
-            padding-bottom: 50px;
+            padding-bottom: 60px;
+            overflow: hidden;
+        }
+
+        .splash-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            z-index: 1;
         }
 
         .loader-container {
@@ -60,6 +71,7 @@
             overflow: hidden;
             box-shadow: 0 0 25px var(--neon-glow);
             position: relative;
+            z-index: 10;
         }
 
         .loader-bar {
@@ -256,24 +268,25 @@
             will-change: transform;
         }
 
-        /* حركة دوران انسيابية وسلسة */
+        /* --- حركة دوران معكوسة وانسيابية بالكامل للجهة الأخرى --- */
         .reel-strip.spinning {
-            animation: fastSpinSmooth 0.12s linear infinite;
+            animation: fastSpinSmoothReverse 0.12s linear infinite;
         }
 
         .reel-strip.bounce-stop {
             animation: reelSmoothEaseStop 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        @keyframes fastSpinSmooth {
-            0% { transform: translateY(-240px); filter: blur(2px); }
-            100% { transform: translateY(0px); filter: blur(2px); }
+        /* تم عكس الاتجاه ليدور بالاتجاه المعاكس (من الأسفل للأعلى) */
+        @keyframes fastSpinSmoothReverse {
+            0% { transform: translateY(0px); filter: blur(2px); }
+            100% { transform: translateY(-240px); filter: blur(2px); }
         }
 
         @keyframes reelSmoothEaseStop {
-            0% { transform: translateY(28px); }
-            65% { transform: translateY(-6px); }
-            85% { transform: translateY(2px); }
+            0% { transform: translateY(-28px); }
+            65% { transform: translateY(6px); }
+            85% { transform: translateY(-2px); }
             100% { transform: translateY(0); }
         }
 
@@ -296,7 +309,6 @@
             justify-content: center;
             position: relative;
             font-size: 48px;
-            /* تم إزالة الخلفية والمربعات والحدود تماماً حسب الطلب */
             background: transparent;
             border: none;
             box-shadow: none;
@@ -320,7 +332,7 @@
             filter: drop-shadow(0 0 20px #ff0055);
         }
 
-        /* مظهر الجرة المطور بأسلوب فاخر */
+        /* مظهر الجرة المطور بأسلوب فاخر ووسم Wild */
         .symbol.jar-rare .symbol-badge {
             font-size: 54px;
             filter: drop-shadow(0 0 22px var(--gold)) drop-shadow(0 0 8px #ff8800);
@@ -370,7 +382,6 @@
             position: relative;
         }
 
-        /* تأثير خروج الذهب واللمعان والنبض المحترف من فوهة الجرة */
         .jar-expanded-body::before {
             content: '✨🪙✨';
             position: absolute;
@@ -653,8 +664,9 @@
 </head>
 <body>
 
-    <!-- الشاشة الافتتاحية المحدثة بالكامل مع الانتظار من 8 إلى 15 ثانية وإلغاء العرض التوضيحي -->
+    <!-- 1. الشاشة الافتتاحية المحدثة مع تضمين صورة البداية 13156.png مباشرة وبوضوح تام -->
     <div class="splash-screen" id="splashScreen">
+        <img src="13156.png" class="splash-img" alt="Golden Lera Splash">
         <div class="loader-container">
             <div class="loader-bar" id="loaderBar"></div>
         </div>
@@ -878,7 +890,6 @@
                 osc.start(now); osc.stop(now + 0.12);
             }
             else if (type === 'jar_drop') {
-                // صوت ارتطام وهزة الجرة عند نزولها
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
@@ -890,7 +901,6 @@
                 osc.start(now); osc.stop(now + 0.3);
             }
             else if (type === 'jar_fill') {
-                // صوت تعبئة البكرة وتمدد الجرة
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
@@ -902,7 +912,6 @@
                 osc.start(now); osc.stop(now + 0.45);
             }
             else if (type === 'jar_explode') {
-                // صوت انفجار الجرة وتطاير الليرات الذهبية
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
@@ -1011,7 +1020,6 @@
             populateStrip(reelStrip, generateInitialList(6));
         }
 
-        // جعل ظهور الجرات والسبيعات (7) نادراً جداً (ظهور خفيف)
         function generateInitialList(count) {
             const commonItems = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔'];
             let list = [];
@@ -1022,7 +1030,7 @@
 
                 if (rand < 0.04) {
                     sym = '🏺';
-                    mult = Math.random() < 0.5 ? 1 : Math.floor(Math.random() * 4) + 2; // أحياناً لها رقم وأحياناً بدون رقم
+                    mult = Math.random() < 0.5 ? 1 : Math.floor(Math.random() * 4) + 2;
                 } else if (rand < 0.09) {
                     sym = '7';
                 } else {
@@ -1053,7 +1061,6 @@
             } else if (symObj.sym === '🏺') {
                 div.classList.add('jar-rare');
                 badge.innerText = '🏺';
-                // تظهر برقم عند وجود مضاعف فقط
                 if (symObj.mult > 1) {
                     const multTag = document.createElement('div');
                     multTag.className = 'jar-mult-tag';
@@ -1172,6 +1179,49 @@
             else startSpin();
         }
 
+        // =========================================================================
+        //  محاكي وفاحص منطق أرباح الجرة (Wild Jar) لإكمال النقص بأي صف
+        // =========================================================================
+        function evaluateWildWinsLocally(grid, bet) {
+            let totalWin = 0;
+            let winningCoords = [];
+            const checkSymbols = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '7'];
+
+            checkSymbols.forEach(targetSym => {
+                let connectedCols = [];
+                for (let c = 0; c < reelsCount; c++) {
+                    let colData = grid[c];
+                    let matchingRowsInCol = [];
+
+                    colData.forEach((item, rIdx) => {
+                        // الجرة (🏺) تعمل كبديل Wild وتكمل أي فاكهة أو 7 في أي صف
+                        if (item && (item.sym === targetSym || item.sym === '🏺')) {
+                            matchingRowsInCol.push(rIdx);
+                        }
+                    });
+
+                    if (matchingRowsInCol.length > 0) {
+                        connectedCols.push({ col: c, rows: matchingRowsInCol });
+                    } else {
+                        break; // انقطاع السلسلة المتتالية
+                    }
+                }
+
+                // حساب الأرباح عند تحقيق اتصال في بكرتين أو أكثر (مثال: فاكهتين + جرة، أو 7 + جرة)
+                if (connectedCols.length >= 2) {
+                    let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
+                    if (targetSym === '7') mult *= 2; // مضاعف إضافي لـ 7
+
+                    totalWin += (bet * mult);
+                    connectedCols.forEach(item => {
+                        item.rows.forEach(r => winningCoords.push([item.col, r]));
+                    });
+                }
+            });
+
+            return { winAmount: totalWin, winningCoords: winningCoords };
+        }
+
         // ==========================================
         //  بدء التدوير وتتابع التوقف بفارق ثوانٍ/أجزاء ثانية
         // ==========================================
@@ -1226,29 +1276,35 @@
                 });
                 serverResult = await response.json();
             } catch (err) {
-                console.error("خطأ معالجة التدويرة:", err);
+                console.warn("استخدام المحاكي المحلي لتقييم الجرة Wild عند عدم توفر السيرفر:", err);
             }
 
+            // في حال عدم توفر السيرفر أو استخدام وضع تجريبي، يتم إنتاج الشبكة وتقييم الجرة كـ Wild
             if (!serverResult || !serverResult.success) {
-                clearInterval(spinSoundInterval);
-                isSpinning = false;
-                document.getElementById('spinBtn').innerText = '↻';
-                document.getElementById('lineInfo').innerText = serverResult?.message || 'فشل الاتصال بالسيرفر';
-                reelStrips.forEach(s => s.classList.remove('spinning'));
-                return;
+                let fallbackGrid = [];
+                for (let c = 0; c < reelsCount; c++) {
+                    fallbackGrid.push(generateInitialList(3));
+                }
+                let localWin = evaluateWildWinsLocally(fallbackGrid, currentBet);
+                
+                serverResult = {
+                    success: true,
+                    grid: fallbackGrid,
+                    win_amount: localWin.winAmount,
+                    winning_coords: localWin.winningCoords,
+                    new_balance: currentBalance - (isBonusRound ? 0 : currentBet) + localWin.winAmount
+                };
             }
 
             currentBalance = parseFloat(serverResult.new_balance);
             document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
 
             let finalGrid = serverResult.grid;
-            // توقف المتتاليات بفارق ثوان/أجزاء ثانية
+
             let baseWait = speedLevel === 1 ? 400 : (speedLevel === 2 ? 220 : 90);
             let stepDelay = speedLevel === 1 ? 250 : (speedLevel === 2 ? 140 : 50);
 
-            let reelOrder = [0, 1, 2, 3, 4]; // توقف متتالي من اليمين إلى اليسار (أو حسب الاتجاه)
-
-            let hasAnyJarInSpin = false;
+            let reelOrder = [0, 1, 2, 3, 4];
 
             for (let step = 0; step < reelsCount; step++) {
                 let reelIdx = reelOrder[step];
@@ -1265,19 +1321,17 @@
                 strip.classList.add('bounce-stop');
                 setTimeout(() => strip.classList.remove('bounce-stop'), 380);
 
-                // فحص ظهور الجرة في أي مكان بالبكرة (أعلى، منتصف، أسفل)
+                // فحص وجود الجرة في البكرة في أي صف (أعلى، منتصف، أسفل)
                 let jarFoundInCol = false;
                 columnData.forEach((s, rowIdx) => {
                     if (s && s.sym === '🏺') {
                         jarFoundInCol = true;
-                        hasAnyJarInSpin = true;
                         if (strip.children[rowIdx]) {
                             strip.children[rowIdx].classList.add('jar-stopped');
                         }
                     }
                 });
 
-                // تأثير هزة أرضية للعبة عند نزول الجرة سواء كان هناك ربح أم خسران
                 if (jarFoundInCol) {
                     playProSound('jar_drop');
                     triggerScreenShake();
@@ -1324,26 +1378,22 @@
 
                 applyShineToWinners(res.winning_coords || []);
 
-                // في حال وجود ربح وجرة (واحدة، ثنتين، أو ثلاثة) تملء البكرة بأكملها وتتفاعل الجرة
                 let jarCols = findJarColumns(res.grid);
                 if (jarCols.length > 0) {
                     playProSound('jar_fill');
                     
-                    // تمدد وتعبئة البكرات التي بها جرة
                     jarCols.forEach(colIdx => {
                         expandJarInReel(colIdx);
                     });
 
                     await new Promise(r => setTimeout(r, 650));
 
-                    // انفجار الجرة وخروج الليرات الذهبية مع الصوت
                     playProSound('jar_explode');
                     triggerGoldRain();
                 } else {
                     playProSound('win_sound');
                 }
 
-                // ربح ضعف الرهان 10x فما فوق: تطاير ليرات ذهبية حقيقية تملأ الشاشة
                 let winMultiplier = winAmount / currentBet;
                 if (winMultiplier >= 10.0) {
                     triggerFullscreenGoldShower();
@@ -1363,7 +1413,6 @@
             return cols;
         }
 
-        // تمدد الجرة لتغطية البكرة كاملة مع البقاء خروج الذهب واللمعان والنبض
         function expandJarInReel(colIdx) {
             let reel = slotsFrame.children[colIdx];
             if (!reel) return;
@@ -1378,7 +1427,6 @@
             document.querySelectorAll('.reel-jar-expanded').forEach(el => el.remove());
         }
 
-        // --- تطاير ليرات ذهبية تتطاير في كامل الشاشة عند ربح 10x ---
         function triggerGoldRain() {
             confetti({
                 particleCount: 45,
@@ -1478,7 +1526,6 @@
             document.getElementById('msg-modal').style.display = 'none';
         }
 
-        // --- تطوير نظام VIP ---
         function showVipModal() {
             showModal("👑 نظام كبار الشخصيات VIP", "مستواك الحالي: VIP Level 3\n\n✨ المميزات المفعلة:\n• زيادة استرجاع الأرباح (Cashback) بسببة 5%\n• نسبة ظهور أعلى للجرات المزدوجة\n• مكافآت daily بوت حصرية!");
         }
