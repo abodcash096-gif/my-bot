@@ -154,12 +154,12 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_2', '500')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_3', '1000')")
     
-    # خوارزميات إضافية للألعاب الأخرى
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_loss', '60')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_normal', '60')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_medium', '25')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '10')")
-    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '5')")
+    # خوارزميات درجات الربح الخمس المحدثة
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_loss', '50')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_normal', '30')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_medium', '12')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '6')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '2')")
 
     conn.commit()
     conn.close()
@@ -369,7 +369,11 @@ def algo_panel_keyboard():
         [InlineKeyboardButton("🏺 سقف أرباح 1 جرة (فئة 3)", callback_data="adm_set_bonus_cap_1")],
         [InlineKeyboardButton("🏺🏺 سقف أرباح 2 جرة (فئة 3)", callback_data="adm_set_bonus_cap_2")],
         [InlineKeyboardButton("🏺🏺🏺 سقف أرباح 3 جرات (فئة 3)", callback_data="adm_set_bonus_cap_3")],
-        [InlineKeyboardButton("📉 نسبة الخسارة العامة", callback_data="adm_set_ch_loss")],
+        [InlineKeyboardButton("📉 نسبة الخسارة العامة %", callback_data="adm_set_ch_loss")],
+        [InlineKeyboardButton("🥉 نسبة الربح العادي %", callback_data="adm_set_ch_normal")],
+        [InlineKeyboardButton("🥈 نسبة الربح المتوسط %", callback_data="adm_set_ch_medium")],
+        [InlineKeyboardButton("🥇 نسبة الربح العالي %", callback_data="adm_set_ch_high")],
+        [InlineKeyboardButton("👑 نسبة الربح الضخم %", callback_data="adm_set_ch_huge")],
         [InlineKeyboardButton("🔙 رجوع للإدارة", callback_data="open_admin_panel")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -617,10 +621,35 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             conn.close()
             
             jar_num = cap_key.replace("bonus_cap_", "")
-            await update.message.reply_text(f"✅ تم ضبط سقف ربح شراء {jar_num} جرة إلى `{val}` ليرة (لفئة 3).", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+            await update.message.reply_text(f"✅ تم ضبط سقف ربح شراء {jar_num} جرة إلى `{val}` NSP (لفئة 3).", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
         except ValueError:
             conn.close()
             await update.message.reply_text("❌ يرجى إدخال مبلغ مالي صحيح بالأرقام.")
+        return
+
+    # حفظ درجات الربح الخمس الجديدة (الخسارة / عادي / متوسط / عالي / ضخم)
+    if step in ["adm_set_ch_loss", "adm_set_ch_normal", "adm_set_ch_medium", "adm_set_ch_high", "adm_set_ch_huge"]:
+        try:
+            val = int(text)
+            if not (0 <= val <= 100): raise ValueError
+            
+            key_map = {
+                "adm_set_ch_loss": "chance_loss",
+                "adm_set_ch_normal": "chance_normal",
+                "adm_set_ch_medium": "chance_medium",
+                "adm_set_ch_high": "chance_high",
+                "adm_set_ch_huge": "chance_huge"
+            }
+            setting_key = key_map[step]
+            
+            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (setting_key, str(val)))
+            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            await update.message.reply_text(f"✅ تم تعديل النسبة بنجاح إلى `{val}%`.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+        except ValueError:
+            conn.close()
+            await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
         return
 
     if step == "withdraw_step_code":
@@ -1121,19 +1150,29 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
             conn.close()
             msg = (
-                "🎛️ **لوحة تحكم خوارزمية الربح والمكافآت:**\n\n"
+                "🎛️ **لوحة تحكم خوارزميات الربح والمكافآت المحدثة:**\n\n"
                 f"🎯 نسبة الربح العامة: `{settings.get('win_rate', 30)}%`\n"
                 f"🎁 نسبة ربح شراء المكافأة: `{settings.get('bonus_win_rate', 40)}%`\n"
-                f"🏺 سقف أرباح 1 جرة (فئة 3): `{settings.get('bonus_cap_1', 200)}` ليرة\n"
-                f"🏺🏺 سقف أرباح 2 جرة (فئة 3): `{settings.get('bonus_cap_2', 500)}` ليرة\n"
-                f"🏺🏺🏺 سقف أرباح 3 جرات (فئة 3): `{settings.get('bonus_cap_3', 1000)}` ليرة\n"
-                f"📉 الخسارة العامة: `{settings.get('chance_loss', 60)}%`\n\n"
-                "اختر القيمة المراد تعديلها:"
+                f"🏺 سقف 1 جرة (فئة 3): `{settings.get('bonus_cap_1', 200)}` NSP\n"
+                f"🏺🏺 سقف 2 جرة (فئة 3): `{settings.get('bonus_cap_2', 500)}` NSP\n"
+                f"🏺🏺🏺 سقف 3 جرات (فئة 3): `{settings.get('bonus_cap_3', 1000)}` NSP\n"
+                f"-----------------------------------\n"
+                f"📉 نسبة الخسارة: `{settings.get('chance_loss', 50)}%`\n"
+                f"🥉 نسبة الربح العادي: `{settings.get('chance_normal', 30)}%`\n"
+                f"🥈 نسبة الربح المتوسط: `{settings.get('chance_medium', 12)}%`\n"
+                f"🥇 نسبة الربح العالي: `{settings.get('chance_high', 6)}%`\n"
+                f"👑 نسبة الربح الضخم: `{settings.get('chance_huge', 2)}%`\n\n"
+                "اختر النسبة أو السقف المراد تعديله من الأزرار أدناه:"
             )
             await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=algo_panel_keyboard())
             return
 
-        if data in ["adm_set_win_rate", "adm_set_bonus_win_rate", "adm_set_bonus_cap_1", "adm_set_bonus_cap_2", "adm_set_bonus_cap_3", "adm_set_ch_loss"]:
+        algo_steps = [
+            "adm_set_win_rate", "adm_set_bonus_win_rate", 
+            "adm_set_bonus_cap_1", "adm_set_bonus_cap_2", "adm_set_bonus_cap_3",
+            "adm_set_ch_loss", "adm_set_ch_normal", "adm_set_ch_medium", "adm_set_ch_high", "adm_set_ch_huge"
+        ]
+        if data in algo_steps:
             conn.execute("UPDATE users SET step = ? WHERE user_id = ?", (data, user.id))
             conn.commit()
             conn.close()
@@ -1141,10 +1180,14 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             prompts = {
                 "adm_set_win_rate": "✍️ أرسل نسبة الربح العامة الجديدة (0 إلى 100):",
                 "adm_set_bonus_win_rate": "✍️ أرسل نسبة الربح الجديدة عند شراء المكافأة (0 إلى 100):",
-                "adm_set_bonus_cap_1": "✍️ أرسل سقف الأرباح الجديد لشراء 1 جرة (لفئة 3 ليرات):",
-                "adm_set_bonus_cap_2": "✍️ أرسل سقف الأرباح الجديد لشراء 2 جرة (لفئة 3 ليرات):",
-                "adm_set_bonus_cap_3": "✍️ أرسل سقف الأرباح الجديد لشراء 3 جرات (لفئة 3 ليرات):",
-                "adm_set_ch_loss": "✍️ أرسل نسبة الخسارة العامة الجديدة (0 إلى 100):"
+                "adm_set_bonus_cap_1": "✍️ أرسل سقف الأرباح الجديد لشراء 1 جرة (لفئة 3 NSP):",
+                "adm_set_bonus_cap_2": "✍️ أرسل سقف الأرباح الجديد لشراء 2 جرة (لفئة 3 NSP):",
+                "adm_set_bonus_cap_3": "✍️ أرسل سقف الأرباح الجديد لشراء 3 جرات (لفئة 3 NSP):",
+                "adm_set_ch_loss": "✍️ أرسل نسبة الخسارة العامة الجديدة (0 إلى 100):",
+                "adm_set_ch_normal": "✍️ أرسل نسبة الربح العادي الجديدة (0 إلى 100):",
+                "adm_set_ch_medium": "✍️ أرسل نسبة الربح المتوسط الجديدة (0 إلى 100):",
+                "adm_set_ch_high": "✍️ أرسل نسبة الربح العالي الجديدة (0 إلى 100):",
+                "adm_set_ch_huge": "✍️ أرسل نسبة الربح الضخم الجديدة (0 إلى 100):"
             }
             await query.message.edit_text(prompts[data])
             return
