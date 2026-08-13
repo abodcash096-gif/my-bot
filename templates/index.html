@@ -166,7 +166,6 @@
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* تصميم الرموز ثلاثي الأبعاد والاحترافي */
         .symbol {
             height: 80px;
             display: flex;
@@ -219,38 +218,30 @@
             100% { transform: scale(1.08); filter: drop-shadow(0 0 30px var(--gold)); }
         }
 
-        /* السبعات المتوهجة */
+        /* تحسين الرقم 7 الجمالي المطور */
         .symbol.seven .symbol-badge {
-            background: radial-gradient(circle, #00ffff 0%, #0044ff 100%);
-            border: 2px solid #00f3ff;
-            box-shadow: 0 0 20px var(--neon-glow);
+            background: radial-gradient(circle, #ff0055 0%, #770022 100%);
+            border: 2px solid #ff3377;
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.85);
         }
         .symbol.seven {
             color: #fff;
-            text-shadow: 0 0 15px #00ffff, 0 0 30px #0088ff;
+            text-shadow: 0 0 15px #ff99bb, 0 2px 4px rgba(0,0,0,0.8);
             font-weight: 900;
             font-style: italic;
+            font-size: 42px;
         }
 
-        /* أنيميشن الفوز للرمز */
-        .symbol.win-pop {
+        /* لمعة الربح بدون أسطر ممتدة */
+        .symbol.win-pop .symbol-badge {
             animation: symbolWinAnim 0.6s infinite alternate cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-color: var(--gold);
             z-index: 10;
         }
 
         @keyframes symbolWinAnim {
-            0% { transform: scale(1); filter: brightness(1); }
-            100% { transform: scale(1.22); filter: brightness(1.6) drop-shadow(0 0 20px var(--gold)); }
-        }
-
-        #lineCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 15;
+            0% { transform: scale(1); filter: brightness(1); box-shadow: 0 0 10px var(--gold-glow); }
+            100% { transform: scale(1.22); filter: brightness(1.6); box-shadow: 0 0 35px var(--gold), inset 0 0 15px #fff; }
         }
 
         /* Floating Banner for Jar Multipliers */
@@ -483,7 +474,6 @@
 
     <!-- Main Game Board -->
     <div class="game-container">
-        <canvas id="lineCanvas"></canvas>
         <div class="jar-banner" id="jarBanner">مضاعف الجرة الخارقة! <br> <span id="jarMultText" style="font-size: 28px; color: var(--gold);">5x</span></div>
         <div class="slots-frame" id="slotsFrame"></div>
     </div>
@@ -508,7 +498,7 @@
         <div class="sub-btn" id="autoBtn" onclick="toggleAutoSpin()" title="دوران تلقائي">▶</div>
         <div class="sub-btn" id="speedBtn" onclick="cycleSpeed()" title="السرعة (بطيء، سريع، أسرع)">🐢</div>
         <button class="spin-btn" id="spinBtn" onclick="handleSpinButton()">↻</button>
-        <div class="sub-btn" id="x2Btn" onclick="doubleBet()" title="مضاعفة الرهان">x2</div>
+        <div class="sub-btn" onclick="doubleBet()" title="مضاعفة الرهان">x2</div>
         <div class="sub-btn" onclick="showModal('الشحن والعملات', 'الرصيد مرتبط فوري بمحفظتك.')" title="عملات">🪙</div>
     </div>
 
@@ -560,7 +550,7 @@
         const reelElements = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // محرك أصوات راقي احترافي متطور (Synthesizer Audio Engine)
+        // محرك أصوات ناعم وغير مزعج (Synthesizer Audio Engine)
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -575,114 +565,72 @@
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.05);
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.04);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.04);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.05);
+                osc.start(now); osc.stop(now + 0.04);
             } 
             else if (type === 'spin_tick') {
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(220 + Math.random() * 60, now);
-                gain.gain.setValueAtTime(0.03, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.03);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(180, now);
+                gain.gain.setValueAtTime(0.015, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.02);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.03);
+                osc.start(now); osc.stop(now + 0.02);
             }
             else if (type === 'reel_stop') {
+                // صوت مستقل ناعم مع توقف كل بكرة
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(160, now);
-                osc.frequency.exponentialRampToValueAtTime(60, now + 0.08);
-                gain.gain.setValueAtTime(0.25, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.06);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.06);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.08);
+                osc.start(now); osc.stop(now + 0.06);
             }
             else if (type === 'jar_appear') {
-                // صوت ظهور الجرة السحري المميز
-                [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, i) => {
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.04));
-                    gain.gain.setValueAtTime(0.2, now + (i * 0.04));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.04) + 0.3);
-                    osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.04));
-                    osc.stop(now + (i * 0.04) + 0.3);
-                });
-            }
-            else if (type === 'jar_win') {
-                // صوت ارتطام وفوز الجرة الصادم
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(40, now + 0.5);
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.5);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.5);
-
-                // ألحان مضاعفة الجرة
-                [873.07, 1046.50, 1318.51, 1746.14].forEach((freq, i) => {
-                    let o = audioCtx.createOscillator();
-                    let g = audioCtx.createGain();
-                    o.type = 'triangle';
-                    o.frequency.setValueAtTime(freq, now + 0.1 + (i * 0.06));
-                    g.gain.setValueAtTime(0.25, now + 0.1 + (i * 0.06));
-                    g.gain.exponentialRampToValueAtTime(0.001, now + 0.1 + (i * 0.06) + 0.4);
-                    o.connect(g); g.connect(audioCtx.destination);
-                    o.start(now + 0.1 + (i * 0.06));
-                    o.stop(now + 0.1 + (i * 0.06) + 0.4);
-                });
-            }
-            else if (type === 'win_fruit') {
-                // نغمة فوز الفواكه العادية
                 [523.25, 659.25, 783.99].forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.07));
-                    gain.gain.setValueAtTime(0.18, now + (i * 0.07));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.07) + 0.25);
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.04));
+                    gain.gain.setValueAtTime(0.1, now + (i * 0.04));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.04) + 0.2);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.07));
-                    osc.stop(now + (i * 0.07) + 0.25);
+                    osc.start(now + (i * 0.04));
+                    osc.stop(now + (i * 0.04) + 0.2);
                 });
             }
-            else if (type === 'win_grapes') {
-                // نغمة فوز العنب المضاعفة
-                [659.25, 783.99, 987.77, 1174.66].forEach((freq, i) => {
+            else if (type === 'win_fruit') {
+                [440, 554.37, 659.25].forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, now + (i * 0.06));
-                    gain.gain.setValueAtTime(0.22, now + (i * 0.06));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.06) + 0.35);
+                    gain.gain.setValueAtTime(0.1, now + (i * 0.06));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.06) + 0.2);
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.start(now + (i * 0.06));
-                    osc.stop(now + (i * 0.06) + 0.35);
+                    osc.stop(now + (i * 0.06) + 0.2);
                 });
             }
             else if (type === 'win_seven') {
-                // جاكبوت السبعات
-                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
-                notes.forEach((freq, i) => {
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(freq, now + (i * 0.05));
-                    gain.gain.setValueAtTime(0.3, now + (i * 0.05));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.5);
+                    gain.gain.setValueAtTime(0.15, now + (i * 0.05));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.3);
                     osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.start(now + (i * 0.05));
-                    osc.stop(now + (i * 0.05) + 0.5);
+                    osc.stop(now + (i * 0.05) + 0.3);
                 });
             }
         }
@@ -702,12 +650,12 @@
                     document.getElementById('u-avatar').innerText = (data.name || "U")[0].toUpperCase();
                 }
             } catch (err) {
-                console.error("فشل إحضار البيانات:", err);
+                console.warn("جاري استخدام الوضع الافتراضي لعدم الاتصال بالسيرفر");
             }
         }
         loadUserData();
 
-        // إنشاء البكرات
+        // إنشاء البكرات الخمس
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -719,25 +667,25 @@
             fillReel(reelContainer, [generateRandomSymbolObj(false), generateRandomSymbolObj(false), generateRandomSymbolObj(false)]);
         }
 
-        // خوارزمية توليد الرموز مع مضاعفات الجرة والندرة الحقيقية
+        // خوارزمية ندرة العناصر المحدثة
         function generateRandomSymbolObj(allowJar = true) {
             const rand = Math.random();
             
-            // الجرة نادرة الظهور جداً (0.015)
+            // الجرة نادرة (0.015)
             if (allowJar && rand < 0.015) {
-                let mults = [1, 1, 2, 3, 5];
+                let mults = [1, 2, 3, 5];
                 let chosenMult = mults[Math.floor(Math.random() * mults.length)];
                 return { sym: '🏺', mult: chosenMult };
             }
             
-            // السبعات (نادرة)
-            if (rand < 0.12) return { sym: '7', mult: 1 };
+            // السبعات (أكثر ندرة: 3%)
+            if (rand < 0.03) return { sym: '7', mult: 1 };
             
-            // العنب
-            if (rand < 0.35) return { sym: '🍇', mult: 1 };
+            // العنب (نادر: 8%)
+            if (rand < 0.11) return { sym: '🍇', mult: 1 };
 
-            // باقي الفواكه العامة
-            const fruits = ['🍊', '🍒', '🔔'];
+            // الفواكه بما فيها الليمون والأناناس الجدد (🍋, 🍍, 🍊, 🍒, 🔔)
+            const fruits = ['🍋', '🍍', '🍊', '🍒', '🔔'];
             return { sym: fruits[Math.floor(Math.random() * fruits.length)], mult: 1 };
         }
 
@@ -754,7 +702,6 @@
             } else if (symObj.sym === '🏺') {
                 div.classList.add('jar-rare');
                 badge.innerText = '🏺';
-                
                 if (symObj.mult > 1) {
                     const multTag = document.createElement('div');
                     multTag.className = 'jar-mult-tag';
@@ -785,20 +732,14 @@
         }
 
         function doubleBet() {
+            if (isSpinning) return;
             playProSound('click');
             let bets = [3, 6, 9, 15, 50];
             let idx = bets.indexOf(currentBet);
-            if (idx < bets.length - 1) {
-                currentBet = bets[idx + 1];
-            } else {
-                currentBet = bets[0];
-            }
+            currentBet = (idx < bets.length - 1) ? bets[idx + 1] : bets[0];
             let chips = document.querySelectorAll('.bet-chip');
             chips.forEach((c, i) => {
-                if(bets[i] === currentBet) {
-                    chips.forEach(b => b.classList.remove('active'));
-                    c.classList.add('active');
-                }
+                c.classList.toggle('active', bets[i] === currentBet);
             });
         }
 
@@ -822,16 +763,7 @@
             playProSound('click');
             speedLevel = (speedLevel % 3) + 1;
             let btn = document.getElementById('speedBtn');
-            if (speedLevel === 1) {
-                btn.innerText = '🐢';
-                btn.title = 'بطيء';
-            } else if (speedLevel === 2) {
-                btn.innerText = '🚀';
-                btn.title = 'سريع';
-            } else {
-                btn.innerText = '⚡';
-                btn.title = 'أسرع';
-            }
+            btn.innerText = speedLevel === 1 ? '🐢' : (speedLevel === 2 ? '🚀' : '⚡');
         }
 
         function handleSpinButton() {
@@ -852,8 +784,10 @@
 
             isSpinning = true;
             forceStopRequested = false;
+            currentBalance -= currentBet;
+            document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
             document.getElementById('spinBtn').innerText = '⏹️';
-            clearCanvas();
+            clearShineEffects();
             hideJarBanner();
             document.getElementById('lineInfo').innerText = 'جاري التدوير...';
             document.getElementById('winAmount').innerText = '0.00';
@@ -871,19 +805,21 @@
             }
 
             let finalGrid = [];
-            let baseSpeed = speedLevel === 1 ? 1100 : (speedLevel === 2 ? 550 : 200);
-            let jarAppearedInSpin = false;
+            let baseSpeed = speedLevel === 1 ? 900 : (speedLevel === 2 ? 450 : 180);
 
+            // دوران جميع البكرات معاً في البداية
+            reelElements.forEach(r => r.classList.add('blur-spin'));
+
+            // توقف البكرات واحدة تلو الأخرى مع اصدار صوت مخصص لكل منها
             const spinPromises = reelElements.map((reelContainer, index) => {
                 return new Promise(resolve => {
                     setTimeout(() => {
-                        reelContainer.classList.add('blur-spin');
                         let interval = setInterval(() => {
                             playProSound('spin_tick');
                             fillReel(reelContainer, [generateRandomSymbolObj(false), generateRandomSymbolObj(false), generateRandomSymbolObj(false)]);
                         }, forceStopRequested ? 10 : 35);
 
-                        let currentWait = forceStopRequested ? 40 : (baseSpeed + index * 100);
+                        let currentWait = forceStopRequested ? 40 : (baseSpeed + index * 120);
 
                         setTimeout(() => {
                             clearInterval(interval);
@@ -891,9 +827,7 @@
                             
                             let finalSyms = [generateRandomSymbolObj(true), generateRandomSymbolObj(false), generateRandomSymbolObj(false)];
                             
-                            // فحص ظهور الجرة وإصدار صوت الظهور الخاص
                             if (finalSyms.some(s => s.sym === '🏺')) {
-                                jarAppearedInSpin = true;
                                 playProSound('jar_appear');
                             } else {
                                 playProSound('reel_stop');
@@ -909,93 +843,82 @@
 
             await Promise.all(spinPromises);
 
-            if (serverResponse && serverResponse.new_balance !== undefined) {
-                currentBalance = serverResponse.new_balance;
-                document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
-            }
-
-            // تقييم الربح الصارم
-            evaluateStrictPaylines(finalGrid, serverResponse);
+            evaluateRightToLeftWin(finalGrid, serverResponse);
             isSpinning = false;
             forceStopRequested = false;
             document.getElementById('spinBtn').innerText = '↻';
         }
 
-        // خوارزمية الربح الصارمة جداً المطابقة للشروط الحرفية
-        function evaluateStrictPaylines(grid, serverResponse) {
-            // تحويل الشبكة إلى صفوف أفقية
-            let rows = [0, 1, 2].map(r => grid.map(reel => reel[r]));
+        // حساب الأرباح من اليمين إلى اليسار فقط
+        function evaluateRightToLeftWin(grid, serverResponse) {
             let totalMultiplier = 0;
-            let matchedLines = [];
+            let matchedCoords = [];
             let maxJarMultFound = 1;
             let isJarInWin = false;
             let winningSymbolType = 'fruit';
 
-            // مسارات Paylines الصارمة (من اليسار إلى اليمين عبر 5 بكرات)
-            let lineConfigs = [
-                { id: 'H1', name: 'أفقي علوي', path: [rows[0][0], rows[0][1], rows[0][2], rows[0][3], rows[0][4]], coords: [[0,0],[1,0],[2,0],[3,0],[4,0]] },
-                { id: 'H2', name: 'أفقي أوسط', path: [rows[1][0], rows[1][1], rows[1][2], rows[1][3], rows[1][4]], coords: [[0,1],[1,1],[2,1],[3,1],[4,1]] },
-                { id: 'H3', name: 'أفقي سفلي', path: [rows[2][0], rows[2][1], rows[2][2], rows[2][3], rows[2][4]], coords: [[0,2],[1,2],[2,2],[3,2],[4,2]] },
-                { id: 'D1', name: 'مائل للأسفل', path: [rows[0][0], rows[1][1], rows[2][2], rows[1][3], rows[0][4]], coords: [[0,0],[1,1],[2,2],[3,1],[4,0]] },
-                { id: 'D2', name: 'مائل للأعلى', path: [rows[2][0], rows[1][1], rows[0][2], rows[1][3], rows[2][4]], coords: [[0,2],[1,1],[2,0],[3,1],[4,2]] }
+            // مسارات الفوز المحسوبة من أقصى اليمين (البكرة 4) متجهة لليصار (البكرة 0)
+            let paylines = [
+                [[4,0], [3,0], [2,0], [1,0], [0,0]],
+                [[4,1], [3,1], [2,1], [1,1], [0,1]],
+                [[4,2], [3,2], [2,2], [1,2], [0,2]],
+                [[4,0], [3,1], [2,2], [1,1], [0,0]],
+                [[4,2], [3,1], [2,0], [1,1], [0,2]]
             ];
 
-            lineConfigs.forEach((cfg) => {
-                let lineSymbols = cfg.path;
-                let firstObj = lineSymbols[0];
+            paylines.forEach(path => {
+                let firstCoord = path[0];
+                let firstObj = grid[firstCoord[0]][firstCoord[1]];
 
-                // يجب تبدأ السلسلة من البكرة 0 من اليسار
                 if (!firstObj) return;
 
                 let baseSym = firstObj.sym;
                 let count = 0;
                 let lineJarMult = 1;
 
-                // إذا كانت الأولى جرة، نعتبرها Wild
                 if (baseSym === '🏺') {
                     isJarInWin = true;
                     if (firstObj.mult > lineJarMult) lineJarMult = firstObj.mult;
-                    // البحث عن أول رمز حقيقي بعد الجرة
-                    for(let k=1; k<lineSymbols.length; k++) {
-                        if(lineSymbols[k].sym !== '🏺') {
-                            baseSym = lineSymbols[k].sym;
+                    for(let k = 1; k < path.length; k++) {
+                        let obj = grid[path[k][0]][path[k][1]];
+                        if(obj.sym !== '🏺') {
+                            baseSym = obj.sym;
                             break;
                         }
                     }
                 }
 
-                if (!baseSym || baseSym === '🏺') return; // جميعها جرات بدون رمز
+                if (!baseSym || baseSym === '🏺') return;
 
-                // حساب التتابع الصارم من اليسار إلى اليمين
-                for (let i = 0; i < lineSymbols.length; i++) {
-                    let item = lineSymbols[i];
+                let currentLineCoords = [];
+
+                for (let step of path) {
+                    let item = grid[step[0]][step[1]];
                     if (item.sym === baseSym || item.sym === '🏺') {
                         count++;
+                        currentLineCoords.push(step);
                         if (item.sym === '🏺') {
                             isJarInWin = true;
                             if (item.mult > lineJarMult) lineJarMult = item.mult;
                         }
                     } else {
-                        break; // انقطاع السلسلة فوراً
+                        break;
                     }
                 }
 
                 let lineBaseMult = 0;
 
-                // الفواكه العامة (🍊, 🍒, 🔔)
-                if (['🍊', '🍒', '🔔'].includes(baseSym)) {
+                if (['🍋', '🍍', '🍊', '🍒', '🔔'].includes(baseSym)) {
                     if (count === 3) lineBaseMult = 1;
                     else if (count === 4) lineBaseMult = 2;
                     else if (count >= 5) lineBaseMult = 5;
                 }
-                // العنب (🍇)
                 else if (baseSym === '🍇') {
                     if (count === 3) lineBaseMult = 2;
                     else if (count === 4) lineBaseMult = 3;
                     else if (count >= 5) lineBaseMult = 10;
                     if (lineBaseMult > 0) winningSymbolType = 'grapes';
                 }
-                // السبعات (7)
                 else if (baseSym === '7') {
                     if (count === 2) lineBaseMult = 2;
                     else if (count === 3) lineBaseMult = 3;
@@ -1005,30 +928,30 @@
                 }
 
                 if (lineBaseMult > 0) {
-                    let lineTotal = lineBaseMult * lineJarMult;
-                    totalMultiplier += lineTotal;
+                    totalMultiplier += (lineBaseMult * lineJarMult);
                     if (lineJarMult > maxJarMultFound) maxJarMultFound = lineJarMult;
-                    matchedLines.push({ config: cfg, count, coords: cfg.coords.slice(0, count) });
+                    matchedCoords.push(...currentLineCoords);
                 }
             });
 
             let finalWinAmount = 0;
-            if (serverResponse && serverResponse.win) {
+            if (serverResponse && serverResponse.win !== undefined) {
                 finalWinAmount = serverResponse.win_amount;
             } else {
                 finalWinAmount = totalMultiplier * currentBet;
             }
 
             if (finalWinAmount > 0) {
-                // إيقاف وتفعيل صوت الجرة الخاص إذا كانت مشاركة في الربح
+                currentBalance += finalWinAmount;
+                document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+
                 if (isJarInWin) {
-                    playProSound('jar_win');
                     triggerScreenShake();
                     showJarBanner(maxJarMultFound);
-                } else if (winningSymbolType === 'seven') {
+                }
+
+                if (winningSymbolType === 'seven') {
                     playProSound('win_seven');
-                } else if (winningSymbolType === 'grapes') {
-                    playProSound('win_grapes');
                 } else {
                     playProSound('win_fruit');
                 }
@@ -1040,13 +963,11 @@
                 let best = parseFloat(document.getElementById('bestWin').innerText);
                 if (finalWinAmount > best) document.getElementById('bestWin').innerText = finalWinAmount.toFixed(2);
 
-                confetti({ particleCount: 180, spread: 120, origin: { y: 0.6 } });
-                drawWinningLines(matchedLines);
-                highlightWinningSymbols(matchedLines);
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+                applyShineToWinners(matchedCoords);
             } else {
                 document.getElementById('winAmount').innerText = '0.00';
-                document.getElementById('lineInfo').innerText = 'حظ أوفر في الضربة القادمة';
-                clearCanvas();
+                document.getElementById('lineInfo').innerText = 'حظ أوفر في المحاولة القادمة';
             }
         }
 
@@ -1066,49 +987,16 @@
             document.getElementById('jarBanner').classList.remove('show');
         }
 
-        function highlightWinningSymbols(lines) {
-            lines.forEach(l => {
-                l.coords.forEach(([reelIdx, rowIdx]) => {
-                    let reelObj = reelElements[reelIdx];
-                    let symbolNode = reelObj.children[rowIdx];
-                    if (symbolNode) symbolNode.classList.add('win-pop');
-                });
+        function applyShineToWinners(coords) {
+            coords.forEach(([reelIdx, rowIdx]) => {
+                let reelObj = reelElements[reelIdx];
+                if (reelObj && reelObj.children[rowIdx]) {
+                    reelObj.children[rowIdx].classList.add('win-pop');
+                }
             });
         }
 
-        // رسم خطوط نيون فائقة الدقة والجمال
-        function drawWinningLines(lines) {
-            const canvas = document.getElementById('lineCanvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-
-            let colWidth = canvas.width / 5;
-            let rowHeight = canvas.height / 3;
-
-            lines.forEach(l => {
-                ctx.beginPath();
-                l.coords.forEach(([c, r], index) => {
-                    let x = (c * colWidth) + (colWidth / 2);
-                    let y = (r * rowHeight) + (rowHeight / 2);
-                    if (index === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                });
-
-                ctx.strokeStyle = '#ffdf00';
-                ctx.lineWidth = 6;
-                ctx.shadowColor = '#ffdf00';
-                ctx.shadowBlur = 20;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.stroke();
-            });
-        }
-
-        function clearCanvas() {
-            const canvas = document.getElementById('lineCanvas');
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function clearShineEffects() {
             document.querySelectorAll('.symbol').forEach(s => s.classList.remove('win-pop'));
         }
 
