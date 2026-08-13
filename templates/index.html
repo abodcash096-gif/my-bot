@@ -456,7 +456,7 @@
         </div>
         <div class="logo">Golden Tree<br><span style="font-size: 11px; color: #a1e5ff;">Pro Master 2026</span></div>
         <div class="balance-badge">
-            <span id="u-balance">0.00</span>
+            <span id="u-balance">100.00</span>
             <span style="font-size: 10px;">NSP</span>
         </div>
     </div>
@@ -497,7 +497,7 @@
         <div class="sub-btn" id="speedBtn" onclick="cycleSpeed()" title="السرعة">🐢</div>
         <button class="spin-btn" id="spinBtn" onclick="handleSpinButton()">↻</button>
         <div class="sub-btn" onclick="doubleBet()" title="مضاعفة الرهان">x2</div>
-        <div class="sub-btn" onclick="showModal('الشحن والعملات', 'الرصيد مرتبط فوري بمحفظتك.')" title="عملات">🪙</div>
+        <div class="sub-btn" onclick="addDemoBalance()" title="شحن مجاني">🪙</div>
     </div>
 
     <div class="history-bar">
@@ -530,13 +530,17 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
-        if (tg) tg.expand();
+        if (tg) {
+            tg.expand();
+            tg.ready();
+        }
 
-        let userId = tg?.initDataUnsafe?.user?.id || 7255100997;
         let currentBet = 3;
         let isSpinning = false;
         let forceStopRequested = false;
-        let currentBalance = 0.00;
+        
+        // جلب الرصيد المحفوظ أو تخصيص 100 NSP رصيد مجاني للبدء
+        let currentBalance = parseFloat(localStorage.getItem('nsp_user_balance')) || 100.00;
         let autoSpinActive = false;
         let speedLevel = 1;
         let autoInterval = null;
@@ -607,21 +611,18 @@
                 osc.start(now); osc.stop(now + 0.12);
                 clickOsc.start(now); clickOsc.stop(now + 0.02);
             }
-            // 1. صوت خاص عند مجرد ظهور الجرة على البكرة أثناء التوقف
             else if (type === 'jar_appear') {
                 let osc = audioCtx.createOscillator();
                 let gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, now); // A5
-                osc.frequency.exponentialRampToValueAtTime(1760, now + 0.18); // A6
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.exponentialRampToValueAtTime(1760, now + 0.18);
                 gain.gain.setValueAtTime(0.2, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.22);
             }
-            // 2. صوت الملحمي الخاص عند تمدد الجرة وتغطية البكرة بالكامل عند الربح
             else if (type === 'jar_expand') {
-                // موجة باس سينث حماسية
                 let oscSub = audioCtx.createOscillator();
                 let gainSub = audioCtx.createGain();
                 oscSub.type = 'sawtooth';
@@ -640,7 +641,6 @@
                 gainSub.connect(audioCtx.destination);
                 oscSub.start(now); oscSub.stop(now + 0.55);
 
-                // نغمات متدرجة ملحمية مع التمدد
                 let scale = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
                 scale.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
@@ -697,24 +697,26 @@
             }
         }
 
-        async function loadUserData() {
-            try {
-                const res = await fetch('/api/get_user_data', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ user_id: userId })
-                });
-                const data = await res.json();
-                if (data.balance !== undefined) {
-                    currentBalance = data.balance;
-                    document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
-                    document.getElementById('u-name').innerText = data.name || "اللاعب";
-                    document.getElementById('u-avatar').innerText = (data.name || "U")[0].toUpperCase();
-                }
-            } catch (err) {
-                console.warn("تعذر الاتصال بالسيرفر، استخدام الوضع المحلي");
-            }
+        function loadUserData() {
+            let tgUser = tg?.initDataUnsafe?.user;
+            let name = tgUser?.first_name || "اللاعب";
+            document.getElementById('u-name').innerText = name;
+            document.getElementById('u-avatar').innerText = name[0].toUpperCase();
+            updateBalanceDisplay();
         }
+
+        function updateBalanceDisplay() {
+            document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+            localStorage.setItem('nsp_user_balance', currentBalance.toString());
+        }
+
+        function addDemoBalance() {
+            playProSound('click');
+            currentBalance += 100;
+            updateBalanceDisplay();
+            showModal("🪙 شحن الرصيد", "تم إضافة 100.00 NSP مجاناً لرصيدك!");
+        }
+
         loadUserData();
 
         for (let i = 0; i < reelsCount; i++) {
@@ -727,19 +729,18 @@
             slotsFrame.appendChild(reel);
             
             reelStrips.push(reelStrip);
-
             populateStrip(reelStrip, generateRandomSymbolsList(6, false));
         }
 
         function generateRandomSymbolObj(allowJar = true) {
             const rand = Math.random();
-            if (allowJar && rand < 0.02) {
+            if (allowJar && rand < 0.03) {
                 let mults = [1, 2, 3, 5];
                 let chosenMult = mults[Math.floor(Math.random() * mults.length)];
                 return { sym: '🏺', mult: chosenMult };
             }
-            if (rand < 0.035) return { sym: '7', mult: 1 };
-            if (rand < 0.12) return { sym: '🍇', mult: 1 };
+            if (rand < 0.05) return { sym: '7', mult: 1 };
+            if (rand < 0.15) return { sym: '🍇', mult: 1 };
 
             const fruits = ['🍋', '🍍', '🍊', '🍒', '🔔'];
             return { sym: fruits[Math.floor(Math.random() * fruits.length)], mult: 1 };
@@ -842,7 +843,7 @@
         async function startSpin() {
             if (isSpinning) return;
             if (currentBalance < currentBet) {
-                showModal("❌ رصيد غير كافٍ", "يرجى شحن حسابك للبدء.");
+                showModal("❌ رصيد غير كافٍ", "انقر على زر (🪙) للحصول على رصيد مجاني للعب!");
                 if (autoSpinActive) toggleAutoSpin();
                 return;
             }
@@ -850,26 +851,14 @@
             isSpinning = true;
             forceStopRequested = false;
             
-            // خصم الرهان ظاهرياً لبدء اللعب
             currentBalance -= currentBet;
-            document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+            updateBalanceDisplay();
+            
             document.getElementById('spinBtn').innerText = '⏹️';
             clearShineEffects();
             hideJarBanner();
             document.getElementById('lineInfo').innerText = 'جاري التدوير...';
             document.getElementById('winAmount').innerText = '0.00';
-
-            let serverResponse = null;
-            try {
-                const res = await fetch('/api/play_game', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ user_id: userId, bet: currentBet, game: 'golden_tree' })
-                });
-                serverResponse = await res.json();
-            } catch (e) {
-                console.warn("تنبيه اتصال السيرفر، جاري استخدام محاكاة النتائج", e);
-            }
 
             let spinSoundInterval = setInterval(() => {
                 if (isSpinning) playProSound('spin_tick');
@@ -895,12 +884,7 @@
                 let strip = reelStrips[reelIdx];
                 strip.classList.remove('spinning');
 
-                let finalSyms = [];
-                if (serverResponse && serverResponse.grid && serverResponse.grid[reelIdx]) {
-                    finalSyms = serverResponse.grid[reelIdx];
-                } else {
-                    finalSyms = [generateRandomSymbolObj(true), generateRandomSymbolObj(false), generateRandomSymbolObj(false)];
-                }
+                let finalSyms = [generateRandomSymbolObj(true), generateRandomSymbolObj(false), generateRandomSymbolObj(false)];
 
                 populateStrip(strip, finalSyms);
                 finalGrid[reelIdx] = finalSyms;
@@ -908,7 +892,6 @@
                 strip.classList.add('bounce-stop');
                 setTimeout(() => strip.classList.remove('bounce-stop'), 220);
 
-                // التأكد من إطلاق صوت ظهور الجرة الخاص عند هبوطها على أية بكرة
                 let hasJar = finalSyms.some(s => s && s.sym === '🏺');
                 if (hasJar) {
                     playProSound('jar_appear');
@@ -918,13 +901,13 @@
             }
 
             clearInterval(spinSoundInterval);
-            evaluateRightToLeftWin(finalGrid, serverResponse);
+            evaluateRightToLeftWin(finalGrid);
             isSpinning = false;
             forceStopRequested = false;
             document.getElementById('spinBtn').innerText = '↻';
         }
 
-        function evaluateRightToLeftWin(grid, serverResponse) {
+        function evaluateRightToLeftWin(grid) {
             let totalMultiplier = 0;
             let matchedCoords = [];
             let maxJarMultFound = 1;
@@ -1010,20 +993,11 @@
                 }
             });
 
-            let finalWinAmount = 0;
-            if (serverResponse && serverResponse.win_amount !== undefined) {
-                finalWinAmount = serverResponse.win_amount;
-            } else {
-                finalWinAmount = totalMultiplier * currentBet;
-            }
+            let finalWinAmount = totalMultiplier * currentBet;
 
             if (finalWinAmount > 0) {
-                if (serverResponse && serverResponse.new_balance !== undefined) {
-                    currentBalance = serverResponse.new_balance;
-                } else {
-                    currentBalance += finalWinAmount;
-                }
-                document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+                currentBalance += finalWinAmount;
+                updateBalanceDisplay();
 
                 if (isJarInWin) {
                     playProSound('jar_appear_win');
@@ -1046,10 +1020,6 @@
                 confetti({ particleCount: 160, spread: 110, origin: { y: 0.6 } });
                 applyShineToWinners(matchedCoords);
             } else {
-                if (serverResponse && serverResponse.new_balance !== undefined) {
-                    currentBalance = serverResponse.new_balance;
-                    document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
-                }
                 document.getElementById('winAmount').innerText = '0.00';
                 document.getElementById('lineInfo').innerText = 'حظ أوفر في المحاولة القادمة';
             }
@@ -1058,7 +1028,6 @@
         function expandJarToFullReel(reelIndex, mult) {
             if (reelIndex < 0 || reelIndex >= reelsCount) return;
             
-            // تشغيل صوت التمدد الملحمي للجرة وتغطيتها للبكرة
             playProSound('jar_expand');
 
             const reelStrip = reelStrips[reelIndex];
