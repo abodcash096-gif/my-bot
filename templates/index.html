@@ -37,6 +37,110 @@
             overflow-x: hidden;
         }
 
+        /* --- 1. شاشة التحميل الافتتاحية --- */
+        .splash-screen {
+            position: fixed;
+            inset: 0;
+            background: url('file_00000000736481f4bc45230db95dcdaf.png') no-repeat center center / cover;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 60px;
+        }
+
+        .loader-container {
+            width: 80%;
+            max-width: 320px;
+            height: 16px;
+            background: rgba(0, 10, 25, 0.85);
+            border: 2px solid var(--neon-blue);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px var(--neon-glow);
+            position: relative;
+        }
+
+        .loader-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #0088ff, var(--neon-blue), #ffffff);
+            box-shadow: 0 0 15px var(--neon-blue);
+            transition: width 0.08s linear;
+        }
+
+        /* --- 2. شاشة العرض التوضيحي للجرات --- */
+        .showcase-screen {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 2, 8, 0.95);
+            backdrop-filter: blur(12px);
+            z-index: 900;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .showcase-card {
+            background: radial-gradient(circle, rgba(10, 48, 90, 0.95), rgba(1, 8, 20, 0.98));
+            border: 2px solid var(--gold);
+            border-radius: 24px;
+            padding: 28px 20px;
+            max-width: 350px;
+            width: 100%;
+            box-shadow: 0 0 45px var(--gold-glow);
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 25px rgba(255, 223, 0, 0.5); }
+            100% { box-shadow: 0 0 55px rgba(255, 223, 0, 0.9); }
+        }
+
+        .showcase-icon {
+            font-size: 70px;
+            margin-bottom: 12px;
+            animation: bounceJar 1.5s infinite alternate ease-in-out;
+        }
+
+        @keyframes bounceJar {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-10px) scale(1.1); }
+        }
+
+        .showcase-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--gold);
+            margin-bottom: 8px;
+            text-shadow: 0 0 15px var(--gold-glow);
+        }
+
+        .showcase-desc {
+            font-size: 14px;
+            color: #a1e5ff;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .start-game-btn {
+            background: linear-gradient(135deg, #ffdf00 0%, #ff8800 100%);
+            border: none;
+            color: #000;
+            font-size: 18px;
+            font-weight: 900;
+            padding: 12px 36px;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 25px var(--gold-glow);
+            transition: transform 0.15s;
+        }
+        .start-game-btn:active { transform: scale(0.92); }
+
         /* --- الشريط العلوي --- */
         .top-bar {
             display: flex;
@@ -76,11 +180,7 @@
             line-height: 1.1;
         }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .user-info { display: flex; align-items: center; gap: 6px; }
 
         .avatar {
             width: 34px;
@@ -142,7 +242,7 @@
             box-shadow: 0 0 15px var(--gold);
         }
 
-        /* --- إطار بكرات اللعبة --- */
+        /* --- إطار بكرات اللعبة وخطوط الليزر الزرقاء --- */
         .game-container {
             position: relative;
             width: 95%;
@@ -154,7 +254,6 @@
         .slots-frame {
             display: flex;
             flex-direction: row;
-            gap: 4px;
             background: rgba(1, 5, 12, 0.99);
             border: 3px solid var(--neon-blue);
             box-shadow: 0 0 45px var(--neon-glow), inset 0 0 25px var(--neon-glow);
@@ -182,10 +281,23 @@
             flex: 1;
             height: 240px;
             background: radial-gradient(circle at center, rgba(8,25,50,0.6), rgba(2, 12, 25, 0.9));
-            border-radius: 10px;
+            border-radius: 8px;
             overflow: hidden;
             position: relative;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+        }
+
+        /* خط أزرق ليزري يتخلل البكرات ليفصل بينها */
+        .reel:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue), 0 0 15px var(--neon-glow);
+            z-index: 10;
         }
 
         .reel-strip {
@@ -451,18 +563,57 @@
             color: #5d7a97;
             cursor: pointer;
         }
-        .nav-item.active {
-            color: var(--neon-blue);
+        .nav-item.active { color: var(--neon-blue); }
+
+        /* --- 3. لوحة مبروك يا ملك للأرباح من 10x وما فوق --- */
+        .king-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(15px);
+            z-index: 950;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
-        /* --- Modals --- */
+        .king-box {
+            background: radial-gradient(circle, #0e3058 0%, #020c1b 100%);
+            border: 3px solid var(--gold);
+            border-radius: 28px;
+            padding: 30px 20px;
+            text-align: center;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 0 60px var(--gold-glow);
+            animation: zoomKing 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes zoomKing {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .king-crown { font-size: 65px; margin-bottom: 5px; filter: drop-shadow(0 0 20px var(--gold)); }
+        .king-title { font-size: 28px; font-weight: 900; color: var(--gold); text-shadow: 0 0 20px var(--gold); }
+        .king-mult { font-size: 20px; color: var(--neon-blue); font-weight: 900; margin-top: 4px; }
+        .king-amount {
+            font-size: 42px;
+            font-weight: 900;
+            color: #ffffff;
+            margin: 15px 0;
+            text-shadow: 0 0 30px var(--gold);
+        }
+
+        /* --- النوافذ العادية --- */
         .modal {
             display: none;
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.92);
             backdrop-filter: blur(10px);
-            z-index: 200;
+            z-index: 800;
             align-items: center;
             justify-content: center;
             padding: 20px;
@@ -478,7 +629,7 @@
             box-shadow: 0 0 45px var(--neon-glow);
         }
         .modal-btn {
-            background: var(--neon-blue);
+            background: var(--gold);
             color: #000;
             border: none;
             padding: 10px 24px;
@@ -508,6 +659,24 @@
     </style>
 </head>
 <body>
+
+    <div class="splash-screen" id="splashScreen">
+        <div class="loader-container">
+            <div class="loader-bar" id="loaderBar"></div>
+        </div>
+    </div>
+
+    <div class="showcase-screen" id="showcaseScreen">
+        <div class="showcase-card">
+            <div class="showcase-icon">🏺✨</div>
+            <div class="showcase-title">Golden Lera</div>
+            <div class="showcase-desc">
+                مرحباً بك في ليرة الذهب!<br>
+                عند اكتمال ظهور الجرة الذهبية، تتوسع لتغطي البكرة بالكامل وتمنحك مضاعفات ربح أسطورية!
+            </div>
+            <button class="start-game-btn" onclick="startGame()">ابدأ اللعب الآن 🚀</button>
+        </div>
+    </div>
 
     <div class="top-bar">
         <button class="buy-bonus-btn" onclick="openBonusModal()">🛒 شراء مكافأة</button>
@@ -539,9 +708,7 @@
 
     <div class="game-container">
         <div class="jar-banner" id="jarBanner"><span id="jarWinRating">ربح كبير! 🔥</span><br><span id="jarMultText" style="font-size: 28px; color: var(--gold);">5x</span></div>
-        <div class="slots-frame" id="slotsFrame">
-            <!-- تم إلغاء عنصر SVG بالكامل لإلغاء رسم الخط الرابح -->
-        </div>
+        <div class="slots-frame" id="slotsFrame"></div>
     </div>
 
     <div class="info-panel">
@@ -585,7 +752,6 @@
         </div>
     </div>
 
-    <!-- modal شراء المكافأة -->
     <div class="modal" id="bonus-modal">
         <div class="modal-body">
             <div style="font-size: 1.15rem; font-weight: 900; color: var(--gold); margin-bottom: 6px;">🛒 شراء مكافأة الجرات (5 ضربات)</div>
@@ -619,7 +785,16 @@
         </div>
     </div>
 
-    <!-- modal الرسائل والنتائج -->
+    <div class="king-modal" id="kingModal">
+        <div class="king-box">
+            <div class="king-crown">👑</div>
+            <div class="king-title">مبروك يا ملك</div>
+            <div class="king-mult" id="kingMultText">مضاعف 10x! 🔥</div>
+            <div class="king-amount" id="kingWinCounter">0.00 NSP</div>
+            <button class="modal-btn" onclick="closeKingModal()">استلام الأرباح 🪙</button>
+        </div>
+    </div>
+
     <div class="modal" id="msg-modal">
         <div class="modal-body">
             <div id="modal-status" style="font-size: 1.15rem; font-weight: 900; color: var(--gold); margin-bottom: 8px;">تنبيه</div>
@@ -630,9 +805,24 @@
 
     <script>
         const tg = window.Telegram?.WebApp;
-        if (tg) {
-            tg.expand();
-            tg.ready();
+        if (tg) { tg.expand(); tg.ready(); }
+
+        // --- محاكاة شريط التحميل (8 ثوانٍ) ---
+        let loadProgress = 0;
+        const loaderInterval = setInterval(() => {
+            loadProgress += 1.25; // يصل إلى 100% خلال 8 ثوانٍ
+            document.getElementById('loaderBar').style.width = loadProgress + '%';
+            if (loadProgress >= 100) {
+                clearInterval(loaderInterval);
+                document.getElementById('splashScreen').style.display = 'none';
+                document.getElementById('showcaseScreen').style.display = 'flex';
+            }
+        }, 100);
+
+        function startGame() {
+            initAudio();
+            playProSound('click');
+            document.getElementById('showcaseScreen').style.display = 'none';
         }
 
         let currentBet = 3;
@@ -644,14 +834,14 @@
         let autoInterval = null;
 
         // نظام شراء المكافأة
-        let activeBonus = null; // { jars: 1|2|3, remaining: 5, totalWin: 0 }
+        let activeBonus = null;
 
         const reelsCount = 5;
         const reelStrips = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
         // ==========================================
-        //  محرك الصوت الاحترافي السينمائي المطور 2026
+        //  محرك الصوت السينمائي الاحترافي
         // ==========================================
         let audioCtx = null;
         function initAudio() {
@@ -718,8 +908,7 @@
                     gain.gain.setValueAtTime(0.15, now + (i * 0.06));
                     gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.06) + 0.25);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.06));
-                    osc.stop(now + (i * 0.06) + 0.25);
+                    osc.start(now + (i * 0.06)); osc.stop(now + (i * 0.06) + 0.25);
                 });
             }
             else if (type === 'jar_explode') {
@@ -732,8 +921,7 @@
                     gain.gain.setValueAtTime(0.22, now + (i * 0.025));
                     gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.025) + 0.8);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.025));
-                    osc.stop(now + (i * 0.025) + 0.8);
+                    osc.start(now + (i * 0.025)); osc.stop(now + (i * 0.025) + 0.8);
                 });
             }
             else if (type === 'win_sound') {
@@ -746,14 +934,25 @@
                     gain.gain.setValueAtTime(0.16, now + (i * 0.05));
                     gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.35);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.05));
-                    osc.stop(now + (i * 0.05) + 0.35);
+                    osc.start(now + (i * 0.05)); osc.stop(now + (i * 0.05) + 0.35);
+                });
+            }
+            else if (type === 'win_king') {
+                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+                notes.forEach((freq, i) => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.08));
+                    gain.gain.setValueAtTime(0.2, now + (i * 0.08));
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now + (i * 0.08)); osc.stop(now + (i * 0.08) + 0.4);
                 });
             }
         }
 
         // ==========================================
-        //  ميزة السحب بالأصبع للتدوير (Drag/Swipe to Spin)
+        //  ميزة السحب بالأصبع للتدوير (Drag/Swipe)
         // ==========================================
         let touchStartY = 0;
         slotsFrame.addEventListener('touchstart', (e) => {
@@ -795,7 +994,6 @@
                 document.getElementById('lineInfo').innerText = 'تعذر الاتصال بالسيرفر!';
             }
         }
-
         loadUserData();
 
         // بناء البكرات الخمس
@@ -887,7 +1085,6 @@
                 return;
             }
 
-            // خصم ثمن المكافأة فور الشراء
             currentBalance -= cost;
             document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
             activeBonus = { jars: jarCount, remaining: 5, totalWin: 0 };
@@ -954,15 +1151,12 @@
 
         function handleSpinButton() {
             initAudio();
-            if (isSpinning) {
-                forceStopRequested = true;
-            } else {
-                startSpin();
-            }
+            if (isSpinning) forceStopRequested = true;
+            else startSpin();
         }
 
         // ==========================================
-        //  بدء التدوير (توقف البكرات بالاتجاه الأصلي)
+        //  بدء التدوير وتلقي النتائج
         // ==========================================
         async function startSpin() {
             if (isSpinning) return;
@@ -975,7 +1169,6 @@
 
             isSpinning = true;
             forceStopRequested = false;
-            
             let tgUser = tg?.initDataUnsafe?.user;
             let userId = tgUser?.id || "demo_user";
 
@@ -993,7 +1186,6 @@
                 strip.classList.add('spinning');
             });
 
-            // معالجة معلمات شراء المكافأة
             let requestedJars = 0;
             let isBonusRound = false;
             if (activeBonus && activeBonus.remaining > 0) {
@@ -1016,7 +1208,7 @@
                 });
                 serverResult = await response.json();
             } catch (err) {
-                console.error("خطأ معالجة التدويرة من البوت:", err);
+                console.error("خطأ معالجة التدويرة:", err);
             }
 
             if (!serverResult || !serverResult.success) {
@@ -1032,7 +1224,6 @@
             document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
 
             let finalGrid = serverResult.grid;
-
             let baseWait = speedLevel === 1 ? 550 : (speedLevel === 2 ? 300 : 120);
             let stepDelay = speedLevel === 1 ? 220 : (speedLevel === 2 ? 110 : 50);
 
@@ -1083,7 +1274,7 @@
         }
 
         // ==========================================
-        //  عرض الأرباح وإضاءة الرموز فقط (بدون خط رسم)
+        //  عرض الأرباح واشتراط ظهور لوحة مبروك يا ملك
         // ==========================================
         async function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
@@ -1099,35 +1290,57 @@
                 if (winAmount > best) document.getElementById('bestWin').innerText = winAmount.toFixed(2);
 
                 hideJarBanner();
-
-                // إضاءة الرموز الرابحة فقط بدون رسم أي خط ليزري
                 applyShineToWinners(res.winning_coords || []);
 
-                // التوسع والافتجار للجرة فقط إذا كانت مشاركة فعلياً في خط ربح (res.has_jar)
                 if (res.has_jar && res.jar_reel_index >= 0) {
                     await expandJarToFullReel(res.jar_reel_index, res.jar_multiplier || 1, winAmount);
                 }
 
-                // عدم إظهار لافتات وقوائم الأرباح البارزة والمفرقعات إلا إذا كان الربح فوق 10 NSP
-                if (winAmount > 10.0) {
-                    confetti({
-                        particleCount: 220,
-                        spread: 120,
-                        origin: { y: 0.5 },
-                        colors: ['#ffdf00', '#ffd700', '#00f3ff', '#ffffff']
-                    });
-                    showJarBanner(winAmount, "🔥 ربح مميز يتجاوز 10 NSP!");
+                // حساب المضاعف مقارنة بالرهان الحالي
+                let winMultiplier = winAmount / currentBet;
+
+                // ظهور لوحة "مبروك يا ملك" فقط عند تجاوز الربح من 10x وما فوق
+                if (winMultiplier >= 10.0) {
+                    showKingWinModal(winAmount, winMultiplier);
                 }
             } else {
                 document.getElementById('lineInfo').innerText = 'حظ أوفر في المحاولة القادمة';
             }
         }
 
+        // --- إظهار لوحة مبروك يا ملك والعد الحركي من 0 ---
+        function showKingWinModal(winAmount, multiplier) {
+            playProSound('win_king');
+            confetti({ particleCount: 250, spread: 120, origin: { y: 0.5 } });
+
+            document.getElementById('kingMultText').innerText = `مضاعف ${multiplier.toFixed(1)}x! 🔥`;
+            let modal = document.getElementById('kingModal');
+            modal.style.display = 'flex';
+
+            let counterObj = document.getElementById('kingWinCounter');
+            let duration = 1500;
+            let startTimestamp = null;
+
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                counterObj.innerText = (progress * winAmount).toFixed(2) + " NSP";
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function closeKingModal() {
+            playProSound('click');
+            document.getElementById('kingModal').style.display = 'none';
+        }
+
         async function expandJarToFullReel(reelIndex, mult, winAmount) {
             if (reelIndex === undefined || reelIndex < 0 || reelIndex >= reelsCount) return;
 
             hideJarBanner();
-
             const reelStrip = reelStrips[reelIndex];
             reelStrip.innerHTML = '';
 
@@ -1157,10 +1370,6 @@
 
             await new Promise(resolve => setTimeout(resolve, 600));
             playProSound('jar_explode');
-
-            if (winAmount > 10.0) {
-                showJarBanner(winAmount, "🏺 جرة أسطورية مكتملة!");
-            }
         }
 
         function triggerScreenShake() {
