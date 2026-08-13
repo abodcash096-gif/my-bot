@@ -3,12 +3,10 @@ import sqlite3
 import random
 from flask import Flask, render_template, request, jsonify
 
-# إعداد تطبيق الفلاسك
 app = Flask(__name__, template_folder='.', static_folder='.')
 
 DB_NAME = 'database.db'
 
-# إنشاء جدول المستخدمين وقاعدة البيانات تلقائياً إذا لم تكن موجودة
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -28,12 +26,10 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-# جلب رصيد المستخدم من قاعدة البيانات
 def get_user_balance(user_id):
     conn = get_db_connection()
     user = conn.execute('SELECT balance FROM users WHERE user_id = ?', (str(user_id),)).fetchone()
     if user is None:
-        # إضافة المستخدم الجديد برصيد تجريبي عند أول دخول
         conn.execute('INSERT INTO users (user_id, balance) VALUES (?, ?)', (str(user_id), 100.0))
         conn.commit()
         conn.close()
@@ -41,19 +37,18 @@ def get_user_balance(user_id):
     conn.close()
     return float(user['balance'])
 
-# تحديث رصيد المستخدم بعد اللعب
 def update_user_balance(user_id, new_balance):
     conn = get_db_connection()
     conn.execute('UPDATE users SET balance = ? WHERE user_id = ?', (new_balance, str(user_id)))
     conn.commit()
     conn.close()
 
-# 1. مسار عرض الصفحة الرئيسية للعبة
+# استقبال جميع روابط الصفحة الرئيسية
 @app.route('/')
+@app.route('/index.html')
 def index():
     return render_template('index.html')
 
-# 2. مسار جلب الرصيد
 @app.route('/api/get_user', methods=['POST'])
 def get_user():
     data = request.get_json() or {}
@@ -61,7 +56,6 @@ def get_user():
     balance = get_user_balance(user_id)
     return jsonify({"success": True, "balance": balance})
 
-# 3. مسار خوارزمية التدوير والربح
 @app.route('/api/play_spin', methods=['POST'])
 def play_spin():
     data = request.get_json() or {}
@@ -77,7 +71,6 @@ def play_spin():
     if current_balance < bet:
         return jsonify({"success": False, "message": "رصيدك غير كافٍ للعب!"})
 
-    # خصم قيمة الرهان
     current_balance -= bet
 
     symbols = ['🍋', '🍍', '🍊', '🍒', '🔔', '🍇', '7']
@@ -86,11 +79,9 @@ def play_spin():
     jar_reel_index = -1
     jar_multiplier = 1
 
-    # إنشاء عناصر البكرات الـ 5
     for reel_idx in range(5):
         column = []
         for row_idx in range(3):
-            # نسبة ظهور الجرة الذهبية 3%
             if random.random() < 0.03 and not has_jar:
                 has_jar = True
                 jar_reel_index = reel_idx
@@ -101,13 +92,12 @@ def play_spin():
                 column.append({"sym": sym, "mult": 1})
         grid.append(column)
 
-    # خطوط الدفع (المحاذاة والربح من اليمين إلى اليسار)
     paylines = [
-        [(0,0), (1,0), (2,0), (3,0), (4,0)], # الخط العلوي
-        [(0,1), (1,1), (2,1), (3,1), (4,1)], # الخط الأوسط
-        [(0,2), (1,2), (2,2), (3,2), (4,2)], # الخط السفلي
-        [(0,0), (1,1), (2,2), (3,1), (4,0)], # V
-        [(0,2), (1,1), (2,0), (3,1), (4,2)]  # V مقلوبة
+        [(0,0), (1,0), (2,0), (3,0), (4,0)],
+        [(0,1), (1,1), (2,1), (3,1), (4,1)],
+        [(0,2), (1,2), (2,2), (3,2), (4,2)],
+        [(0,0), (1,1), (2,2), (3,1), (4,0)],
+        [(0,2), (1,1), (2,0), (3,1), (4,2)]
     ]
 
     win_amount = 0.0
@@ -123,7 +113,6 @@ def play_spin():
         count = 0
         current_line_coords = []
 
-        # الفحص التتابعي بدءاً من العمود 0 (الأيمن)
         for coord in line:
             c_sym = grid[coord[0]][coord[1]]["sym"]
             if c_sym == first_sym or c_sym == "🏺":
@@ -147,7 +136,6 @@ def play_spin():
             win_amount += line_mult * bet
             winning_coords.extend(current_line_coords)
 
-    # حفظ الرصيد الجديد في قاعدة البيانات
     new_balance = current_balance + win_amount
     update_user_balance(user_id, new_balance)
 
