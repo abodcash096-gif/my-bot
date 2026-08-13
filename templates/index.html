@@ -122,7 +122,7 @@
 
         .slots-frame {
             display: flex;
-            flex-direction: row; /* يضمن الترتيب من اليمين لليسار مع dir=rtl */
+            flex-direction: row;
             gap: 4px;
             background: rgba(1, 5, 12, 0.99);
             border: 3px solid var(--neon-blue);
@@ -132,6 +132,7 @@
             position: relative;
             overflow: hidden;
             height: 252px;
+            touch-action: pan-y;
         }
 
         .slots-frame.shake {
@@ -153,7 +154,9 @@
             overflow: hidden;
             position: relative;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+            cursor: grab;
         }
+        .reel:active { cursor: grabbing; }
 
         .reel-strip {
             position: absolute;
@@ -205,16 +208,16 @@
             filter: drop-shadow(0 6px 8px rgba(0,0,0,0.6));
         }
 
-        /* أنيميشن الجرة الذهبية المحسّن */
+        /* أنيميشن الجرة الذهبية الحية */
         .symbol.jar-rare .symbol-badge {
             background: radial-gradient(circle, rgba(255,223,0,0.5) 0%, rgba(255,170,0,0.2) 50%, transparent 80%);
             font-size: 58px;
-            animation: goldenJarGlow 1s infinite alternate ease-in-out;
+            animation: goldenJarGlow 0.8s infinite alternate ease-in-out;
         }
 
         @keyframes goldenJarGlow {
-            0% { transform: scale(0.95) rotate(-3deg); filter: drop-shadow(0 0 15px var(--gold)) brightness(1); }
-            100% { transform: scale(1.12) rotate(3deg); filter: drop-shadow(0 0 35px var(--gold)) brightness(1.4); }
+            0% { transform: scale(0.95) rotate(-4deg); filter: drop-shadow(0 0 15px var(--gold)) brightness(1); }
+            100% { transform: scale(1.15) rotate(4deg); filter: drop-shadow(0 0 38px var(--gold)) brightness(1.5); }
         }
 
         .symbol.jar-win-full {
@@ -224,21 +227,28 @@
             width: 100%;
             height: 240px !important;
             z-index: 50;
-            animation: jarExpandReel 0.6s forwards cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: jarExpandAndExplode 0.7s forwards cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .symbol.jar-win-full .symbol-badge {
             width: 100%;
             height: 100%;
-            font-size: 115px;
-            background: radial-gradient(circle, rgba(255, 245, 150, 0.95) 0%, rgba(255, 170, 0, 0.7) 45%, transparent 85%);
-            filter: drop-shadow(0 0 55px var(--gold));
+            font-size: 118px;
+            background: radial-gradient(circle, rgba(255, 255, 200, 1) 0%, rgba(255, 185, 0, 0.95) 45%, rgba(255,120,0,0.2) 80%);
+            filter: drop-shadow(0 0 65px var(--gold));
+            animation: jarPulseLive 0.5s infinite alternate ease-in-out;
         }
 
-        @keyframes jarExpandReel {
+        @keyframes jarExpandAndExplode {
             0% { transform: scale(0.1) translateY(80px); opacity: 0; }
-            50% { transform: scale(1.2) translateY(-10px); opacity: 1; }
+            50% { transform: scale(1.3) translateY(-10px); opacity: 1; }
+            75% { transform: scale(0.95); }
             100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        @keyframes jarPulseLive {
+            0% { transform: scale(0.97); filter: drop-shadow(0 0 40px var(--gold)); }
+            100% { transform: scale(1.06); filter: drop-shadow(0 0 80px #ffffff); }
         }
 
         .jar-mult-tag {
@@ -482,7 +492,7 @@
     </div>
 
     <div class="info-panel">
-        <div class="line-info" id="lineInfo">اختر الرهان واضغط ↻ للبدء</div>
+        <div class="line-info" id="lineInfo">اختر الرهان واضغط ↻ أو اسحب الشريط للبدء</div>
         <div class="win-display">ربح <span id="winAmount">0.00</span> NSP</div>
     </div>
 
@@ -550,7 +560,7 @@
         const slotsFrame = document.getElementById('slotsFrame');
 
         // ==========================================
-        //  محرك الصوت المُحسّن (صوت الجرة الذهبية)
+        //  محرك الصوت المُحسّن (أصوات الجرة والذهب المخصصة)
         // ==========================================
         let audioCtx = null;
         function initAudio() {
@@ -600,33 +610,46 @@
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.12);
             }
-            // صوت رنين معدني فاخر للجرة الذهبية (Golden Jar SFX)
+            // صوت رنين الجرة عند ظهورها وقوفها
             else if (type === 'jar_appear') {
-                let freqs = [987.77, 1318.51, 1758.24, 2637.02];
+                let freqs = [1046.50, 1318.51, 1567.98, 2093.00];
                 freqs.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.04));
-                    gain.gain.setValueAtTime(0.18, now + (i * 0.04));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.04) + 0.4);
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.03));
+                    gain.gain.setValueAtTime(0.22, now + (i * 0.03));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.03) + 0.45);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.04));
-                    osc.stop(now + (i * 0.04) + 0.4);
+                    osc.start(now + (i * 0.03));
+                    osc.stop(now + (i * 0.03) + 0.45);
                 });
             }
-            else if (type === 'jar_expand') {
-                let chord = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
+            // صوت وقوف الجرة الحي وانفجار الذهب المميز
+            else if (type === 'jar_explode') {
+                // صوت الانفجار السفلي الدافئ
+                let oscBoom = audioCtx.createOscillator();
+                let gainBoom = audioCtx.createGain();
+                oscBoom.type = 'triangle';
+                oscBoom.frequency.setValueAtTime(220, now);
+                oscBoom.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+                gainBoom.gain.setValueAtTime(0.4, now);
+                gainBoom.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                oscBoom.connect(gainBoom); gainBoom.connect(audioCtx.destination);
+                oscBoom.start(now); oscBoom.stop(now + 0.5);
+
+                // تناثر قطع الذهب المعدنية (Sparkling Gold Chimes)
+                let chord = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00, 2637.02];
                 chord.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.05));
-                    gain.gain.setValueAtTime(0.2, now + (i * 0.05));
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.05) + 0.6);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.04));
+                    gain.gain.setValueAtTime(0.25, now + (i * 0.04));
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.04) + 0.7);
                     osc.connect(gain); gain.connect(audioCtx.destination);
-                    osc.start(now + (i * 0.05));
-                    osc.stop(now + (i * 0.05) + 0.6);
+                    osc.start(now + (i * 0.04));
+                    osc.stop(now + (i * 0.04) + 0.7);
                 });
             }
             else if (type === 'win_sound') {
@@ -688,6 +711,44 @@
             reelStrips.push(reelStrip);
             populateStrip(reelStrip, generateInitialList(6));
         }
+
+        // ==========================================
+        //  خاصية السحب بالأصبع للأسفل أو الأعلى للبدء باللعب
+        // ==========================================
+        let touchStartY = 0;
+        let touchEndY = 0;
+
+        slotsFrame.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        slotsFrame.addEventListener('touchend', (e) => {
+            touchEndY = e.changedTouches[0].clientY;
+            let dragDistance = Math.abs(touchEndY - touchStartY);
+            // إذا تجاوز السحب 30 بكسل وكانت اللعبة متوقفة تبدأ التدوير فوراً
+            if (dragDistance > 30 && !isSpinning) {
+                initAudio();
+                startSpin();
+            }
+        }, { passive: true });
+
+        // دعم السحب بالماوس أيضاً للكمبيوتر
+        let isMouseDown = false;
+        let mouseStartY = 0;
+        slotsFrame.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            mouseStartY = e.clientY;
+        });
+        window.addEventListener('mouseup', (e) => {
+            if (isMouseDown) {
+                isMouseDown = false;
+                let dragDistance = Math.abs(e.clientY - mouseStartY);
+                if (dragDistance > 30 && !isSpinning) {
+                    initAudio();
+                    startSpin();
+                }
+            }
+        });
 
         function generateInitialList(count) {
             const items = ['🍋', '🍍', '🍊', '🍒', '🔔', '🍇', '7'];
@@ -847,16 +908,16 @@
             let finalGrid = serverResult.grid; // الشبكة المحسوبة من البوت
 
             // ==========================================
-            //  التوقف والتتابع الحركي من اليمين إلى اليسار (0 -> 4)
+            //  عكس الاتجاه والتوقف المقابل (من اليسار إلى اليمين: 4 -> 0)
             // ==========================================
             let baseWait = speedLevel === 1 ? 500 : (speedLevel === 2 ? 280 : 100);
             let stepDelay = speedLevel === 1 ? 180 : (speedLevel === 2 ? 90 : 40);
 
-            // الترتيب من اليمين لليسار: العمود 0 (اليمين) إلى العمود 4 (اليسار)
-            const stopOrderRightToLeft = [0, 1, 2, 3, 4];
+            // تم التغيير ليكون التوقف والدوران من الجهة الأخرى المقابلة
+            const stopOrderReversed = [4, 3, 2, 1, 0];
 
-            for (let step = 0; step < stopOrderRightToLeft.length; step++) {
-                let reelIdx = stopOrderRightToLeft[step];
+            for (let step = 0; step < stopOrderReversed.length; step++) {
+                let reelIdx = stopOrderReversed[step];
                 let currentDelay = forceStopRequested ? (step * 25) : (baseWait + step * stepDelay);
 
                 await new Promise(resolve => setTimeout(resolve, currentDelay));
@@ -889,7 +950,7 @@
         }
 
         // ==========================================
-        //  عرض الأرباح والربط الحركي من اليمين
+        //  عرض الأرباح والربط الحركي مع انفجار الجرة والذهب
         // ==========================================
         function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
@@ -909,7 +970,14 @@
                     showJarBanner(res.jar_multiplier || 2);
                 }
 
-                confetti({ particleCount: 160, spread: 110, origin: { y: 0.6 } });
+                // تفجير الذهب الحماسي مع كنفيتي أصفر وذهبي رائع
+                confetti({
+                    particleCount: 180,
+                    spread: 120,
+                    origin: { y: 0.55 },
+                    colors: ['#ffdf00', '#ffa500', '#ffffff', '#ff0055']
+                });
+
                 applyShineToWinners(res.winning_coords || []);
             } else {
                 document.getElementById('lineInfo').innerText = 'حظ أوفر في المحاولة القادمة';
@@ -919,7 +987,8 @@
         function expandJarToFullReel(reelIndex, mult) {
             if (reelIndex === undefined || reelIndex < 0 || reelIndex >= reelsCount) return;
             
-            playProSound('jar_expand');
+            // تشغيل صوت الانفجار الردادي والتناثر الذهبي
+            playProSound('jar_explode');
 
             const reelStrip = reelStrips[reelIndex];
             reelStrip.innerHTML = '';
@@ -941,6 +1010,14 @@
 
             fullJarNode.appendChild(badge);
             reelStrip.appendChild(fullJarNode);
+
+            // إطلاق انفجار ذهبي مكثف من موقع الجرة
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { x: (reelIndex + 0.5) / reelsCount, y: 0.5 },
+                colors: ['#ffdf00', '#ffd700', '#ffffff']
+            });
         }
 
         function triggerScreenShake() {
