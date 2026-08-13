@@ -3,24 +3,24 @@ import sqlite3
 import random
 from flask import Flask, render_template, request, jsonify
 
-# ربط السيرفر بمجلد templates
 GAME_FOLDER = 'templates'
-
 app = Flask(__name__, template_folder=GAME_FOLDER, static_folder=GAME_FOLDER)
-
 DB_NAME = 'database.db'
 
+def get_db_connection():
+    conn = sqlite3.connect(DB_NAME, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
+    conn = get_db_connection()
     cursor = conn.cursor()
-    # جدول المستخدمين والأرصدة
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id TEXT PRIMARY KEY,
             balance REAL DEFAULT 100.0
         )
     ''')
-    # جدول الإعدادات للتحكم بنسبة الربح
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
@@ -32,11 +32,6 @@ def init_db():
     conn.close()
 
 init_db()
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
-    return conn
 
 def get_user_balance(user_id):
     conn = get_db_connection()
@@ -61,64 +56,14 @@ def get_win_rate():
     conn.close()
     return int(res['value']) if res else 30
 
-# --- مسارات API لخدمة البيانات ---
-@app.route('/api/get_user', methods=['POST'])
-def get_user():
-    data = request.get_json() or {}
-    user_id = data.get('user_id', 'demo_user')
-    balance = get_user_balance(user_id)
-    return jsonify({"success": True, "balance": balance})
+def set_win_rate_db(rate):
+    conn = get_db_connection()
+    conn.execute('UPDATE settings SET value = ? WHERE key = "win_rate"', (str(rate),))
+    conn.commit()
+    conn.close()
 
-@app.route('/api/play_spin', methods=['POST'])
-def play_spin():
-    data = request.get_json() or {}
-    user_id = data.get('user_id', 'demo_user')
-    
-    try:
-        bet = float(data.get('bet', 3))
-    except (ValueError, TypeError):
-        bet = 3.0
-
-    current_balance = get_user_balance(user_id)
-
-    if current_balance < bet:
-        return jsonify({"success": False, "message": "رصيدك غير كافٍ للعب!"})
-
-    current_balance -= bet
-
-    win_rate = get_win_rate()
-    should_win = (random.randint(1, 100) <= win_rate)
-
-    symbols = ['🍋', '🍍', '🍊', '🍒', '🔔', '🍇', '7']
-    grid = []
-    has_jar = False
-    jar_reel_index = -1
-    jar_multiplier = 1
-
-    if should_win:
-        winning_sym = random.choice(symbols)
-        for reel_idx in range(5):
-            column = []
-            for row_idx in range(3):
-                if row_idx == 1:
-                    column.append({"sym": winning_sym, "mult": 1})
-                else:
-                    column.append({"sym": random.choice(symbols), "mult": 1})
-            grid.append(column)
-    else:
-        for reel_idx in range(5):
-            column = []
-            for row_idx in range(3):
-                if random.random() < 0.03 and not has_jar:
-                    has_jar = True
-                    jar_reel_index = reel_idx
-                    jar_multiplier = random.choice([2, 3, 5])
-                    column.append({"sym": "🏺", "mult": jar_multiplier})
-                else:
-                    sym = random.choice(symbols)
-                    column.append({"sym": sym, "mult": 1})
-            grid.append(column)
-
+# --- دالة تقييم شبكة اللعبة وإرجاع الأرباح ---
+def evaluate_grid(grid, bet):
     paylines = [
         [(0,0), (1,0), (2,0), (3,0), (4,0)],
         [(0,1), (1,1), (2,1), (3,1), (4,1)],
@@ -126,6 +71,17 @@ def play_spin():
         [(0,0), (1,1), (2,2), (3,1), (4,0)],
         [(0,2), (1,1), (2,0), (3,1), (4,2)]
     ]
+
+    has_jar = False
+    jar_reel_index = -1
+    jar_multiplier = 1
+
+    for r_idx, column in enumerate(grid):
+        for cell in column:
+            if cell["sym"] == "🏺":
+                has_jar = True
+                jar_reel_index = r_idx
+                jar_multiplier = cell["mult"]
 
     win_amount = 0.0
     winning_coords = []
@@ -163,6 +119,80 @@ def play_spin():
             win_amount += line_mult * bet
             winning_coords.extend(current_line_coords)
 
+    return win_amount, winning_coords, has_jar, jar_reel_index, jar_multiplier
+
+# --- دالة توليد الشبكة بناءً على خوارزمية الربح والخسارة ---
+def generate_controlled_grid(should_win, bet):
+    symbols = ['🍋', '🍍', '🍊', '🍒', '🔔', '🍇', '7']
+    
+    for _ in range(100): # محاولات حتى تحقيق النتيجة المطلوبة
+        grid = []
+        has_jar = False
+        
+        for reel_idx in range(5):
+            column = []
+            for row_idx in range(3):
+                if random.random() < 0.03 and not has_jar:
+                    has_jar = True
+                    column.append({"sym": "🏺", "mult": random.choice([2, 3, 5])})
+                else:
+                    column.append({"sym": random.choice(symbols), "mult": 1})
+            grid.append(column)
+
+        win_amount, winning_coords, h_jar, j_idx, j_mult = evaluate_grid(grid, bet)
+
+        if should_win and win_amount > 0:
+            return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
+        elif not should_win and win_amount == 0:
+            return grid, 0.0, [], h_jar, j_idx, j_mult
+
+    # شبكة خاسرة مضمونة في حال عدم الوصول لنتيجة خلال 100 محاولة
+    safe_symbols = ['🍋', '🍍', '🍊', '🍒', '🔔', '🍇', '7']
+    grid = []
+    for reel_idx in range(5):
+        column = [{"sym": safe_symbols[(reel_idx + row) % len(safe_symbols)], "mult": 1} for row in range(3)]
+        grid.append(column)
+    return grid, 0.0, [], False, -1, 1
+
+# --- API المسارات ---
+@app.route('/api/get_user', methods=['POST'])
+def get_user():
+    data = request.get_json() or {}
+    user_id = data.get('user_id', 'demo_user')
+    balance = get_user_balance(user_id)
+    return jsonify({"success": True, "balance": balance})
+
+@app.route('/api/set_win_rate', methods=['POST'])
+def set_win_rate_api():
+    data = request.get_json() or {}
+    rate = data.get('rate')
+    if rate is not None and 0 <= int(rate) <= 100:
+        set_win_rate_db(int(rate))
+        return jsonify({"success": True, "win_rate": int(rate)})
+    return jsonify({"success": False, "message": "نسبة غير صالحة"})
+
+@app.route('/api/play_spin', methods=['POST'])
+def play_spin():
+    data = request.get_json() or {}
+    user_id = data.get('user_id', 'demo_user')
+    
+    try:
+        bet = float(data.get('bet', 3.0))
+    except (ValueError, TypeError):
+        bet = 3.0
+
+    current_balance = get_user_balance(user_id)
+
+    if current_balance < bet:
+        return jsonify({"success": False, "message": "رصيدك غير كافٍ للعب!"})
+
+    current_balance -= bet
+
+    win_rate = get_win_rate()
+    should_win = (random.randint(1, 100) <= win_rate)
+
+    grid, win_amount, winning_coords, has_jar, jar_reel_index, jar_multiplier = generate_controlled_grid(should_win, bet)
+
     new_balance = current_balance + win_amount
     update_user_balance(user_id, new_balance)
 
@@ -177,7 +207,6 @@ def play_spin():
         "winning_coords": winning_coords
     })
 
-# --- المسار الشامل لفتح اللعبة من داخل مجلد templates ---
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
