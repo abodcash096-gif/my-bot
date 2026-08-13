@@ -89,13 +89,16 @@ def init_db():
             custom_boost REAL DEFAULT 0.0
         )
     ''')
-    
+
+    try: cursor.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+    except: pass
     try: cursor.execute("ALTER TABLE users ADD COLUMN custom_boost REAL DEFAULT 0.0")
     except: pass
     try: cursor.execute("ALTER TABLE users ADD COLUMN consecutive_losses INTEGER DEFAULT 0")
     except: pass
     try: cursor.execute("ALTER TABLE users ADD COLUMN consecutive_wins INTEGER DEFAULT 0")
     except: pass
+
 
     cursor.execute('CREATE TABLE IF NOT EXISTS admins (user_id INTEGER PRIMARY KEY)')
     cursor.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
