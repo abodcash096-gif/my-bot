@@ -37,11 +37,11 @@
             overflow-x: hidden;
         }
 
-        /* --- 1. شاشة التحميل الافتتاحية --- */
+        /* --- 1. شاشة التحميل الافتتاحية المصممة هيدروليكياً --- */
         .splash-screen {
             position: fixed;
             inset: 0;
-            background: #000206;
+            background: radial-gradient(circle at center, #0a3563 0%, #000206 100%);
             z-index: 999;
             display: flex;
             flex-direction: column;
@@ -59,6 +59,34 @@
             object-fit: cover;
             object-position: center;
             z-index: 1;
+        }
+
+        /* شعار بديل فاخر في حال عدم تحميل الصورة */
+        .splash-fallback-title {
+            position: absolute;
+            top: 38%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 2;
+            width: 100%;
+        }
+
+        .splash-fallback-title h1 {
+            font-size: 38px;
+            font-weight: 900;
+            background: linear-gradient(180deg, #ffffff 0%, var(--gold) 60%, #ff8800 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 25px rgba(255, 223, 0, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .splash-fallback-title p {
+            font-size: 14px;
+            color: var(--neon-blue);
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--neon-blue);
         }
 
         .loader-container {
@@ -183,7 +211,7 @@
             box-shadow: 0 0 15px var(--gold);
         }
 
-        /* --- إطار بكرات اللعبة (تم ضبطه ليدور من اليسار إلى اليمين LTR) --- */
+        /* --- إطار البكرات --- */
         .game-container {
             position: relative;
             width: 95%;
@@ -195,7 +223,7 @@
         .slots-frame {
             display: flex;
             flex-direction: row;
-            direction: ltr; /* الترتيب يبدأ من اليسار إلى اليمين */
+            direction: ltr; /* دوران وتوقف يبدأ دائماً من أقصى اليسار */
             background: rgba(1, 5, 12, 0.99);
             border: 3px solid var(--neon-blue);
             box-shadow: 0 0 45px var(--neon-glow), inset 0 0 25px var(--neon-glow);
@@ -255,7 +283,6 @@
             animation: fastSpinSmoothReverse 0.11s linear infinite;
         }
 
-        /* تأثير توقف مطاطي وجذاب وسريع */
         .reel-strip.bounce-stop {
             animation: reelSmoothElasticStop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
@@ -547,7 +574,6 @@
         }
         .nav-item.active { color: var(--neon-blue); }
 
-        /* --- لوحة الملوك للأرباح المرتفعة --- */
         .king-modal {
             display: none;
             position: fixed;
@@ -641,15 +667,19 @@
 </head>
 <body>
 
-    <!-- الشاشة الافتتاحية -->
+    <!-- الشاشة الافتتاحية مع معالجة حماية خطأ الصورة -->
     <div class="splash-screen" id="splashScreen">
-        <img src="13156.png" class="splash-img" alt="Golden Lera Splash">
+        <div class="splash-fallback-title">
+            <h1>GOLDEN LERA</h1>
+            <p>PRO MASTER 2026</p>
+        </div>
+        <img src="13156.png" class="splash-img" alt="Golden Lera Splash" onerror="this.style.display='none'">
         <div class="loader-container">
             <div class="loader-bar" id="loaderBar"></div>
         </div>
     </div>
 
-    <!-- الشريط العلوي خالي تماماً من VIP -->
+    <!-- الشريط العلوي -->
     <div class="top-bar">
         <button class="buy-bonus-btn" onclick="openBonusModal()">🛒 شراء مكافأة</button>
         <div class="logo">Golden Lera<br><span style="font-size: 10px; color: #a1e5ff;">Pro Master 2026</span></div>
@@ -709,7 +739,6 @@
         <div>⏱️ آخر ربح: <span id="lastWin" style="color: var(--neon-blue);">0.00</span> NSP</div>
     </div>
 
-    <!-- الشريط السفلي بدون VIP -->
     <div class="footer-nav">
         <div class="nav-item active">
             <span>🎰</span>
@@ -820,7 +849,7 @@
         const slotsFrame = document.getElementById('slotsFrame');
 
         // ==========================================
-        //  محرّك الأصوات والمؤثرات الصوتية
+        //  محرّك الأصوات والمؤثرات الصوتية والعملات
         // ==========================================
         let audioCtx = null;
         function initAudio() {
@@ -890,6 +919,24 @@
                     osc.start(now + (i * 0.05)); osc.stop(now + (i * 0.05) + 0.35);
                 });
             }
+            // صوت العملات الذهبية المتطايرة والمعدنية
+            else if (type === 'coins_flying') {
+                for (let i = 0; i < 12; i++) {
+                    setTimeout(() => {
+                        if (!audioCtx) return;
+                        let nowTime = audioCtx.currentTime;
+                        let osc = audioCtx.createOscillator();
+                        let gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        let freq = 1600 + Math.random() * 1200;
+                        osc.frequency.setValueAtTime(freq, nowTime);
+                        gain.gain.setValueAtTime(0.15, nowTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, nowTime + 0.07);
+                        osc.connect(gain); gain.connect(audioCtx.destination);
+                        osc.start(nowTime); osc.stop(nowTime + 0.07);
+                    }, i * 50);
+                }
+            }
         }
 
         // ==========================================
@@ -937,7 +984,7 @@
         }
         loadUserData();
 
-        // بناء البكرات من اليسار إلى اليمين (Reel 0 = أقصى اليسار)
+        // بناء البكرات من اليسار إلى اليمين
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -1111,7 +1158,7 @@
         }
 
         // =========================================================================
-        //  محاكي تقييم الأرباح والجرة كرمز Wild
+        //  محاكي الأرباح: يتم احتساب الأرباح صراحةً وبشكل صارم من اليسار إلى اليمين فقط!
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
@@ -1120,6 +1167,8 @@
 
             checkSymbols.forEach(targetSym => {
                 let connectedCols = [];
+
+                // التكرار يبدأ دائماً وحصراً من البكرة الأولى على اليسار (c = 0)
                 for (let c = 0; c < reelsCount; c++) {
                     let colData = grid[c];
                     let matchingRowsInCol = [];
@@ -1130,14 +1179,17 @@
                         }
                     });
 
+                    // إذا توفر الرمز في هذه البكرة، يُسجل ويُكمل للفحص التالي
                     if (matchingRowsInCol.length > 0) {
                         connectedCols.push({ col: c, rows: matchingRowsInCol });
                     } else {
+                        // انقطاع الاتصال يلغي الربح للرمز فوراً (لا ربح من الوسط أو اليمين)
                         break;
                     }
                 }
 
-                if (connectedCols.length >= 2) {
+                // شرط صارم: يجب أن تبدأ السلسلة من العمود 0 (أقصى اليسار)
+                if (connectedCols.length >= 2 && connectedCols[0].col === 0) {
                     let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
                     if (targetSym === '7') mult *= 2;
 
@@ -1152,7 +1204,7 @@
         }
 
         // =========================================================================
-        //  بدء الدوران لجميع البكرات والتوقف المتتالي السريع من اليسار إلى اليمين
+        //  بدء الدوران لجميع البكرات والتوقف التدريجي المباشر
         // =========================================================================
         async function startSpin() {
             if (isSpinning) return;
@@ -1178,7 +1230,6 @@
                 if (isSpinning) playProSound('spin_tick');
             }, 55);
 
-            // تدوير جميع البكرات معاً في أحدث وقت متزامن
             reelStrips.forEach(strip => {
                 populateStrip(strip, generateInitialList(9));
                 strip.classList.add('spinning');
@@ -1230,13 +1281,11 @@
 
             let finalGrid = serverResult.grid;
 
-            // توقيت توقف سريع جداً وتدريجي: التوقف الكامل للبكرات الخمس يستغرق ~1.4 ثانية فقط بعد وقوف أول صف
             let initialDelay = speedLevel === 1 ? 500 : (speedLevel === 2 ? 300 : 120);
-            let staggerStep = speedLevel === 1 ? 350 : (speedLevel === 2 ? 220 : 90); // 350ms * 4 = 1.4 ثانية تماماً
+            let staggerStep = speedLevel === 1 ? 350 : (speedLevel === 2 ? 220 : 90);
 
-            // توقف البكرات بالترتيب من اليسار (0) إلى اليمين (4)
             for (let step = 0; step < reelsCount; step++) {
-                let reelIdx = step; // من اليسار لليمن: 0 -> 1 -> 2 -> 3 -> 4
+                let reelIdx = step; 
                 let currentWait = forceStopRequested ? (step * 50) : (initialDelay + step * staggerStep);
 
                 await new Promise(resolve => setTimeout(resolve, currentWait));
@@ -1289,7 +1338,7 @@
         }
 
         // ==========================================
-        //  عرض النتائج والتأثيرات المصاحبة
+        //  تطاير العملات السريع والكبير مع الصوت
         // ==========================================
         async function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
@@ -1315,7 +1364,7 @@
                     await new Promise(r => setTimeout(r, 550));
                     triggerGoldRain();
                 } else {
-                    playProSound('win_sound');
+                    triggerGoldRain(); // إطلاق الليرات مع الصوت عند أي ربح
                 }
 
                 let winMultiplier = winAmount / currentBet;
@@ -1351,31 +1400,44 @@
             document.querySelectorAll('.reel-jar-expanded').forEach(el => el.remove());
         }
 
+        // تسريع الليرات، تكبير حجمها وإضافة الصوت المخصص
         function triggerGoldRain() {
+            playProSound('coins_flying');
             confetti({
-                particleCount: 45,
-                spread: 70,
+                particleCount: 65,
+                spread: 100,
+                startVelocity: 55, // حركية سريعة ومندفعة
+                scalar: 2.3,        // حجم كبير جداً وممتاز للعملات
+                gravity: 1.15,      // هبوط سريع وممتع
+                ticks: 170,
                 origin: { y: 0.6 },
                 colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
             });
         }
 
         function triggerFullscreenGoldShower() {
-            var duration = 3.5 * 1000;
+            playProSound('coins_flying');
+            var duration = 3.0 * 1000;
             var end = Date.now() + duration;
 
             (function frame() {
                 confetti({
-                    particleCount: 12,
+                    particleCount: 16,
                     angle: 60,
-                    spread: 80,
+                    spread: 85,
+                    startVelocity: 65,
+                    scalar: 2.5, // حجم ضخم ومميز الأثر
+                    gravity: 1.2,
                     origin: { x: 0 },
                     colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
                 });
                 confetti({
-                    particleCount: 12,
+                    particleCount: 16,
                     angle: 120,
-                    spread: 80,
+                    spread: 85,
+                    startVelocity: 65,
+                    scalar: 2.5,
+                    gravity: 1.2,
                     origin: { x: 1 },
                     colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
                 });
