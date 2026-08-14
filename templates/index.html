@@ -791,7 +791,7 @@
         🔥 مكافأة جرات مفعلة: متبقي 5 ضربات
     </div>
 
-    <!-- 3. إطار اللعبة والبكرات (الاحتساب ينطلق من أقصى اليمين نحو اليسار) -->
+    <!-- 3. إطار اللعبة والبكرات (الاحتساب ينطلق من أقصى اليسار نحو اليمين) -->
     <div class="game-container">
         <div class="jar-banner" id="jarBanner"><span id="jarWinRating">ربح كبير! 🔥</span><br><span id="jarMultText" style="font-size: 28px; color: var(--gold);">5x</span></div>
         <div class="slots-frame" id="slotsFrame"></div>
@@ -1094,7 +1094,7 @@
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
-            
+
             const reelStrip = document.createElement('div');
             reelStrip.className = 'reel-strip';
             reel.appendChild(reelStrip);
@@ -1317,18 +1317,18 @@
         }
 
         // =========================================================================
-        //  خوارزمية احتساب الأرباح (حصرياً من أقصى اليمين العمود 4 نحو اليسار)
+        //  خوارزمية احتساب الأرباح (حصرياً من أقصى اليسار العمود 0 نحو اليمين)
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // 1. فحص ميزة جرف الجرات: وجود جرة في العمودين الأخيرين من جهة أقصى اليمين (العمود 4 والعمود 3)
-            let jarInCol4 = grid[4].some(s => s && s.sym === '🏺');
-            let jarInCol3 = grid[3].some(s => s && s.sym === '🏺');
+            // 1. فحص ميزة جرف الجرات: وجود جرة في العمودين الأولين من جهة أقصى اليسار (العمود 0 والعمود 1)
+            let jarInCol0 = grid[0].some(s => s && s.sym === '🏺');
+            let jarInCol1 = grid[1].some(s => s && s.sym === '🏺');
 
-            if (jarInCol4 && jarInCol3) {
+            if (jarInCol0 && jarInCol1) {
                 isDoubleJarHarvest = true;
                 let harvestPoints = 0;
                 const symValues = { '7': 15, '🔔': 10, '🍇': 8, '🍍': 6, '🍊': 5, '🍋': 4, '🍒': 3, '🏺': 12 };
@@ -1345,14 +1345,14 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // 2. فحص الأرباح العادية المتصلة: تنطلق حتماً وحصرياً من أقصى اليمين (العمود 4) باتجاه اليسار
+            // 2. فحص الأرباح العادية المتصلة: تنطلق حتماً وحصرياً من أقصى اليسار (العمود 0) باتجاه اليمين
             const checkSymbols = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '7'];
 
             checkSymbols.forEach(targetSym => {
                 let connectedCols = [];
 
-                // نبدأ الفحص حتماً من أقصى اليمين (العمود 4) نزولاً نحو اليسار (3، 2، 1، 0)
-                for (let c = reelsCount - 1; c >= 0; c--) {
+                // نبدأ الفحص حتماً من أقصى اليسار (العمود 0) صعوداً نحو اليمين (0، 1، 2، 3، 4)
+                for (let c = 0; c < reelsCount; c++) {
                     let colData = grid[c];
                     let matchingRowsInCol = [];
 
@@ -1370,8 +1370,8 @@
                     }
                 }
 
-                // شرط الجزم: لن يُحسب الربح إلا إذا بدأت السلسلة من العمود 4 (أقصى اليمين) واتصلت بعمودين على الأقل
-                if (connectedCols.length >= 2 && connectedCols[0].col === reelsCount - 1) {
+                // شرط الجزم: لن يُحسب الربح إلا إذا بدأت السلسلة من العمود 0 (أقصى اليسار) واتصلت بعمودين على الأقل
+                if (connectedCols.length >= 2 && connectedCols[0].col === 0) {
                     let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
                     if (targetSym === '7') mult *= 2;
 
