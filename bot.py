@@ -41,8 +41,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8842721926:AAFn7HGsi7MPsPO7KtN4Z9PE5lj-j6OOhvY")
-DEFAULT_ADMIN_ID = int(os.getenv("ADMIN_ID", "7255100997"))
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+DEFAULT_ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
 RAW_SERVER_URL = os.getenv("SERVER_URL", "https://my-bot-j658.onrender.com")
 extracted_urls = re.findall(r'https?://[^\s\)\]]+', RAW_SERVER_URL)
@@ -56,11 +56,11 @@ DB_NAME = "database.db"
 def get_db():
     conn = sqlite3.connect(DB_NAME, timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
     return conn
 
 def init_db():
     conn = get_db()
-    conn.execute("PRAGMA journal_mode=WAL;")
     cursor = conn.cursor()
     
     cursor.execute('''
@@ -137,7 +137,9 @@ def init_db():
         )
     ''')
 
-    cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (DEFAULT_ADMIN_ID,))
+    if DEFAULT_ADMIN_ID:
+        cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (DEFAULT_ADMIN_ID,))
+        
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus', '100')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus_enabled', '1')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
@@ -158,7 +160,7 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '6')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '2')")
 
-    # 🎯 إعدادات النمط المباشر والسقوف الصارمة
+    # إعدادات النمط المباشر والسقوف الصارمة
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('global_win_mode', 'auto')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('max_mult_normal', '5.0')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('max_mult_medium', '10.0')")
@@ -174,6 +176,8 @@ init_db()
 # 3. دالة إرسال رسائل تليجرام متزامنة
 # ----------------------------------------------------
 def send_telegram_msg_sync(chat_id, text, reply_markup=None):
+    if not BOT_TOKEN:
+        return
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         payload = {
@@ -194,7 +198,7 @@ def send_telegram_msg_sync(chat_id, text, reply_markup=None):
 # 4. التحقق أمنياً من بيانات Telegram WebApp
 # ----------------------------------------------------
 def verify_telegram_webapp_data(init_data: str, token: str) -> bool:
-    if not init_data:
+    if not init_data or not token:
         return False
     try:
         parsed_data = dict(parse_qsl(init_data))
@@ -269,7 +273,8 @@ def api_get_user():
         user_id = data.get("user_id")
         init_data = data.get("init_data", "")
 
-        if init_data and not verify_telegram_webapp_data(init_data, BOT_TOKEN):
+        # تحقق أمني إجباري
+        if not init_data or not verify_telegram_webapp_data(init_data, BOT_TOKEN):
             return jsonify({"error": "فشل التحقق الأمني من الجلسة"}), 403
 
         if not user_id:
@@ -296,6 +301,11 @@ def api_sync_balance():
     try:
         data = request.json or {}
         user_id = data.get("user_id")
+        init_data = data.get("init_data", "")
+
+        # تحقق أمني إجباري لحماية الرصيد
+        if not init_data or not verify_telegram_webapp_data(init_data, BOT_TOKEN):
+            return jsonify({"error": "فشل التحقق الأمني من الجلسة"}), 403
 
         if not user_id:
             return jsonify({"error": "معرف المستخدم مفقود"}), 400
@@ -369,7 +379,6 @@ def admin_panel_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# 🎛️ لوحة الخوارزمية المحدثة مع زر النمط المباشر
 def algo_panel_keyboard():
     keyboard = [
         [InlineKeyboardButton("⚡ النمط المباشر (تلقائي / قفل ربح)", callback_data="adm_global_mode_menu")],
@@ -387,7 +396,6 @@ def algo_panel_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# ⚙️ لوحة تحديد النمط المباشر للسيرفر
 def global_mode_keyboard():
     keyboard = [
         [InlineKeyboardButton("🔄 تلقائي (حسب نسب الخوارزمية)", callback_data="set_gmode_auto")],
@@ -689,75 +697,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             f"💰 **المبلغ المطلوب:** `{amt}` NSP", reply_markup=kb)
         return
 
-    if step == "adm_set_win_rate":
-        try:
-            val = int(text)
-            if not (0 <= val <= 100): raise ValueError
-            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('win_rate', ?)", (str(val),))
-            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
-            conn.commit()
-            conn.close()
-            await update.message.reply_text(f"✅ تم تعديل نسبة الربح العامة إلى `{val}%` بنجاح.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
-        except ValueError:
-            conn.close()
-            await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
-        return
-
-    if step == "adm_set_bonus_win_rate":
-        try:
-            val = int(text)
-            if not (0 <= val <= 100): raise ValueError
-            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('bonus_win_rate', ?)", (str(val),))
-            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
-            conn.commit()
-            conn.close()
-            await update.message.reply_text(f"✅ تم تعديل نسبة ربح شراء المكافأة إلى `{val}%` بنجاح.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
-        except ValueError:
-            conn.close()
-            await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
-        return
-
-    if step in ["adm_set_bonus_cap_1", "adm_set_bonus_cap_2", "adm_set_bonus_cap_3"]:
-        try:
-            val = float(text)
-            if val < 0: raise ValueError
-            cap_key = step.replace("adm_set_", "")
-            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (cap_key, str(val)))
-            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
-            conn.commit()
-            conn.close()
-            
-            jar_num = cap_key.replace("bonus_cap_", "")
-            await update.message.reply_text(f"✅ تم ضبط سقف ربح شراء {jar_num} جرة إلى `{val}` NSP (لفئة 3).", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
-        except ValueError:
-            conn.close()
-            await update.message.reply_text("❌ يرجى إدخال مبلغ مالي صحيح بالأرقام.")
-        return
-
-    if step in ["adm_set_ch_loss", "adm_set_ch_normal", "adm_set_ch_medium", "adm_set_ch_high", "adm_set_ch_huge"]:
-        try:
-            val = int(text)
-            if not (0 <= val <= 100): raise ValueError
-            
-            key_map = {
-                "adm_set_ch_loss": "chance_loss",
-                "adm_set_ch_normal": "chance_normal",
-                "adm_set_ch_medium": "chance_medium",
-                "adm_set_ch_high": "chance_high",
-                "adm_set_ch_huge": "chance_huge"
-            }
-            setting_key = key_map[step]
-            
-            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (setting_key, str(val)))
-            conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
-            conn.commit()
-            conn.close()
-            await update.message.reply_text(f"✅ تم تعديل النسبة بنجاح إلى `{val}%`.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
-        except ValueError:
-            conn.close()
-            await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
-        return
-
     if step == "withdraw_step_code":
         context.user_data["withdraw_code"] = text
         conn.execute("UPDATE users SET step = 'withdraw_step_amount' WHERE user_id = ?", (user.id,))
@@ -884,6 +823,75 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
 
     is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
     if is_admin:
+        if step == "adm_set_win_rate":
+            try:
+                val = int(text)
+                if not (0 <= val <= 100): raise ValueError
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('win_rate', ?)", (str(val),))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+                conn.commit()
+                conn.close()
+                await update.message.reply_text(f"✅ تم تعديل نسبة الربح العامة إلى `{val}%` بنجاح.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+            except ValueError:
+                conn.close()
+                await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
+            return
+
+        if step == "adm_set_bonus_win_rate":
+            try:
+                val = int(text)
+                if not (0 <= val <= 100): raise ValueError
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('bonus_win_rate', ?)", (str(val),))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+                conn.commit()
+                conn.close()
+                await update.message.reply_text(f"✅ تم تعديل نسبة ربح شراء المكافأة إلى `{val}%` بنجاح.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+            except ValueError:
+                conn.close()
+                await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
+            return
+
+        if step in ["adm_set_bonus_cap_1", "adm_set_bonus_cap_2", "adm_set_bonus_cap_3"]:
+            try:
+                val = float(text)
+                if val < 0: raise ValueError
+                cap_key = step.replace("adm_set_", "")
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (cap_key, str(val)))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+                conn.commit()
+                conn.close()
+                
+                jar_num = cap_key.replace("bonus_cap_", "")
+                await update.message.reply_text(f"✅ تم ضبط سقف ربح شراء {jar_num} جرة إلى `{val}` NSP (لفئة 3).", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+            except ValueError:
+                conn.close()
+                await update.message.reply_text("❌ يرجى إدخال مبلغ مالي صحيح بالأرقام.")
+            return
+
+        if step in ["adm_set_ch_loss", "adm_set_ch_normal", "adm_set_ch_medium", "adm_set_ch_high", "adm_set_ch_huge"]:
+            try:
+                val = int(text)
+                if not (0 <= val <= 100): raise ValueError
+                
+                key_map = {
+                    "adm_set_ch_loss": "chance_loss",
+                    "adm_set_ch_normal": "chance_normal",
+                    "adm_set_ch_medium": "chance_medium",
+                    "adm_set_ch_high": "chance_high",
+                    "adm_set_ch_huge": "chance_huge"
+                }
+                setting_key = key_map[step]
+                
+                conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (setting_key, str(val)))
+                conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
+                conn.commit()
+                conn.close()
+                await update.message.reply_text(f"✅ تم تعديل النسبة بنجاح إلى `{val}%`.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="adm_algo_menu")]]))
+            except ValueError:
+                conn.close()
+                await update.message.reply_text("❌ يرجى إدخال نسبة مئوية صحيحة بين 0 و 100.")
+            return
+
         if step == "adm_input_add_dep_name":
             context.user_data["new_dep_name"] = text
             conn.execute("UPDATE users SET step = 'adm_input_add_dep_details' WHERE user_id = ?", (user.id,))
@@ -1361,7 +1369,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
 
-        # 🎛️ عرض لوحة التحكم بالخوارزمية المحدثة
         if data == "adm_algo_menu":
             settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
             conn.close()
@@ -1396,7 +1403,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=algo_panel_keyboard())
             return
 
-        # ⚡ القائمة الفرعية لتغيير النمط المباشر
         if data == "adm_global_mode_menu":
             conn.close()
             await query.message.edit_text(
@@ -1407,7 +1413,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        # 🔄 حفظ وتفعيل النمط المباشر الجديد
         if data.startswith("set_gmode_"):
             new_mode = data.replace("set_gmode_", "")
             conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('global_win_mode', ?)", (new_mode,))
@@ -1759,6 +1764,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # 9. تشغيل التطبيق
 # ----------------------------------------------------
 def main():
+    if not BOT_TOKEN:
+        logger.error("❌ لم يتم العثور على BOT_TOKEN في متغيرات البيئة!")
+        return
+
     threading.Thread(target=run_flask, daemon=True).start()
 
     app = Application.builder().token(BOT_TOKEN).build()
