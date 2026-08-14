@@ -32,26 +32,23 @@ def init_db():
         )
     ''')
     
-    # الإعدادات الافتراضية لخوارزميات التحكم (خسارة / عادي / متوسط / عالي / ضخم)
+    # الإعدادات الافتراضية المعدلة لتقبل النسب المحددة من البوت
     default_settings = {
-        "win_rate": "30",          # نسبة الربح العامة
         "bonus_win_rate": "40",    # نسبة الربح عند شراء المكافأة
         "bonus_cap_1": "200",      # سقف ربح 1 جرة
         "bonus_cap_2": "500",      # سقف ربح 2 جرة
         "bonus_cap_3": "1000",     # سقف ربح 3 جرات
-        "chance_loss": "50",       # نسبة الخسارة العامة (50%)
-        "chance_normal": "30",     # نسبة الربح العادي (30%)
-        "chance_medium": "12",     # نسبة الربح المتوسط (12%)
-        "chance_high": "6",        # نسبة الربح العالي (6%)
-        "chance_huge": "2",        # نسبة الربح الضخم (2%)
         
-        # 🎯 حدود سقوف المضاعفات المحددة
-        "max_mult_normal": "5.0",   # عادي: لا يتجاوز 5x
-        "max_mult_medium": "10.0",  # متوسط: لا يتجاوز 10x
-        "max_mult_high": "20.0",    # عالي: لا يتجاوز 20x
-        "max_mult_huge": "50.0",    # ضخم: لا يتجاوز 50x
+        # 🎯 النسب المحددة يدوياً من البوت
+        "chance_loss": "50",       # نسبة الخسارة (50%)
+        "chance_win1": "20",       # نسبة ربح 1x (20%)
+        "chance_win2": "10",       # نسبة ربح 2x (10%)
+        "chance_win5": "10",       # نسبة ربح 5x (10%)
+        "chance_win10": "6",       # نسبة ربح 10x (6%)
+        "chance_win20": "3",       # نسبة ربح 20x (3%)
+        "chance_win50": "1",       # نسبة ربح 50x (1%)
         
-        # ⚙️ نمط التشغيل العالمي (auto / normal / medium / high / huge / loss)
+        # ⚙️ نمط التشغيل الإجباري (auto / loss / win1 / win2 / win5 / win10 / win20 / win50)
         "global_win_mode": "auto"
     }
     
@@ -182,52 +179,47 @@ def evaluate_grid(grid, bet):
 
     return win_amount, winning_coords, has_jar, primary_jar_reel, max_jar_mult, jars_count
 
-# --- دالة اختيار درجة النتيجة المطلوبة ---
+# --- دالة اختيار الفئة بناءً على النسب المحددة في البوت ---
 def choose_tier(is_bonus_buy=False):
-    # التحقق مما إذا كان الأدمن أوجب نمط ربح معين من البوت
     global_mode = get_setting("global_win_mode", "auto")
-    if global_mode in ["loss", "normal", "medium", "high", "huge"]:
+    if global_mode in ["loss", "win1", "win2", "win5", "win10", "win20", "win50"]:
         return global_mode
 
     if is_bonus_buy:
         bonus_win_rate = int(get_setting("bonus_win_rate", 40))
         if random.randint(1, 100) > bonus_win_rate:
             return "loss"
-        return random.choices(["normal", "medium", "high", "huge"], weights=[50, 30, 15, 5])[0]
+        return random.choices(["win1", "win2", "win5", "win10", "win20", "win50"], weights=[30, 25, 20, 15, 7, 3])[0]
     else:
         c_loss = float(get_setting("chance_loss", 50))
-        c_normal = float(get_setting("chance_normal", 30))
-        c_medium = float(get_setting("chance_medium", 12))
-        c_high = float(get_setting("chance_high", 6))
-        c_huge = float(get_setting("chance_huge", 2))
+        c_win1 = float(get_setting("chance_win1", 20))
+        c_win2 = float(get_setting("chance_win2", 10))
+        c_win5 = float(get_setting("chance_win5", 10))
+        c_win10 = float(get_setting("chance_win10", 6))
+        c_win20 = float(get_setting("chance_win20", 3))
+        c_win50 = float(get_setting("chance_win50", 1))
         
-        tiers = ["loss", "normal", "medium", "high", "huge"]
-        weights = [c_loss, c_normal, c_medium, c_high, c_huge]
+        tiers = ["loss", "win1", "win2", "win5", "win10", "win20", "win50"]
+        weights = [c_loss, c_win1, c_win2, c_win5, c_win10, c_win20, c_win50]
         total = sum(weights)
         if total <= 0: return "loss"
         return random.choices(tiers, weights=weights)[0]
 
-# --- توليد الشبكة بناءً على الخوارزمية والشروط والسقوف الدقيقة ---
+# --- توليد الشبكة بناءً على مضاعفات الربح الدقيقة المطلوب تحقيقها ---
 def generate_controlled_grid(tier, bet, forced_jars=0, max_win_cap=None):
     symbols = ['🍋', '🍍', '🍊', '🍒', '🔔', '🍇', '7']
     jar_mults = [1, 2, 3, 5]
 
-    # جلب الحدود من الإعدادات
-    max_normal = float(get_setting("max_mult_normal", 5.0))
-    max_medium = float(get_setting("max_mult_medium", 10.0))
-    max_high = float(get_setting("max_mult_high", 20.0))
-    max_huge = float(get_setting("max_mult_huge", 50.0))
-
-    for _ in range(200):
+    for _ in range(250):
         grid = []
         if forced_jars > 0:
             target_jars = forced_jars
         else:
-            if tier == "huge":
+            if tier in ["win20", "win50"]:
                 target_jars = random.choice([2, 3])
-            elif tier in ["medium", "high"]:
+            elif tier in ["win5", "win10"]:
                 target_jars = random.choice([1, 2])
-            elif tier == "normal":
+            elif tier in ["win1", "win2"]:
                 target_jars = 1 if random.random() < 0.2 else 0
             else:
                 target_jars = 1 if random.random() < 0.05 else 0
@@ -254,19 +246,23 @@ def generate_controlled_grid(tier, bet, forced_jars=0, max_win_cap=None):
 
         win_ratio = win_amount / bet if bet > 0 else 0
 
-        # تطبيق السقوف الدقيقة
+        # مطابقة النتيجة بالمضاعف المحدد بالضبط
         if tier == "loss" and win_amount == 0:
             return grid, 0.0, [], h_jar, j_idx, j_mult
-        elif tier == "normal" and 0 < win_ratio <= max_normal:
+        elif tier == "win1" and 0.8 <= win_ratio <= 1.8:
             return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
-        elif tier == "medium" and max_normal < win_ratio <= max_medium:
+        elif tier == "win2" and 1.8 < win_ratio <= 3.8:
             return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
-        elif tier == "high" and max_medium < win_ratio <= max_high:
+        elif tier == "win5" and 3.8 < win_ratio <= 7.5:
             return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
-        elif tier == "huge" and max_high < win_ratio <= max_huge:
+        elif tier == "win10" and 7.5 < win_ratio <= 15.0:
+            return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
+        elif tier == "win20" and 15.0 < win_ratio <= 35.0:
+            return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
+        elif tier == "win50" and win_ratio > 35.0:
             return grid, win_amount, winning_coords, h_jar, j_idx, j_mult
 
-    # حافز أمان في حال عدم تحقق النسبة لتوليد دورة خاسرة بدلاً من الكراش
+    # صمام أمان لتأكيد توليد دورة خاسرة في حال عدم مطابقة الشروط بعد عدة محاولات
     safe_symbols = ['🍋', '🍍', '🍊', '🍒', '🔔']
     grid = []
     for reel_idx in range(5):
