@@ -41,7 +41,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8956961450:AAHw0vuGWm-ME7VVz9P6a5xOYRhd7EvEJ-0-j6OOhvY")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8956961450:AAHw0vuGWm-ME7VVz9P6a5xOYRhd7EvEJ-0")
 DEFAULT_ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
 RAW_SERVER_URL = os.getenv("SERVER_URL", "https://my-bot-j658.onrender.com")
