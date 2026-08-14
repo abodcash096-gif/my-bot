@@ -1294,12 +1294,34 @@
         }
 
         // =========================================================================
-        //  حساب الأرباح حتماً وشرطياً من البكرة الأولى على اليسار (تحت زر تحديث)
+        //  حساب الأرباح حتماً وشرطياً وفق القواعد الجديدة المعدلة
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
+
+            // دالة تحديد مضاعف الربح حسب نوع الرمز وعدد التكرارات المتتالية
+            function getMultiplier(sym, count) {
+                if (sym === '7') {
+                    if (count === 2) return 1;   // اثنتان = سعر الرهان (1x)
+                    if (count === 3) return 2;   // ثلاثية = ضعفا سعر الرهان (2x)
+                    if (count === 4) return 7;   // رباعية = 7 أضعاف
+                    if (count >= 5) return 50;  // خماسية = 50 ضعفاً
+                    return 0;
+                }
+                if (sym === '🍇' || sym === '🔔') {
+                    if (count === 3) return 3;   // ثلاثية الجرس/العنب = 3 أضعاف
+                    if (count === 4) return 5;   // رباعية = 5 أضعاف
+                    if (count >= 5) return 10;  // خماسية = 10 أضعاف
+                    return 0;
+                }
+                // باقي الفواكه: 🍊, 🍍, 🍋, 🍒 (دون العنب والجرس)
+                if (count === 3) return 1;       // ثلاثية = 1x سعر الرهان
+                if (count === 4) return 2;       // رباعية = ضعفا سعر الرهان (2x)
+                if (count >= 5) return 5;       // خماسية = 5 أضعاف
+                return 0;
+            }
 
             // 1. ميزة جرف الجرات الخاصة (البكرة الأولى والثانية تحتوي على جرة)
             let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
@@ -1350,39 +1372,34 @@
                     }
                 }
 
-                // الشرط الجازم: الربح يجب أن يبدأ حتماً من العمود 0 (يسار) ويمتد لعمودين متصلين على الأقل
+                // الشرط الجازم: الربح يجب أن يبدأ حتماً من العمود 0 (يسار)
                 if (connectedCols.length >= 2 && connectedCols[0].col === 0) {
-                    let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
-                    if (targetSym === '7') mult *= 2;
+                    let mult = getMultiplier(targetSym, connectedCols.length);
 
-                    let jarMultProduct = 1;
-                    let hasJarInWin = false;
+                    if (mult > 0) {
+                        let jarMultProduct = 1;
 
-                    connectedCols.forEach(item => {
-                        item.rows.forEach(r => {
-                            let symObj = grid[item.col][r];
-                            if (symObj && symObj.sym === '🏺') {
-                                hasJarInWin = true;
-                                if (symObj.mult > 1) {
-                                    jarMultProduct *= symObj.mult;
+                        connectedCols.forEach(item => {
+                            item.rows.forEach(r => {
+                                let symObj = grid[item.col][r];
+                                if (symObj && symObj.sym === '🏺') {
+                                    if (symObj.mult > 1) {
+                                        jarMultProduct *= symObj.mult;
+                                    }
                                 }
-                            }
+                            });
                         });
-                    });
 
-                    if (connectedCols.length >= 3 && hasJarInWin) {
-                        mult *= 1.5;
+                        totalWin += (bet * mult * jarMultProduct);
+
+                        connectedCols.forEach(item => {
+                            item.rows.forEach(r => winningCoords.push([item.col, r]));
+                        });
                     }
-
-                    totalWin += (bet * mult * jarMultProduct);
-
-                    connectedCols.forEach(item => {
-                        item.rows.forEach(r => winningCoords.push([item.col, r]));
-                    });
                 }
             });
 
-            // 3. فحص الخطوط القياسية الثلاثة (العلوي، الأوسط، السفلي) بدءاً من اليسار
+            // 3. فحص الخطوط القياسية الخمسة (العلوي، الأوسط، السفلي، V، V مقلوب) بدءاً من اليسار
             const paylines = [
                 [0, 0, 0, 0, 0], // الصف العلوي
                 [1, 1, 1, 1, 1], // الصف الأوسط
@@ -1416,9 +1433,17 @@
                     }
                 }
 
-                if (matchCount >= 2) {
-                    let mult = matchCount === 2 ? 1.0 : (matchCount === 3 ? 3 : (matchCount === 4 ? 8 : 20));
-                    totalWin += (bet * mult);
+                let mult = getMultiplier(targetSym, matchCount);
+                if (mult > 0) {
+                    let jarMultProduct = 1;
+                    lineCoords.forEach(coord => {
+                        let symObj = grid[coord[0]][coord[1]];
+                        if (symObj && symObj.sym === '🏺' && symObj.mult > 1) {
+                            jarMultProduct *= symObj.mult;
+                        }
+                    });
+
+                    totalWin += (bet * mult * jarMultProduct);
                     lineCoords.forEach(coord => winningCoords.push(coord));
                 }
             });
