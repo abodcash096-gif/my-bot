@@ -1098,6 +1098,8 @@
             }
         }
         loadUserData();
+        setTimeout(() => { document.getElementById('splashScreen').style.display = 'none'; }, 2000);
+            
 
         function generateInitialList(count) {
             const commonItems = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔'];
