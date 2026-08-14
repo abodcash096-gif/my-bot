@@ -13,7 +13,6 @@ import time
 import urllib.request
 from urllib.parse import parse_qsl
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify
 
 from telegram import (
     Update,
@@ -163,30 +162,25 @@ def init_db():
     if DEFAULT_ADMIN_ID:
         cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (DEFAULT_ADMIN_ID,))
         
-    # وضع الصيانة الافتراضي (0 = معطل، 1 = مفعل)
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('maintenance_mode', '0')")
-
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus', '100')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus_enabled', '1')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_withdraw', '1000')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_deposit', '50')")
     
-    # إعدادات خوارزمية الربح وشراء المكافأة
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('win_rate', '30')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_win_rate', '40')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_1', '200')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_2', '500')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_3', '1000')")
     
-    # خوارزميات درجات الربح الخمس
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_loss', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_normal', '30')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_medium', '12')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '6')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '2')")
 
-    # إعدادات النمط المباشر والسقوف الصارمة
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('global_win_mode', 'auto')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('max_mult_normal', '5.0')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('max_mult_medium', '10.0')")
@@ -221,20 +215,20 @@ def send_telegram_msg_sync(chat_id, text, reply_markup=None):
         logger.error(f"Error in send_telegram_msg_sync: {e}")
 
 # ----------------------------------------------------
-# 4. التحقق أمنياً من بيانات Telegram WebApp
+# 4. إبقاء السيرفر نشطاً (Self-Ping)
 # ----------------------------------------------------
-def verify_telegram_webapp_data(init_data: str, token: str) -> bool:
-    if not init_data or not token:
-        return False
-    try:
-        parsed_data = dict(parse_qsl(init_data))
-        hash_check = parsed_data.pop('hash', '')
-        data_check_string = '\n'.join(f"{k}={v}" for k, v in sorted(parsed_data.items()))
-        secret_key = hmac.new(b"WebAppData", token.encode(), hashlib.sha256).digest()
-        calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
-        return calculated_hash == hash_check
-    except Exception:
-        return False
+def keep_alive():
+    """نظام إبقاء السيرفر نشطاً لمنع النوم على خادم Render المجاني"""
+    time.sleep(15)
+    while True:
+        try:
+            logger.info(f"Pinging self at {SERVER_URL}...")
+            req = urllib.request.Request(SERVER_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                logger.info(f"Keep-alive response code: {response.getcode()}")
+        except Exception as e:
+            logger.warning(f"Keep-alive ping failed: {e}")
+        time.sleep(540) # طلب كل 9 دقائق
 
 # ----------------------------------------------------
 # 5. فحص الاشتراك الإجباري بالقنوات
@@ -273,122 +267,7 @@ def build_sub_keyboard(unsubscribed_channels: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
-# 6. خادم Flask API والإبقاء على قيد الحياة (Keep-Alive)
-# ----------------------------------------------------
-flask_app = Flask(__name__, template_folder="templates", static_folder="templates")
-
-@flask_app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
-
-@flask_app.route("/")
-def home():
-    return render_template("index.html", server_url=SERVER_URL)
-
-@flask_app.route("/games")
-def games_page():
-    return render_template("index.html", server_url=SERVER_URL)
-
-@flask_app.route("/api/get_user_data", methods=["POST"])
-def api_get_user():
-    try:
-        data = request.json or {}
-        user_id = data.get("user_id")
-        init_data = data.get("init_data", "")
-
-        # فحص وضع الصيانة لرفع استجابة ملائمة لصفحة الويب
-        if is_maintenance_active() and not is_admin_user(user_id):
-            return jsonify({"error": "البوت والموقع حالياً في حالة صيانة وتحديثات دورية."}), 503
-
-        # تحقق أمني إجباري
-        if not init_data or not verify_telegram_webapp_data(init_data, BOT_TOKEN):
-            return jsonify({"error": "فشل التحقق الأمني من الجلسة"}), 403
-
-        if not user_id:
-            return jsonify({"error": "معرف المستخدم مفقود"}), 400
-        
-        conn = get_db()
-        user = conn.execute("SELECT user_id, full_name, balance FROM users WHERE user_id = ?", (user_id,)).fetchone()
-        conn.close()
-        
-        if not user:
-            return jsonify({"error": "الحساب غير موجود"}), 404
-            
-        return jsonify({
-            "user_id": user["user_id"],
-            "name": user["full_name"],
-            "balance": user["balance"]
-        })
-    except Exception as e:
-        logger.error(f"Error in api_get_user: {e}")
-        return jsonify({"error": "حدث خطأ داخلي في السيرفر"}), 500
-
-@flask_app.route("/api/sync_balance", methods=["POST"])
-def api_sync_balance():
-    try:
-        data = request.json or {}
-        user_id = data.get("user_id")
-        init_data = data.get("init_data", "")
-
-        # تحقق أمني إجباري لحماية الرصيد
-        if not init_data or not verify_telegram_webapp_data(init_data, BOT_TOKEN):
-            return jsonify({"error": "فشل التحقق الأمني من الجلسة"}), 403
-
-        if not user_id:
-            return jsonify({"error": "معرف المستخدم مفقود"}), 400
-
-        conn = get_db()
-        user = conn.execute("SELECT user_id, full_name, balance FROM users WHERE user_id = ?", (user_id,)).fetchone()
-        conn.close()
-
-        if not user:
-            return jsonify({"error": "المستخدم غير موجود"}), 404
-
-        games_url = f"{SERVER_URL}/games"
-        kb = {
-            "inline_keyboard": [
-                [{"text": "🎮 دخول اللعبة مجدداً", "web_app": {"url": games_url}}],
-                [{"text": "👤 حسابي ورصيدي", "callback_data": "btn_account"}]
-            ]
-        }
-        msg = (
-            f"🔔 **تحديث الرصيد بعد اللعب:**\n\n"
-            f"👤 **اللاعب:** {user['full_name']}\n"
-            f"💰 **رصيدك الحالي في البوت:** `{user['balance']:,.2f}` NSP"
-        )
-        send_telegram_msg_sync(user_id, msg, reply_markup=kb)
-
-        return jsonify({
-            "status": "success",
-            "user_id": user["user_id"],
-            "balance": user["balance"]
-        })
-    except Exception as e:
-        logger.error(f"Error in api_sync_balance: {e}")
-        return jsonify({"error": str(e)}), 500
-
-def keep_alive():
-    """نظام إبقاء السيرفر نشطاً لمنع النوم على خادم Render المجاني"""
-    time.sleep(15)
-    while True:
-        try:
-            logger.info(f"Pinging self at {SERVER_URL}...")
-            req = urllib.request.Request(SERVER_URL, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=10) as response:
-                logger.info(f"Keep-alive response code: {response.getcode()}")
-        except Exception as e:
-            logger.warning(f"Keep-alive ping failed: {e}")
-        time.sleep(540) # إرسال طلب كل 9 دقائق
-
-def run_flask():
-    port = int(os.environ.get("PORT", 5000))
-    flask_app.run(host="0.0.0.0", port=port)
-
-# ----------------------------------------------------
-# 7. لوحات التحكم والأوامر (Telegram Engine)
+# 6. لوحات التحكم والأوامر (Telegram Engine)
 # ----------------------------------------------------
 def main_menu_keyboard(is_admin=False):
     games_url = f"{SERVER_URL}/games"
@@ -474,7 +353,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat_id = update.effective_chat.id
 
-    # فحص وضع الصيانة بالنسبة للعميل العادي
     if is_maintenance_active() and not is_admin_user(user.id):
         await update.message.reply_text("🛠️ **البوت حالياً في حالة صيانة وتحديثات دورية.**\nيرجى المحاولة في وقت لاحق.")
         return
@@ -675,7 +553,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     user = update.effective_user
     text = update.message.text.strip() if update.message.text else ""
     
-    # فحص وضع الصيانة للعموم
     if is_maintenance_active() and not is_admin_user(user.id):
         await update.message.reply_text("🛠️ **البوت حالياً في حالة صيانة وتحديثات دورية.**\nيرجى المحاولة لاحقاً.")
         return
@@ -1251,7 +1128,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     conn.close()
 
 # ----------------------------------------------------
-# 8. معالجة النقرات (Callback Queries)
+# 7. معالجة النقرات (Callback Queries)
 # ----------------------------------------------------
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1840,21 +1717,16 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
 # ----------------------------------------------------
-# 9. تشغيل التطبيق والخدمات الجانبية
+# 8. تشغيل التطبيق
 # ----------------------------------------------------
 def main():
     if not BOT_TOKEN:
         logger.error("❌ لم يتم العثور على BOT_TOKEN في متغيرات البيئة!")
         return
 
-    # تهيئة قاعدة البيانات عند بدء التشغيل
     init_db()
 
-    # تشغيل خادم Flask
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-
-    # تشغيل نظام الإبقاء على قيد الحياة (Keep-Alive) لمنع نوم Render
+    # تشغيل خيط الـ Keep-Alive في الخلفية
     ping_thread = threading.Thread(target=keep_alive, daemon=True)
     ping_thread.start()
 
@@ -1870,7 +1742,7 @@ def main():
     
     app.add_handler(CallbackQueryHandler(handle_callback))
 
-    logger.info("Bot, Flask Engine & Keep-Alive Ping starting successfully...")
+    logger.info("Bot & Keep-Alive Engine starting successfully...")
     app.run_polling()
 
 if __name__ == "__main__":
