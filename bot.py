@@ -9,6 +9,7 @@ import re
 import hmac
 import hashlib
 import json
+import time
 import urllib.request
 from urllib.parse import parse_qsl
 from datetime import datetime, timedelta
@@ -272,7 +273,7 @@ def build_sub_keyboard(unsubscribed_channels: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 # ----------------------------------------------------
-# 6. خادم Flask API والألعاب
+# 6. خادم Flask API والإبقاء على قيد الحياة (Keep-Alive)
 # ----------------------------------------------------
 flask_app = Flask(__name__, template_folder="templates", static_folder="templates")
 
@@ -368,6 +369,19 @@ def api_sync_balance():
     except Exception as e:
         logger.error(f"Error in api_sync_balance: {e}")
         return jsonify({"error": str(e)}), 500
+
+def keep_alive():
+    """نظام إبقاء السيرفر نشطاً لمنع النوم على خادم Render المجاني"""
+    time.sleep(15)
+    while True:
+        try:
+            logger.info(f"Pinging self at {SERVER_URL}...")
+            req = urllib.request.Request(SERVER_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                logger.info(f"Keep-alive response code: {response.getcode()}")
+        except Exception as e:
+            logger.warning(f"Keep-alive ping failed: {e}")
+        time.sleep(540) # إرسال طلب كل 9 دقائق
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
@@ -1198,9 +1212,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
                 await update.message.reply_text("❌ أدخل ID صحيح.")
             conn.close()
             return
-        # ----------------------------------------------------
-        # معالجة مدخلات المشرف (إذاعة وتواصل خاص)
-        # ----------------------------------------------------
+
         if step == "adm_input_bc_txt":
             users_list = conn.execute("SELECT user_id FROM users WHERE is_banned = 0").fetchall()
             conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
@@ -1828,15 +1840,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
 # ----------------------------------------------------
-# 9. تشغيل التطبيق
+# 9. تشغيل التطبيق والخدمات الجانبية
 # ----------------------------------------------------
 def main():
     if not BOT_TOKEN:
         logger.error("❌ لم يتم العثور على BOT_TOKEN في متغيرات البيئة!")
         return
 
-    threading.Thread(target=run_flask, daemon=True).start()
+    # تهيئة قاعدة البيانات عند بدء التشغيل
+    init_db()
 
+    # تشغيل خادم Flask
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+
+    # تشغيل نظام الإبقاء على قيد الحياة (Keep-Alive) لمنع نوم Render
+    ping_thread = threading.Thread(target=keep_alive, daemon=True)
+    ping_thread.start()
+
+    # تشغيل بوت تليجرام
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start_command))
@@ -1848,7 +1870,7 @@ def main():
     
     app.add_handler(CallbackQueryHandler(handle_callback))
 
-    logger.info("Bot & Flask Engine starting successfully...")
+    logger.info("Bot, Flask Engine & Keep-Alive Ping starting successfully...")
     app.run_polling()
 
 if __name__ == "__main__":
