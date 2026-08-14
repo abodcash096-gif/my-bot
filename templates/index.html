@@ -789,7 +789,7 @@
         🔥 مكافأة جرات مفعلة: متبقي 5 ضربات
     </div>
 
-    <!-- 3. إطار اللعبة والبكرات (العمود 0 يقع أقصى اليسار مباشرة أسفل كلمة تحديث) -->
+    <!-- 3. إطار اللعبة والبكرات -->
     <div class="game-container">
         <div class="jar-banner" id="jarBanner"><span id="jarWinRating">ربح كبير! 🔥</span><br><span id="jarMultText" style="font-size: 28px; color: var(--gold);">5x</span></div>
         <div class="slots-frame" id="slotsFrame"></div>
@@ -1017,6 +1017,29 @@
                     osc.start(now + (i * 0.04)); osc.stop(now + (i * 0.04) + 0.25);
                 });
             }
+            else if (type === 'big_win_music') {
+                /* --- موسيقى مميزة وحماسية للربح الكبير (Big Win) --- */
+                let fanfareNotes = [
+                    { f: 523.25, t: 0.0, d: 0.15 },  // C5
+                    { f: 659.25, t: 0.12, d: 0.15 }, // E5
+                    { f: 783.99, t: 0.24, d: 0.15 }, // G5
+                    { f: 1046.50, t: 0.36, d: 0.35 },// C6
+                    { f: 880.00, t: 0.55, d: 0.15 }, // A5
+                    { f: 1046.50, t: 0.70, d: 0.50 } // C6
+                ];
+                fanfareNotes.forEach(n => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(n.f, now + n.t);
+                    gain.gain.setValueAtTime(0.3, now + n.t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + n.t);
+                    osc.stop(now + n.t + n.d);
+                });
+            }
             else if (type === 'coins_flying') {
                 for (let i = 0; i < 12; i++) {
                     setTimeout(() => {
@@ -1141,7 +1164,6 @@
             });
         }
 
-        // إنشاء البكرات الخمس - العمود 0 سينشأ جهة اليسار أسفل زر تحديث مباشرة
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -1294,38 +1316,38 @@
         }
 
         // =========================================================================
-        //  منطق احتساب الأرباح الجديد:
-        //  1. تبدأ السلسلة حتماً من العمود 0 (يسار).
-        //  2. تكون الفاكهة متصلة أفقياً (نفس الصف) أو قطرياً/مائلاً (الصف المجاور ±1).
+        //  شروط واحتساب الأرباح الجديد الصارم والمحدد:
+        //  1. الأسطر الأفقية (3 أو 4 أو 5 فواكه متجاورة).
+        //  2. الخطوط المائلة القطرية الثلاثية (3 فواكه).
+        //  3. النمط الرباعي المائل للمنتصف ثم للأعلى/أسفل (4 فواكه).
+        //  4. النمط الخماسي المائل للمنتصف ثم للأعلى/أسفل (5 فواكه عبر العمود 0..4).
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // جدول تحديد المضاعفات حسب الرمز وعدد التكرارات المتصلة
             function getMultiplier(sym, count) {
                 if (sym === '7') {
-                    if (count === 2) return 1;   // اثنتان = 1x سعر الرهان
-                    if (count === 3) return 2;   // ثلاثية = 2x
-                    if (count === 4) return 7;   // رباعية = 7x
-                    if (count >= 5) return 50;  // خماسية = 50x
+                    if (count === 2) return 1;
+                    if (count === 3) return 2;
+                    if (count === 4) return 7;
+                    if (count >= 5) return 50;
                     return 0;
                 }
                 if (sym === '🍇' || sym === '🔔') {
-                    if (count === 3) return 3;   // ثلاثية = 3x
-                    if (count === 4) return 5;   // رباعية = 5x
-                    if (count >= 5) return 10;  // خماسية = 10x
+                    if (count === 3) return 3;
+                    if (count === 4) return 5;
+                    if (count >= 5) return 10;
                     return 0;
                 }
-                // باقي الفواكه: 🍊, 🍍, 🍋, 🍒
-                if (count === 3) return 1;       // ثلاثية = 1x
-                if (count === 4) return 2;       // رباعية = 2x
-                if (count >= 5) return 5;       // خماسية = 5x
+                if (count === 3) return 1;
+                if (count === 4) return 2;
+                if (count >= 5) return 5;
                 return 0;
             }
 
-            // 1. ميزة جرف الجرات الضخمة (تتطلب وجود جرة في العمود 0 والعمود 1)
+            // ميزة جرف الجرات (تتطلب وجود جرة في العمود 0 والعمود 1)
             let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
             let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
 
@@ -1347,67 +1369,84 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // 2. البحث عن الأرباح المتصلة أفقياً أو قطرياً تبدأ حتماً من العمود 0
+            // تعريف أنماط وخطوط الفوز المسموحة حصراً
+            const paylineDefinitions = [
+                // 1. أسطر أفقية خماسية (5 فواكه)
+                { type: 5, coords: [[0,0], [1,0], [2,0], [3,0], [4,0]] },
+                { type: 5, coords: [[0,1], [1,1], [2,1], [3,1], [4,1]] },
+                { type: 5, coords: [[0,2], [1,2], [2,2], [3,2], [4,2]] },
+
+                // 2. أسطر أفقية رباعية (4 فواكه متجاورة)
+                { type: 4, coords: [[0,0], [1,0], [2,0], [3,0]] },
+                { type: 4, coords: [[1,0], [2,0], [3,0], [4,0]] },
+                { type: 4, coords: [[0,1], [1,1], [2,1], [3,1]] },
+                { type: 4, coords: [[1,1], [2,1], [3,1], [4,1]] },
+                { type: 4, coords: [[0,2], [1,2], [2,2], [3,2]] },
+                { type: 4, coords: [[1,2], [2,2], [3,2], [4,2]] },
+
+                // 3. أسطر أفقية ثلاثية (3 فواكه متجاورة)
+                { type: 3, coords: [[0,0], [1,0], [2,0]] },
+                { type: 3, coords: [[1,0], [2,0], [3,0]] },
+                { type: 3, coords: [[2,0], [3,0], [4,0]] },
+                { type: 3, coords: [[0,1], [1,1], [2,1]] },
+                { type: 3, coords: [[1,1], [2,1], [3,1]] },
+                { type: 3, coords: [[2,1], [3,1], [4,1]] },
+                { type: 3, coords: [[0,2], [1,2], [2,2]] },
+                { type: 3, coords: [[1,2], [2,2], [3,2]] },
+                { type: 3, coords: [[2,2], [3,2], [4,2]] },
+
+                // 4. خطوط مائلة ثلاثية (3 فواكه)
+                { type: 3, coords: [[0,0], [1,1], [2,2]] },
+                { type: 3, coords: [[1,0], [2,1], [3,2]] },
+                { type: 3, coords: [[2,0], [3,1], [4,2]] },
+                { type: 3, coords: [[0,2], [1,1], [2,0]] },
+                { type: 3, coords: [[1,2], [2,1], [3,0]] },
+                { type: 3, coords: [[2,2], [3,1], [4,0]] },
+
+                // 5. نمط مائل رباعي للمنتصف ثم للأعلى/الأسفل (4 فواكه)
+                { type: 4, coords: [[0,0], [1,1], [2,2], [3,1]] },
+                { type: 4, coords: [[1,0], [2,1], [3,2], [4,1]] },
+                { type: 4, coords: [[0,2], [1,1], [2,0], [3,1]] },
+                { type: 4, coords: [[1,2], [2,1], [3,0], [4,1]] },
+
+                // 6. نمط مائل خماسي للمنتصف ثم للأعلى/الأسفل (5 فواكه)
+                { type: 5, coords: [[0,0], [1,1], [2,2], [3,1], [4,0]] },
+                { type: 5, coords: [[0,2], [1,1], [2,0], [3,1], [4,2]] }
+            ];
+
             const targetSymbols = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '7'];
 
             targetSymbols.forEach(targetSym => {
-                // الفحص يبدأ حصراً من العمود 0 (الصفوف 0، 1، 2)
-                for (let r0 = 0; r0 < 3; r0++) {
-                    let sym0Obj = grid[0][r0];
-                    let sym0 = sym0Obj ? sym0Obj.sym : null;
+                paylineDefinitions.forEach(line => {
+                    let isMatch = true;
+                    let jarMultProduct = 1;
 
-                    // يجب أن تكون البداية هي الرمز نفسه أو الجرة Wild
-                    if (sym0 !== targetSym && sym0 !== '🏺') continue;
-
-                    // البحث التتبعي لتشغيل السلاسل أفقياً أو قطرياً (DFS)
-                    function findConnectedPaths(col, currentRow, currentPath) {
-                        currentPath.push([col, currentRow]);
-
-                        let nextCol = col + 1;
-                        if (nextCol < reelsCount) {
-                            let extended = false;
-                            // الاتصال الجانبي (نفس الصف) أو المائل (الصف المجاور ±1)
-                            for (let rNext = currentRow - 1; rNext <= currentRow + 1; rNext++) {
-                                if (rNext >= 0 && rNext < 3) {
-                                    let nextSymObj = grid[nextCol][rNext];
-                                    let nextSym = nextSymObj ? nextSymObj.sym : null;
-
-                                    if (nextSym === targetSym || nextSym === '🏺') {
-                                        findConnectedPaths(nextCol, rNext, [...currentPath]);
-                                        extended = true;
-                                    }
-                                }
-                            }
-                            if (!extended) {
-                                processPathResult(currentPath);
-                            }
-                        } else {
-                            processPathResult(currentPath);
+                    for (let i = 0; i < line.coords.length; i++) {
+                        let [c, r] = line.coords[i];
+                        let symObj = grid[c] ? grid[c][r] : null;
+                        if (!symObj) { isMatch = false; break; }
+                        
+                        let sym = symObj.sym;
+                        if (sym !== targetSym && sym !== '🏺') {
+                            isMatch = false;
+                            break;
+                        }
+                        if (sym === '🏺' && symObj.mult > 1) {
+                            jarMultProduct *= symObj.mult;
                         }
                     }
 
-                    function processPathResult(path) {
-                        let len = path.length;
-                        let mult = getMultiplier(targetSym, len);
-
+                    if (isMatch) {
+                        let mult = getMultiplier(targetSym, line.type);
                         if (mult > 0) {
-                            let jarMultProduct = 1;
-                            path.forEach(coord => {
-                                let symObj = grid[coord[0]][coord[1]];
-                                if (symObj && symObj.sym === '🏺' && symObj.mult > 1) {
-                                    jarMultProduct *= symObj.mult;
-                                }
-                                winningCoords.push(coord);
-                            });
                             totalWin += (bet * mult * jarMultProduct);
+                            line.coords.forEach(coord => winningCoords.push(coord));
                         }
                     }
-
-                    findConnectedPaths(0, r0, []);
-                }
+                });
             });
 
-            // تصفية الإحداثيات المكررة للفائزين
+            // تصفية الإحداثيات المكررة
             let uniqueWinningCoords = [];
             let coordSet = new Set();
             winningCoords.forEach(c => {
@@ -1421,9 +1460,6 @@
             return { winAmount: totalWin, winningCoords: uniqueWinningCoords, isDoubleJarHarvest: isDoubleJarHarvest };
         }
 
-        // =========================================================================
-        //  بدء التدوير وتتابع التوقف
-        // =========================================================================
         async function startSpin() {
             if (isSpinning) return;
 
@@ -1483,7 +1519,6 @@
                 console.warn("استخدام المحاكي المحلي:", err);
             }
 
-            // توليد شبكة نتيجية عند عدم وجود خادم خارجي
             if (!serverResult || !serverResult.success) {
                 let fallbackGrid = [];
                 for (let c = 0; c < reelsCount; c++) {
@@ -1501,7 +1536,6 @@
                     new_balance: currentBalance - (isBonusRound ? 0 : currentBet) + localWin.winAmount
                 };
             } else {
-                // تطبيق شروط الفحص المحلي الدقيقة الصارمة بدءاً من اليسار
                 let localEval = evaluateWildWinsLocally(serverResult.grid, currentBet);
                 serverResult.win_amount = localEval.winAmount;
                 serverResult.winning_coords = localEval.winningCoords;
@@ -1602,6 +1636,7 @@
 
                 let winMultiplier = winAmount / currentBet;
                 if (winMultiplier >= 10.0 || res.is_harvest) {
+                    playProSound('big_win_music');
                     triggerUltraFastGoldShower(80);
                     showKingWinModal(winAmount, winMultiplier);
                 }
@@ -1677,8 +1712,6 @@
         }
 
         function showKingWinModal(winAmount, multiplier) {
-            playProSound('win_sound');
-
             document.getElementById('kingMultText').innerText = `مضاعف ${multiplier.toFixed(1)}x! 🔥`;
             let modal = document.getElementById('kingModal');
             modal.style.display = 'flex';
