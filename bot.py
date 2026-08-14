@@ -41,8 +41,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-import os
-
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8842721926:AAFn7HGsi7MPsPO7KtN4Z9PE5lj-j6OOhvY")
 DEFAULT_ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
@@ -60,6 +58,28 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL;")
     return conn
+
+def is_maintenance_active() -> bool:
+    """فحص ما إذا كان وضع الصيانة مفعلاً"""
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT value FROM settings WHERE key='maintenance_mode'").fetchone()
+        conn.close()
+        return row is not None and row["value"] == "1"
+    except Exception:
+        return False
+
+def is_admin_user(user_id: int) -> bool:
+    """فحص هل المستخدم أدمن أم لا"""
+    if user_id == DEFAULT_ADMIN_ID:
+        return True
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user_id,)).fetchone()
+        conn.close()
+        return row is not None
+    except Exception:
+        return False
 
 def init_db():
     conn = get_db()
@@ -142,6 +162,9 @@ def init_db():
     if DEFAULT_ADMIN_ID:
         cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (DEFAULT_ADMIN_ID,))
         
+    # وضع الصيانة الافتراضي (0 = معطل، 1 = مفعل)
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('maintenance_mode', '0')")
+
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus', '100')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('welcome_bonus_enabled', '1')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('referral_reward', '50')")
@@ -275,6 +298,10 @@ def api_get_user():
         user_id = data.get("user_id")
         init_data = data.get("init_data", "")
 
+        # فحص وضع الصيانة لرفع استجابة ملائمة لصفحة الويب
+        if is_maintenance_active() and not is_admin_user(user_id):
+            return jsonify({"error": "البوت والموقع حالياً في حالة صيانة وتحديثات دورية."}), 503
+
         # تحقق أمني إجباري
         if not init_data or not verify_telegram_webapp_data(init_data, BOT_TOKEN):
             return jsonify({"error": "فشل التحقق الأمني من الجلسة"}), 403
@@ -364,7 +391,9 @@ def main_menu_keyboard(is_admin=False):
     return InlineKeyboardMarkup(keyboard)
 
 def admin_panel_keyboard():
+    maint_status = "🔴 مفعل (البوت مغلق)" if is_maintenance_active() else "🟢 معطل (البوت يعمل)"
     keyboard = [
+        [InlineKeyboardButton(f"🛠️ وضع الصيانة: {maint_status}", callback_data="adm_toggle_maint")],
         [InlineKeyboardButton("🎛️ تحكم بخوارزميات الربح والمكافآت", callback_data="adm_algo_menu")],
         [InlineKeyboardButton("🎯 حظ لاعب معين", callback_data="adm_user_boost"), InlineKeyboardButton("📢 قنوات الاشتراك", callback_data="adm_channels_menu")],
         [InlineKeyboardButton("💳 حسابات الشحن", callback_data="adm_dep_methods"), InlineKeyboardButton("📥 طلبات الشحن", callback_data="adm_deposits")],
@@ -422,11 +451,7 @@ async def notify_admins(context: ContextTypes.DEFAULT_TYPE, text: str, reply_mar
 
 async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    conn = get_db()
-    is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
-    conn.close()
-
-    if is_admin:
+    if is_admin_user(user.id):
         await update.message.reply_text("👮‍♂️ **لوحة التحكم الإدارية الشاملة:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
     else:
         await update.message.reply_text("❌ عذراً، هذا الأمر مخصص للإدارة فقط.")
@@ -434,6 +459,11 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat_id = update.effective_chat.id
+
+    # فحص وضع الصيانة بالنسبة للعميل العادي
+    if is_maintenance_active() and not is_admin_user(user.id):
+        await update.message.reply_text("🛠️ **البوت حالياً في حالة صيانة وتحديثات دورية.**\nيرجى المحاولة في وقت لاحق.")
+        return
 
     is_subscribed, unsubscribed = await check_user_channels_subscription(context.bot, user.id)
     if not is_subscribed:
@@ -447,7 +477,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn = get_db()
     u = conn.execute("SELECT * FROM users WHERE user_id = ?", (user.id,)).fetchone()
-    is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
+    is_admin = is_admin_user(user.id)
 
     if u and u["is_banned"]:
         await update.message.reply_text("❌ حسابك محظور من استخدام البوت.")
@@ -508,6 +538,11 @@ async def send_main_dashboard(chat_id, user_id, full_name, is_admin, context):
 
 async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+    
+    if is_maintenance_active() and not is_admin_user(user.id):
+        await update.message.reply_text("🛠️ **البوت حالياً في حالة صيانة وتحديثات دورية.**")
+        return
+
     contact = update.message.contact
     
     if contact.user_id != user.id:
@@ -547,7 +582,7 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.commit()
     conn.close()
 
-    is_admin = (user.id == DEFAULT_ADMIN_ID)
+    is_admin = is_admin_user(user.id)
     await update.message.reply_text(
         f"✅ تم تأكيد حسابك ورقم هاتفك بنجاح!\n"
         f"🎁 حصلت على بونص ترحيبي قدره `{welcome_bonus}` NSP.",
@@ -558,6 +593,11 @@ async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_photo_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
+
+    if is_maintenance_active() and not is_admin_user(user.id):
+        await update.message.reply_text("🛠️ **البوت حالياً في حالة صيانة وتحديثات دورية.**")
+        return
+
     conn = get_db()
     u = conn.execute("SELECT step FROM users WHERE user_id = ?", (user.id,)).fetchone()
     
@@ -621,6 +661,11 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     user = update.effective_user
     text = update.message.text.strip() if update.message.text else ""
     
+    # فحص وضع الصيانة للعموم
+    if is_maintenance_active() and not is_admin_user(user.id):
+        await update.message.reply_text("🛠️ **البوت حالياً في حالة صيانة وتحديثات دورية.**\nيرجى المحاولة لاحقاً.")
+        return
+
     is_subscribed, unsubscribed = await check_user_channels_subscription(context.bot, user.id)
     if not is_subscribed:
         await update.message.reply_text(
@@ -823,8 +868,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         await notify_admins(context, support_msg, reply_markup=kb)
         return
 
-    is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
-    if is_admin:
+    if is_admin_user(user.id):
         if step == "adm_set_win_rate":
             try:
                 val = int(text)
@@ -1154,7 +1198,9 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
                 await update.message.reply_text("❌ أدخل ID صحيح.")
             conn.close()
             return
-
+        # ----------------------------------------------------
+        # معالجة مدخلات المشرف (إذاعة وتواصل خاص)
+        # ----------------------------------------------------
         if step == "adm_input_bc_txt":
             users_list = conn.execute("SELECT user_id FROM users WHERE is_banned = 0").fetchall()
             conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
@@ -1166,18 +1212,25 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
                 try:
                     await context.bot.send_message(chat_id=u_item["user_id"], text=text, parse_mode="Markdown")
                     count += 1
-                except Exception: pass
+                except Exception:
+                    pass
             await update.message.reply_text(f"📢 تم إرسال الإذاعة لـ `{count}` مستخدم.")
             return
 
         if step == "adm_input_pm_txt":
             try:
                 parts = text.split(" ", 1)
-                tid, msg_content = int(parts[0]), parts[1]
-                await context.bot.send_message(chat_id=tid, text=f"💬 **رسالة خاصة من الإدارة:**\n\n{msg_content}", parse_mode="Markdown")
-                await update.message.reply_text(f"✅ تم إرسال الرسالة للمستخدم `{tid}`.")
+                if len(parts) < 2:
+                    await update.message.reply_text("❌ صيغة خاطئة! أرسل الـ ID ثم مسافة ثم النص المطلوب.")
+                else:
+                    tid, msg_content = int(parts[0]), parts[1]
+                    await context.bot.send_message(chat_id=tid, text=f"💬 **رسالة خاصة من الإدارة:**\n\n{msg_content}", parse_mode="Markdown")
+                    await update.message.reply_text(f"✅ تم إرسال الرسالة للمستخدم `{tid}`.")
+            except ValueError:
+                await update.message.reply_text("❌ خطأ: يرجى التأكد من أن ID المستخدم يتكون من أرقام فقط.")
             except Exception as e:
-                await update.message.reply_text(f"❌ خطأ: {e}")
+                await update.message.reply_text(f"❌ خطأ غير متوقع: {e}")
+            
             conn.execute("UPDATE users SET step = 'main' WHERE user_id = ?", (user.id,))
             conn.commit()
             conn.close()
@@ -1199,7 +1252,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         is_sub, unsubscribed = await check_user_channels_subscription(context.bot, user.id)
         if is_sub:
             await query.message.delete()
-            await query.message.reply_text("✅ شكرًا لااشتراكك!")
+            await query.message.reply_text("✅ شكرًا لاشتراكك!")
             conn = get_db()
             is_admin = conn.execute("SELECT user_id FROM admins WHERE user_id = ?", (user.id,)).fetchone() is not None
             conn.close()
@@ -1365,6 +1418,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=kb)
         return
 
+    # ----------------------------------------------------
+    # لوحة المشرفين
+    # ----------------------------------------------------
     if is_admin:
         if data == "open_admin_panel":
             conn.close()
@@ -1490,7 +1546,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if dep["photo_file_id"]:
                     try:
                         await context.bot.send_photo(chat_id=user.id, photo=dep["photo_file_id"], caption=txt, parse_mode="Markdown", reply_markup=kb)
-                    except Exception: pass
+                    except Exception:
+                        await context.bot.send_message(chat_id=user.id, text=txt, parse_mode="Markdown", reply_markup=kb)
                 else:
                     await context.bot.send_message(chat_id=user.id, text=txt, parse_mode="Markdown", reply_markup=kb)
             return
@@ -1504,8 +1561,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 conn.execute("INSERT INTO logs (user_id, action, amount) VALUES (?, ?, ?)", (dep["user_id"], f"شحن رصيد ({dep['method']})", dep["amount"]))
                 conn.commit()
                 await query.message.edit_text(f"✅ تم الموافقة على طلب الشحن #{dep_id} وتعبئة `{dep['amount']}` NSP لرصيد العميل.")
-                try: await context.bot.send_message(dep["user_id"], f"🎉 تم الموافقة على طلب الشحن وإضافة `{dep['amount']}` NSP لرصيدك!")
-                except: pass
+                try: 
+                    await context.bot.send_message(dep["user_id"], f"🎉 تم الموافقة على طلب الشحن وإضافة `{dep['amount']}` NSP لرصيدك!")
+                except Exception: 
+                    pass
             conn.close()
             return
 
@@ -1516,8 +1575,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 conn.execute("UPDATE deposits SET status = 'rejected' WHERE id = ?", (dep_id,))
                 conn.commit()
                 await query.message.edit_text(f"❌ تم رفض طلب الشحن #{dep_id}.")
-                try: await context.bot.send_message(dep["user_id"], f"❌ تم رفض طلب الشحن الخاص بك.")
-                except: pass
+                try: 
+                    await context.bot.send_message(dep["user_id"], f"❌ تم رفض طلب الشحن الخاص بك.")
+                except Exception: 
+                    pass
             conn.close()
             return
 
@@ -1742,8 +1803,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 conn.execute("UPDATE withdrawals SET status = 'approved' WHERE id = ?", (wid,))
                 conn.commit()
                 await query.message.edit_text(f"✅ تم الموافقة على الطلب #{wid}.")
-                try: await context.bot.send_message(w["user_id"], f"✅ تم الموافقة على سحب `{w['amount']}` NSP!")
-                except: pass
+                try: 
+                    await context.bot.send_message(w["user_id"], f"✅ تم الموافقة على سحب `{w['amount']}` NSP!")
+                except Exception: 
+                    pass
             conn.close()
             return
 
@@ -1755,8 +1818,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 conn.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (w["amount"], w["user_id"]))
                 conn.commit()
                 await query.message.edit_text(f"❌ تم رفض الطلب #{wid} وإعادة الرصيد.")
-                try: await context.bot.send_message(w["user_id"], f"❌ تم رفض طلب السحب وإعادة `{w['amount']}` NSP لحسابك.")
-                except: pass
+                try: 
+                    await context.bot.send_message(w["user_id"], f"❌ تم رفض طلب السحب وإعادة `{w['amount']}` NSP لحسابك.")
+                except Exception: 
+                    pass
             conn.close()
             return
 
