@@ -8,7 +8,7 @@ app = Flask(__name__, template_folder=GAME_FOLDER, static_folder=GAME_FOLDER)
 DB_NAME = 'database.db'
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_NAME, timeout=10)
+    conn = sqlite3.connect(DB_NAME, timeout=15)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -32,28 +32,31 @@ def init_db():
         )
     ''')
     
-    # الإعدادات الافتراضية المعدلة لتقبل النسب المحددة من البوت
+    # الإعدادات الافتراضية
     default_settings = {
         "bonus_win_rate": "40",    # نسبة الربح عند شراء المكافأة
         "bonus_cap_1": "200",      # سقف ربح 1 جرة
         "bonus_cap_2": "500",      # سقف ربح 2 جرة
         "bonus_cap_3": "1000",     # سقف ربح 3 جرات
         
-        # 🎯 النسب المحددة يدوياً من البوت
-        "chance_loss": "50",       # نسبة الخسارة (50%)
-        "chance_win1": "20",       # نسبة ربح 1x (20%)
-        "chance_win2": "10",       # نسبة ربح 2x (10%)
-        "chance_win5": "10",       # نسبة ربح 5x (10%)
-        "chance_win10": "6",       # نسبة ربح 10x (6%)
-        "chance_win20": "3",       # نسبة ربح 20x (3%)
-        "chance_win50": "1",       # نسبة ربح 50x (1%)
+        # 🎯 النسب المئوية للتحكم بالخوارزمية
+        "chance_loss": "50",       # نسبة الخسارة
+        "chance_win1": "20",       # نسبة ربح 1x (سعر الرهان)
+        "chance_win2": "10",       # نسبة ربح 2x
+        "chance_win5": "10",       # نسبة ربح 5x
+        "chance_win10": "6",       # نسبة ربح 10x
+        "chance_win20": "3",       # نسبة ربح 20x
+        "chance_win50": "1",       # نسبة ربح 50x (نادر جداً)
+        
+        # 🛠️ وضع الصيانة (off = شغال / on = صيانة)
+        "maintenance_mode": "off",
         
         # ⚙️ نمط التشغيل الإجباري (auto / loss / win1 / win2 / win5 / win10 / win20 / win50)
         "global_win_mode": "auto"
     }
     
     for k, v in default_settings.items():
-        cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (k, v))
+        cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (k, str(v)))
         
     conn.commit()
     conn.close()
@@ -61,11 +64,14 @@ def init_db():
 init_db()
 
 # --- جلب وتحديث الإعدادات ---
-def get_setting(key, default_val):
-    conn = get_db_connection()
-    res = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
-    conn.close()
-    return res['value'] if res else str(default_val)
+def get_setting(key, default_val=""):
+    try:
+        conn = get_db_connection()
+        res = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
+        conn.close()
+        return res['value'] if res else str(default_val)
+    except Exception:
+        return str(default_val)
 
 def set_setting(key, value):
     conn = get_db_connection()
@@ -87,7 +93,7 @@ def get_user_balance(user_id):
 
 def update_user_balance(user_id, new_balance):
     conn = get_db_connection()
-    conn.execute('UPDATE users SET balance = ? WHERE user_id = ?', (new_balance, str(user_id)))
+    conn.execute('UPDATE users SET balance = ? WHERE user_id = ?', (float(new_balance), str(user_id)))
     conn.commit()
     conn.close()
 
@@ -179,7 +185,7 @@ def evaluate_grid(grid, bet):
 
     return win_amount, winning_coords, has_jar, primary_jar_reel, max_jar_mult, jars_count
 
-# --- دالة اختيار الفئة بناءً على النسب المحددة في البوت ---
+# --- دالة اختيار الفئة بناءً على النسب المحددة من البوت ---
 def choose_tier(is_bonus_buy=False):
     global_mode = get_setting("global_win_mode", "auto")
     if global_mode in ["loss", "win1", "win2", "win5", "win10", "win20", "win50"]:
@@ -202,7 +208,8 @@ def choose_tier(is_bonus_buy=False):
         tiers = ["loss", "win1", "win2", "win5", "win10", "win20", "win50"]
         weights = [c_loss, c_win1, c_win2, c_win5, c_win10, c_win20, c_win50]
         total = sum(weights)
-        if total <= 0: return "loss"
+        if total <= 0: 
+            return "loss"
         return random.choices(tiers, weights=weights)[0]
 
 # --- توليد الشبكة بناءً على مضاعفات الربح الدقيقة المطلوب تحقيقها ---
@@ -246,7 +253,7 @@ def generate_controlled_grid(tier, bet, forced_jars=0, max_win_cap=None):
 
         win_ratio = win_amount / bet if bet > 0 else 0
 
-        # مطابقة النتيجة بالمضاعف المحدد بالضبط
+        # مطابقة النتيجة بالمضاعف المحدد
         if tier == "loss" and win_amount == 0:
             return grid, 0.0, [], h_jar, j_idx, j_mult
         elif tier == "win1" and 0.8 <= win_ratio <= 1.8:
@@ -291,7 +298,8 @@ def get_user():
     data = request.get_json() or {}
     user_id = data.get('user_id', 'demo_user')
     balance = get_user_balance(user_id)
-    return jsonify({"success": True, "balance": balance})
+    maintenance = get_setting("maintenance_mode", "off") == "on"
+    return jsonify({"success": True, "balance": balance, "maintenance": maintenance})
 
 @app.route('/api/get_settings', methods=['GET', 'POST'])
 def get_settings_api():
@@ -321,13 +329,22 @@ def update_balance_api():
     
     current = get_user_balance(user_id)
     new_bal = (current + float(amount)) if action == 'add' else float(amount)
-    if new_bal < 0: new_bal = 0.0
+    if new_bal < 0: 
+        new_bal = 0.0
         
     update_user_balance(user_id, new_bal)
     return jsonify({"success": True, "new_balance": new_bal})
 
 @app.route('/api/play_spin', methods=['POST'])
 def play_spin():
+    # التحقق من وضع الصيانة أولاً
+    if get_setting("maintenance_mode", "off") == "on":
+        return jsonify({
+            "success": False, 
+            "maintenance": True, 
+            "message": "⚠️ اللعبة حالياً في وضع الصيانة. يرجى المحاولة لاحقاً."
+        })
+
     data = request.get_json() or {}
     user_id = data.get('user_id', 'demo_user')
     buy_bonus_jars = int(data.get('buy_bonus_jars', 0))
