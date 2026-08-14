@@ -1145,6 +1145,15 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.close()
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
+
+        if data.startswith("adm_rep_supp_"):
+            target_id = data.replace("adm_rep_supp_", "")
+            context.user_data["support_target_id"] = target_id
+            conn.execute("UPDATE users SET step = 'adm_input_support_reply' WHERE user_id = ?", (user.id,))
+            conn.commit()
+            conn.close()
+            await query.message.edit_text(f"✍️ **أدخل نص الرد على العميل (`{target_id}`):**")
+            return
             
         if data == "adm_algo_menu":
             settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
