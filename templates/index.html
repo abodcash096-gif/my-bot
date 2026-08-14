@@ -677,7 +677,6 @@
             transform: scale(1.02);
         }
 
-        /* --- تصميم القائمة الفرعية الخيارات المتقدمة (الثلاث شخاط ☰) --- */
         .level-menu-modal {
             display: none;
             position: fixed;
@@ -725,7 +724,6 @@
             border-color: #fff;
         }
 
-        /* --- 4. حركة تطاير العملات الفائقة السرعة دون تباطؤ --- */
         @keyframes ultraFastCoinFly {
             0% {
                 transform: translate(0, 105vh) rotate(0deg) scale(0.6);
@@ -870,7 +868,6 @@
         </div>
     </div>
 
-    <!-- نافذة اختيار مستوى الرهان -->
     <div class="level-menu-modal" id="levelMenuModal">
         <div class="level-menu-box">
             <div style="font-size: 1.2rem; font-weight: 900; color: var(--gold); margin-bottom: 4px;">🎚️ حدد مستوى الرهان</div>
@@ -952,7 +949,6 @@
         const reelStrips = [];
         const slotsFrame = document.getElementById('slotsFrame');
 
-        // --- الأصوات والمؤثرات ---
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1040,7 +1036,6 @@
             }
         }
 
-        // --- ميزة السحب بالأصبع للتدوير ---
         let touchStartY = 0;
         slotsFrame.addEventListener('touchstart', (e) => {
             touchStartY = e.touches[0].clientY;
@@ -1055,7 +1050,6 @@
             }
         }, { passive: true });
 
-        // --- بيانات المستخدم ---
         async function loadUserData() {
             let tgUser = tg?.initDataUnsafe?.user;
             let userId = tgUser?.id || "demo_user";
@@ -1081,7 +1075,6 @@
         }
         loadUserData();
 
-        // توليد قائمة الرموز مع نسب الجرة والمضاعفات
         function generateInitialList(count) {
             const commonItems = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔'];
             let list = [];
@@ -1148,7 +1141,6 @@
             });
         }
 
-        // بناء البكرات
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -1301,14 +1293,15 @@
         }
 
         // =========================================================================
-        //  خوارزمية احتساب الأرباح (تبدأ حصرياً وشرطياً من البكرة الأولى - العمود 0)
+        //  خوارزمية احتساب الأرباح (تبدأ حصرياً وشرطياً من وقوف البكرة الأولى - العمود 0)
+        //  الجرة 🏺 حلول كامل (Wild) لجميع أنواع الفواكه في جميع الصفوف الثلاثة
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // 1. ميزة جرف الجرات: وجود جرة في العمود 0 والعمود 1
+            // 1. ميزة جرف الجرات الخاصة: وجود جرة في البكرة الأولى (العمود 0) والبكرة الثانية (العمود 1)
             let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
             let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
 
@@ -1331,39 +1324,39 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // 2. فحص الأرباح المتصلة: تبدأ حتماً وشرطياً من أقصى اليسار (البكرة الأولى - العمود 0)
+            // 2. احتساب الخطوط الرابحة: تبدأ حتماً وشرطياً من وقوف البكرة الأولى (العمود 0) نحو اليمين
             const checkSymbols = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '7'];
 
             checkSymbols.forEach(targetSym => {
                 let connectedCols = [];
 
-                // نبدأ الفحص حتماً من العمود 0 صعوداً نحو اليمين (0، 1، 2، 3، 4)
+                // نفحص البكرات متسلسلة بدءاً من أقصى اليسار (العمود 0) فقط
                 for (let c = 0; c < reelsCount; c++) {
                     let colData = grid[c];
                     if (!colData) break;
 
                     let matchingRowsInCol = [];
+                    // الجرة 🏺 تعمل كـ Wild بديل ومكمل لجميع الفواكه في أي صف من الصفوف الثلاثة
                     colData.forEach((item, rIdx) => {
-                        // الجرة 🏺 تعمل كـ Wild لتكميل التشكيلة الناقصة
                         if (item && (item.sym === targetSym || item.sym === '🏺')) {
                             matchingRowsInCol.push(rIdx);
                         }
                     });
 
-                    // إذا وجد رمز مطابق أو جرة في هذا العمود يُضاف، وإذا انقطع الفحص تتوقف السلسلة فوراً
+                    // إذا وُجد رمز مطابق أو جرة في هذا العمود، تكتمل السلسلة المترابطة
                     if (matchingRowsInCol.length > 0) {
                         connectedCols.push({ col: c, rows: matchingRowsInCol });
                     } else {
-                        break; // الانقطاع يلغي السلسلة مباشرة
+                        break; // إن انقطع التواجد في أي عمود، تتوقف السلسلة فوراً (حساب من اتجاه واحد فقط)
                     }
                 }
 
-                // شرط الجزم: يجب أن تبدأ السلسلة من العمود 0 (البكرة الأولى) وتتصل بعمودين على الأقل
+                // الشرط الجازم: الربح يجب أن يبدأ حتماً من العمود 0 (البكرة الأولى) ويمتد لعمودين متصلين على الأقل
                 if (connectedCols.length >= 2 && connectedCols[0].col === 0) {
                     let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
                     if (targetSym === '7') mult *= 2;
 
-                    // احتساب مضاعفات الجرات المشاركة في التشكيلة (2x, 3x, 5x)
+                    // في حال زيادة الفواكه أو استخدام الجرات المشاركة في التشكيلة، نضرب في مضاعفات الجرة (2x, 3x, 5x)
                     let jarMultProduct = 1;
                     let hasJarInWin = false;
 
@@ -1379,9 +1372,9 @@
                         });
                     });
 
-                    // شرط خاص: ثلاثية العنب مع وجود الجرة (3 بكرات متصلة للعمود 0، 1، 2)
-                    if (targetSym === '🍇' && connectedCols.length === 3 && hasJarInWin) {
-                        mult *= 2.5; // إضافة مكافأة مضاعفة حصرية لثلاثية العنب بالجرة
+                    // بونص حركي إضافي لثلاثية الفواكه المكتملة بالجرة في البكرات المتصلة
+                    if (connectedCols.length >= 3 && hasJarInWin) {
+                        mult *= 1.5;
                     }
 
                     totalWin += (bet * mult * jarMultProduct);
@@ -1396,7 +1389,7 @@
         }
 
         // =========================================================================
-        //  بدء التدوير وتتابع التوقف
+        //  بدء التدوير وتتابع التوقف دون تغيير حركة ودوران البكرات
         // =========================================================================
         async function startSpin() {
             if (isSpinning) return;
@@ -1482,7 +1475,6 @@
             let initialDelay = speedLevel === 1 ? 400 : (speedLevel === 2 ? 220 : 100);
             let staggerStep = speedLevel === 1 ? 280 : (speedLevel === 2 ? 180 : 80);
 
-            // توقف البكرات بالتتابع
             for (let step = 0; step < reelsCount; step++) {
                 let reelIdx = step;
                 let currentWait = forceStopRequested ? (step * 40) : (initialDelay + step * staggerStep);
@@ -1536,9 +1528,6 @@
             document.getElementById('spinBtn').innerText = '↻';
         }
 
-        // ==========================================
-        //  عرض النتائج والتأثيرات
-        // ==========================================
         async function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
             document.getElementById('winAmount').innerText = winAmount.toFixed(2);
@@ -1691,7 +1680,6 @@
                 let reelStrip = reelStrips[reelIdx];
                 if (reelStrip && reelStrip.children[rowIdx]) {
                     reelStrip.children[rowIdx].classList.add('win-pop-blue');
-                    // تثبيت وتأكيد وقوف الجرة في مكانها عند دخولها ضمن خط الأرباح
                     if (reelStrip.children[rowIdx].classList.contains('fruit-grape') || reelStrip.children[rowIdx].innerText.includes('🏺')) {
                         reelStrip.children[rowIdx].classList.add('jar-stopped');
                     }
