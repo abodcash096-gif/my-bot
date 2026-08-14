@@ -215,7 +215,7 @@
         .slots-frame {
             display: flex;
             flex-direction: row;
-            direction: ltr; /* العمود 0 يقع أقصى اليسار */
+            direction: ltr;
             background: rgba(1, 5, 12, 0.99);
             border: 3px solid var(--neon-blue);
             box-shadow: 0 0 45px var(--neon-glow), inset 0 0 25px var(--neon-glow);
@@ -1099,7 +1099,6 @@
         }
         loadUserData();
 
-        // توليد الرموز مع جعل رقم '7' نادراً (5%)
         function generateInitialList(count) {
             const commonItems = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔'];
             let list = [];
@@ -1115,7 +1114,7 @@
                     else if (mRand < 0.70) mult = 2;
                     else if (mRand < 0.88) mult = 3;
                     else mult = 5;
-                } else if (rand < 0.09) { // 5% فقط -> رقم 7 نادر جداً
+                } else if (rand < 0.09) {
                     sym = '7';
                 } else {
                     sym = commonItems[Math.floor(Math.random() * commonItems.length)];
@@ -1317,18 +1316,11 @@
             else startSpin();
         }
 
-        // =========================================================================
-        //  خوارزمية احتساب الأرباح المحدثة حصرياً:
-        //  1. الأرباح تبدأ حصراً ومباشرة من العمود 0.
-        //  2. الرمز 7 نادر ويحتسب أرباحاً لـ: (2، 3، 4، 5) متتاليين من العمود 0.
-        //  3. بقية الرموز الفواكه تحسب من (3، 4، 5) متتاليين من العمود 0.
-        // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // ميزة جرف الجرات الخاصة (تتطلب جرة في العمود 0 والعمود 1)
             let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
             let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
 
@@ -1350,28 +1342,25 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // مسارات خطوط اللعبة 
             const paylines = [
-                [[0,0], [1,0], [2,0], [3,0], [4,0]], // أفقي علوي
-                [[0,1], [1,1], [2,1], [3,1], [4,1]], // أفقي أوسط
-                [[0,2], [1,2], [2,2], [3,2], [4,2]], // أفقي سفلي
-                [[0,0], [1,1], [2,2], [3,1], [4,0]], // V
-                [[0,2], [1,1], [2,0], [3,1], [4,2]], // V مقلوب
-                [[0,0], [1,1], [2,2], [3,2], [4,2]], // مائل لأسفل
-                [[0,2], [1,1], [2,0], [3,0], [4,0]], // مائل لأعلى
-                [[0,1], [1,0], [2,0], [3,0], [4,1]], // قوس علوي
-                [[0,1], [1,2], [2,2], [3,2], [4,1]]  // قوس سفلي
+                [[0,0], [1,0], [2,0], [3,0], [4,0]],
+                [[0,1], [1,1], [2,1], [3,1], [4,1]],
+                [[0,2], [1,2], [2,2], [3,2], [4,2]],
+                [[0,0], [1,1], [2,2], [3,1], [4,0]],
+                [[0,2], [1,1], [2,0], [3,1], [4,2]],
+                [[0,0], [1,1], [2,2], [3,2], [4,2]],
+                [[0,2], [1,1], [2,0], [3,0], [4,0]],
+                [[0,1], [1,0], [2,0], [3,0], [4,1]],
+                [[0,1], [1,2], [2,2], [3,2], [4,1]]
             ];
 
             paylines.forEach(line => {
-                // شرط إجباري: فحص الرمز في العمود 0
                 let col0Coord = line[0];
                 let firstObj = grid[col0Coord[0]] ? grid[col0Coord[0]][col0Coord[1]] : null;
                 if (!firstObj) return;
 
                 let targetSym = firstObj.sym;
 
-                // إذا كان العنصر في العمود 0 جرة (Wild)، يبحث عن الرمز الذي يليه لتحديد الرمز المستهدف
                 if (targetSym === '🏺') {
                     for (let i = 1; i < line.length; i++) {
                         let obj = grid[line[i][0]] ? grid[line[i][0]][line[i][1]] : null;
@@ -1382,7 +1371,6 @@
                     }
                 }
 
-                // حساب التتابع الصارم من العمود 0
                 let matchCount = 0;
                 let currentLineCoords = [];
                 let jarMultProduct = 1;
@@ -1393,7 +1381,6 @@
 
                     if (!cellObj) break;
 
-                    // يتحقق إذا كانت الخانة تطابق الرمز المستهدف أو Wild (الجرة)
                     if (cellObj.sym === targetSym || cellObj.sym === '🏺') {
                         matchCount++;
                         currentLineCoords.push([c, r]);
@@ -1401,22 +1388,18 @@
                             jarMultProduct *= cellObj.mult;
                         }
                     } else {
-                        // انقطاع التتابع يوقف الحساب فوراً من هذه النقطة
                         break;
                     }
                 }
 
-                // حساب الأرباح بناءً على الرمز والتكرار ابتداءً من العمود 0
                 let multiplier = 0;
 
-                // 1. معالجة الرمز 7 (يحسب ربحاً ثنائياً، ثلاثياً، رباعياً، خماسياً)
                 if (targetSym === '7') {
                     if (matchCount === 2) multiplier = 3;
                     else if (matchCount === 3) multiplier = 15;
                     else if (matchCount === 4) multiplier = 60;
                     else if (matchCount === 5) multiplier = 300;
                 } 
-                // 2. معالجة باقي الرموز (تتطلب تكرار 3 عناصر متتالية على الأقل)
                 else if (['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '🏺'].includes(targetSym)) {
                     if (matchCount === 3) {
                         multiplier = (targetSym === '🔔' || targetSym === '🍇') ? 4 : 2;
@@ -1433,7 +1416,6 @@
                 }
             });
 
-            // إزالة الإحداثيات المكررة
             let uniqueWinningCoords = [];
             let coordSet = new Set();
             winningCoords.forEach(c => {
@@ -1503,7 +1485,7 @@
                 });
                 serverResult = await response.json();
             } catch (err) {
-                console.warn("استخدام التقييم المحلي المحدث:", err);
+                console.warn("السيرفر غير متصل، يتم العمل بوضع المحاكاة:", err);
             }
 
             if (!serverResult || !serverResult.success) {
@@ -1523,11 +1505,10 @@
                     new_balance: currentBalance - (isBonusRound ? 0 : currentBet) + localWin.winAmount
                 };
             } else {
+                // الاعتماد الحصري والمباشر على نتائج السيرفر المربوطة بالبوت
                 let localEval = evaluateWildWinsLocally(serverResult.grid, currentBet);
-                serverResult.win_amount = localEval.winAmount;
-                serverResult.winning_coords = localEval.winningCoords;
-                serverResult.is_harvest = localEval.isDoubleJarHarvest;
-                serverResult.new_balance = currentBalance - (isBonusRound ? 0 : currentBet) + localEval.winAmount;
+                serverResult.winning_coords = serverResult.winning_coords || localEval.winningCoords;
+                serverResult.is_harvest = serverResult.is_harvest !== undefined ? serverResult.is_harvest : localEval.isDoubleJarHarvest;
             }
 
             currentBalance = parseFloat(serverResult.new_balance);
