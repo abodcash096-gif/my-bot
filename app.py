@@ -7,11 +7,14 @@ GAME_FOLDER = 'templates'
 app = Flask(__name__, template_folder=GAME_FOLDER, static_folder=GAME_FOLDER)
 DB_NAME = 'database.db'
 
+# --- الاتصال بقاعدة البيانات مع تفعيل وضع WAL لمنع التضارب ---
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME, timeout=15)
+    conn.execute("PRAGMA journal_mode=WAL;")  # تفعيل القراءة والكتابة المتزامنة بدون قفل
     conn.row_factory = sqlite3.Row
     return conn
 
+# --- تهيئة الجداول والإعدادات الافتراضية ---
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
