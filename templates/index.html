@@ -388,6 +388,27 @@
             animation: goldSpout 0.5s infinite alternate ease-in-out;
         }
 
+        .jar-expanded-mult {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #ff0055, #ff00aa);
+            color: #fff;
+            font-size: 18px;
+            font-weight: 900;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 2px solid #fff;
+            box-shadow: 0 0 15px #ff0055;
+            z-index: 99;
+            animation: popMult 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popMult {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
         @keyframes goldSpout {
             0% { transform: translate(-50%, 0) scale(0.8); opacity: 0.7; }
             100% { transform: translate(-50%, -18px) scale(1.3); opacity: 1; filter: drop-shadow(0 0 15px var(--gold)); }
@@ -656,6 +677,54 @@
             transform: scale(1.02);
         }
 
+        /* --- تصميم القائمة الفرعية الخيارات المتقدمة (الثلاث شخاط ☰) --- */
+        .level-menu-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(12px);
+            z-index: 920;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .level-menu-box {
+            background: radial-gradient(circle, #082040 0%, #010a18 100%);
+            border: 2.5px solid var(--neon-blue);
+            border-radius: 24px;
+            padding: 22px 18px;
+            text-align: center;
+            max-width: 320px;
+            width: 100%;
+            box-shadow: 0 0 45px var(--neon-glow);
+            animation: zoomKing 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .level-btn-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            margin: 18px 0;
+        }
+        .level-btn {
+            flex: 1;
+            padding: 10px 0;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1.5px solid var(--neon-blue);
+            color: #fff;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .level-btn.active {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-blue);
+            border-color: #fff;
+        }
+
         /* --- 4. حركة تطاير العملات الفائقة السرعة دون تباطؤ --- */
         @keyframes ultraFastCoinFly {
             0% {
@@ -733,15 +802,12 @@
         <div class="win-display">ربح <span id="winAmount">0.00</span> NSP</div>
     </div>
 
-    <div class="bets-container">
-        <div class="bet-chip active" onclick="setBet(3, this)">3 NSP</div>
-        <div class="bet-chip" onclick="setBet(6, this)">6 NSP</div>
-        <div class="bet-chip" onclick="setBet(9, this)">9 NSP</div>
-        <div class="bet-chip" onclick="setBet(15, this)">15 NSP</div>
-        <div class="bet-chip" onclick="setBet(50, this)">50 NSP</div>
+    <div class="bets-container" id="betsContainer">
+        <!-- الخيارات تتغير ديناميكياً بناءً على المستوى المحدد من قائمة الثلاث شخاط -->
     </div>
 
     <div class="controls">
+        <div class="sub-btn" id="menuBtn" onclick="openLevelMenu()" style="font-size:18px; font-weight:900;">☰</div>
         <div class="sub-btn" id="autoBtn" onclick="toggleAutoSpin()">▶</div>
         <div class="sub-btn" id="speedBtn" onclick="cycleSpeed()">🐢</div>
         <button class="spin-btn" id="spinBtn" onclick="handleSpinButton()">↻</button>
@@ -806,6 +872,22 @@
         </div>
     </div>
 
+    <!-- نافذة اختيار مستوى الرهان (زر الثلاث شخاط ☰) -->
+    <div class="level-menu-modal" id="levelMenuModal">
+        <div class="level-menu-box">
+            <div style="font-size: 1.2rem; font-weight: 900; color: var(--gold); margin-bottom: 4px;">🎚️ حدد مستوى الرهان</div>
+            <div style="font-size: 0.8rem; color: var(--neon-blue);">اختر المستويات لتغيير قيم الرهان</div>
+            <div class="level-btn-group">
+                <button class="level-btn active" onclick="selectBetLevel(1)">1</button>
+                <button class="level-btn" onclick="selectBetLevel(2)">2</button>
+                <button class="level-btn" onclick="selectBetLevel(3)">3</button>
+                <button class="level-btn" onclick="selectBetLevel(4)">4</button>
+                <button class="level-btn" onclick="selectBetLevel(5)">5</button>
+            </div>
+            <button class="modal-btn" style="background: var(--neon-blue); color: #000; width: 100%;" onclick="closeLevelMenu()">تم</button>
+        </div>
+    </div>
+
     <div class="king-modal" id="kingModal">
         <div class="king-box">
             <div class="king-crown">👑</div>
@@ -849,6 +931,16 @@
             }
         }, intervalTime);
 
+        // جدول مستويات الرهانات الجديدة
+        const betLevels = {
+            1: [3, 6, 9, 15, 50],
+            2: [60, 70, 80, 90, 100],
+            3: [110, 130, 150, 180, 200],
+            4: [250, 300, 350, 400, 500],
+            5: [600, 700, 800, 900, 1000]
+        };
+
+        let currentLevel = 1;
         let currentBet = 3;
         let isSpinning = false;
         let forceStopRequested = false;
@@ -1012,6 +1104,7 @@
             populateStrip(reelStrip, generateInitialList(6));
         }
 
+        // تغيير نسب وقواعد ظهور الجرة (نادر، أكثر ندرة، الأكثر ندرة) والمضاعفات (2x, 3x, 5x)
         function generateInitialList(count) {
             const commonItems = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔'];
             let list = [];
@@ -1020,10 +1113,15 @@
                 let sym = '';
                 let mult = 1;
 
-                if (rand < 0.04) {
+                // احتمالات ظهور الجرات بنسبة ندرة مصممة بدقة
+                if (rand < 0.025) { 
                     sym = '🏺';
-                    mult = Math.random() < 0.5 ? 1 : Math.floor(Math.random() * 4) + 2;
-                } else if (rand < 0.09) {
+                    let mRand = Math.random();
+                    if (mRand < 0.45) mult = 1;      // ظهور دون مضاعفة
+                    else if (mRand < 0.70) mult = 2; // بمضاعفة 2x
+                    else if (mRand < 0.88) mult = 3; // بمضاعفة 3x
+                    else mult = 5;                   // بمضاعفة 5x
+                } else if (rand < 0.08) {
                     sym = '7';
                 } else {
                     sym = commonItems[Math.floor(Math.random() * commonItems.length)];
@@ -1073,6 +1171,53 @@
                 strip.appendChild(createSymbolNode(symObj));
             });
         }
+
+        // =========================================================================
+        //  إدارة مستويات الرهانات وقائمة الثلاث شخاط ☰
+        // =========================================================================
+        function openLevelMenu() {
+            if (isSpinning) return;
+            playProSound('click');
+            document.getElementById('levelMenuModal').style.display = 'flex';
+        }
+
+        function closeLevelMenu() {
+            playProSound('click');
+            document.getElementById('levelMenuModal').style.display = 'none';
+        }
+
+        function selectBetLevel(lvl) {
+            playProSound('click');
+            currentLevel = lvl;
+            let bets = betLevels[lvl];
+            currentBet = bets[0];
+
+            // تحديث أزرار المستويات في القائمة
+            document.querySelectorAll('.level-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', (idx + 1) === lvl);
+            });
+
+            // تحديث قيم أزرار الرهانات على الشاشة
+            renderBetChips();
+            closeLevelMenu();
+        }
+
+        function renderBetChips() {
+            const container = document.getElementById('betsContainer');
+            container.innerHTML = '';
+            let bets = betLevels[currentLevel];
+            
+            bets.forEach((b, idx) => {
+                const chip = document.createElement('div');
+                chip.className = 'bet-chip' + (b === currentBet ? ' active' : '');
+                chip.innerText = b + ' NSP';
+                chip.onclick = function() { setBet(b, this); };
+                container.appendChild(chip);
+            });
+        }
+
+        // تشغيل أزرار الرهان الافتراضية عند البدء
+        renderBetChips();
 
         function openBonusModal() {
             if (isSpinning) return;
@@ -1133,7 +1278,7 @@
         function doubleBet() {
             if (isSpinning) return;
             playProSound('click');
-            let bets = [3, 6, 9, 15, 50];
+            let bets = betLevels[currentLevel];
             let idx = bets.indexOf(currentBet);
             currentBet = (idx < bets.length - 1) ? bets[idx + 1] : bets[0];
             let chips = document.querySelectorAll('.bet-chip');
@@ -1172,14 +1317,14 @@
         }
 
         // =========================================================================
-        //  خوارزمية احتساب الأرباح (معكوسة: تنطلق حصرياً من أقصى اليمين العمود 4 نحو اليسار)
+        //  خوارزمية احتساب الأرباح (حصرياً من أقصى اليمين العمود 4 نحو اليسار)
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // 1. فحص ميزة جرف الجرات الضخم: وجود جرة في العمودين الأخيرين من الجهة الأخرى (العمود 4 والعمود 3)
+            // 1. فحص ميزة جرف الجرات: وجود جرة في العمودين الأخيرين من جهة أقصى اليمين (العمود 4 والعمود 3)
             let jarInCol4 = grid[4].some(s => s && s.sym === '🏺');
             let jarInCol3 = grid[3].some(s => s && s.sym === '🏺');
 
@@ -1200,13 +1345,13 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // 2. فحص الأرباح العادية المتصلة: تنطلق حتماً من أقصى اليمين (العمود 4) باتجاه اليسار
+            // 2. فحص الأرباح العادية المتصلة: تنطلق حتماً وحصرياً من أقصى اليمين (العمود 4) باتجاه اليسار
             const checkSymbols = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '7'];
 
             checkSymbols.forEach(targetSym => {
                 let connectedCols = [];
 
-                // نبدأ الفحص حتماً من أقصى الجهة الأخرى (العمود 4) تنازلياً لليزار (3، 2، 1، 0)
+                // نبدأ الفحص حتماً من أقصى اليمين (العمود 4) نزولاً نحو اليسار (3، 2، 1، 0)
                 for (let c = reelsCount - 1; c >= 0; c--) {
                     let colData = grid[c];
                     let matchingRowsInCol = [];
@@ -1230,7 +1375,18 @@
                     let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
                     if (targetSym === '7') mult *= 2;
 
-                    totalWin += (bet * mult);
+                    // احتساب مضاعفات الجرات المشاركة في الرمز الفائز إن وجدت (2x, 3x, 5x)
+                    let jarMultProduct = 1;
+                    connectedCols.forEach(item => {
+                        item.rows.forEach(r => {
+                            let symObj = grid[item.col][r];
+                            if (symObj && symObj.sym === '🏺' && symObj.mult > 1) {
+                                jarMultProduct *= symObj.mult;
+                            }
+                        });
+                    });
+
+                    totalWin += (bet * mult * jarMultProduct);
                     connectedCols.forEach(item => {
                         item.rows.forEach(r => winningCoords.push([item.col, r]));
                     });
@@ -1246,7 +1402,6 @@
         async function startSpin() {
             if (isSpinning) return;
 
-            // إخفاء فوري وتصفية شاملة لكل تأثيرات الذهب السابقة عند بدء اللعبة
             if (typeof confetti !== 'undefined' && confetti.reset) {
                 confetti.reset();
             }
@@ -1256,7 +1411,7 @@
             hideJarBanner();
             
             if (currentBalance < currentBet && (!activeBonus || activeBonus.remaining <= 0)) {
-                showModal("❌ رصيد غير كافٍ", "يرجى شحن حسابك من البوت لمتابعة اللعب!");
+                showModal("❌ رصيد غير كافٍ", "يرجى شحن حسابك لمتابعة اللعب!");
                 if (autoSpinActive) toggleAutoSpin();
                 return;
             }
@@ -1383,7 +1538,7 @@
         }
 
         // ==========================================
-        //  عرض النتائج والمؤثرات المطورة للعملات
+        //  عرض النتائج والتحكم الدقيق بملء شريط الجرة
         // ==========================================
         async function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
@@ -1404,10 +1559,11 @@
 
                 applyShineToWinners(res.winning_coords || []);
 
-                let jarCols = findJarColumns(res.grid);
-                if (jarCols.length > 0) {
-                    jarCols.forEach(colIdx => {
-                        expandJarInReel(colIdx);
+                // عدم ملء الشريط إلا للجرة المكملة للنقص فقط (التي دخلت في الربح)
+                let winningJarColumns = findWinningJarColumns(res.grid, res.winning_coords || []);
+                if (winningJarColumns.length > 0) {
+                    winningJarColumns.forEach(({ colIdx, mult }) => {
+                        expandJarInReel(colIdx, mult);
                     });
 
                     await new Promise(r => setTimeout(r, 400));
@@ -1425,8 +1581,40 @@
             }
         }
 
+        // تحديد البكرات التي تتضمن جرات مكملة للربح فعلياً
+        function findWinningJarColumns(grid, winningCoords) {
+            let winningJars = [];
+            let processedCols = new Set();
+
+            winningCoords.forEach(([cIdx, rIdx]) => {
+                let symObj = grid[cIdx]?.[rIdx];
+                if (symObj && symObj.sym === '🏺' && !processedCols.has(cIdx)) {
+                    processedCols.add(cIdx);
+                    winningJars.push({ colIdx: cIdx, mult: symObj.mult || 1 });
+                }
+            });
+
+            return winningJars;
+        }
+
+        function expandJarInReel(colIdx, mult) {
+            let reel = slotsFrame.children[colIdx];
+            if (!reel) return;
+            if (reel.querySelector('.reel-jar-expanded')) return;
+
+            let multTagHtml = (mult && mult > 1) ? `<div class="jar-expanded-mult">${mult}x</div>` : '';
+            let jarDiv = document.createElement('div');
+            jarDiv.className = 'reel-jar-expanded';
+            jarDiv.innerHTML = `<div class="jar-expanded-body">🏺</div>${multTagHtml}`;
+            reel.appendChild(jarDiv);
+        }
+
+        function removeExpandedJars() {
+            document.querySelectorAll('.reel-jar-expanded').forEach(el => el.remove());
+        }
+
         // =========================================================================
-        //  محرّك تطاير العملات المطور مع سرعة فائقة ودون تباطؤ
+        //  محرّك تطاير العملات الفائق السرعة دون تباطؤ
         // =========================================================================
         function triggerUltraFastGoldShower(count) {
             playProSound('coins_flying');
@@ -1437,9 +1625,9 @@
                     coin.className = 'ultra-gold-coin';
                     coin.innerText = Math.random() < 0.55 ? '🪙' : '💰';
                     
-                    const startX = Math.random() * 92 + 4; // موقع البدء أفقيًا
-                    const dx = (Math.random() - 0.5) * 260 + 'px'; // انحراف خطي ناعم
-                    const duration = (0.25 + Math.random() * 0.2) + 's'; // سرعة خطية قياسية دون أي تباطؤ!
+                    const startX = Math.random() * 92 + 4;
+                    const dx = (Math.random() - 0.5) * 260 + 'px';
+                    const duration = (0.25 + Math.random() * 0.2) + 's';
 
                     coin.style.left = startX + 'vw';
                     coin.style.setProperty('--dx', dx);
@@ -1447,12 +1635,10 @@
 
                     document.body.appendChild(coin);
 
-                    // حذف العنصر فور اكتمال الحركة الخاطفة
                     setTimeout(() => { coin.remove(); }, 500);
                 }, i * 15);
             }
 
-            // إطلاق كونفيتي إضافي عالي السرعة
             confetti({
                 particleCount: count,
                 spread: 120,
@@ -1463,29 +1649,6 @@
                 origin: { y: 0.85 },
                 colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
             });
-        }
-
-        function findJarColumns(grid) {
-            let cols = [];
-            grid.forEach((col, cIdx) => {
-                let hasJar = col.some(s => s && s.sym === '🏺');
-                if (hasJar) cols.push(cIdx);
-            });
-            return cols;
-        }
-
-        function expandJarInReel(colIdx) {
-            let reel = slotsFrame.children[colIdx];
-            if (!reel) return;
-
-            let jarDiv = document.createElement('div');
-            jarDiv.className = 'reel-jar-expanded';
-            jarDiv.innerHTML = `<div class="jar-expanded-body">🏺</div>`;
-            reel.appendChild(jarDiv);
-        }
-
-        function removeExpandedJars() {
-            document.querySelectorAll('.reel-jar-expanded').forEach(el => el.remove());
         }
 
         function showKingWinModal(winAmount, multiplier) {
