@@ -37,69 +37,112 @@
             overflow-x: hidden;
         }
 
-        /* --- 1. شاشة التحميل الافتتاحية المصممة هيدروليكياً --- */
+        /* --- 1. شاشة التحميل الافتتاحية مع الجرة الـ 3D والفواكه --- */
         .splash-screen {
             position: fixed;
             inset: 0;
-            background: radial-gradient(circle at center, #0a3563 0%, #000206 100%);
+            background: radial-gradient(circle at center, #0d3b6e 0%, #000206 100%);
             z-index: 999;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
+            justify-content: center;
             align-items: center;
-            padding-bottom: 60px;
+            padding: 20px;
             overflow: hidden;
         }
 
-        .splash-img {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-            z-index: 1;
-        }
-
-        /* شعار بديل فاخر في حال عدم تحميل الصورة */
-        .splash-fallback-title {
-            position: absolute;
-            top: 38%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        .splash-header-title {
             text-align: center;
-            z-index: 2;
-            width: 100%;
+            margin-bottom: 15px;
         }
 
-        .splash-fallback-title h1 {
-            font-size: 38px;
+        .splash-header-title h1 {
+            font-size: 40px;
             font-weight: 900;
-            background: linear-gradient(180deg, #ffffff 0%, var(--gold) 60%, #ff8800 100%);
+            background: linear-gradient(180deg, #ffffff 0%, var(--gold) 50%, #ff8800 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 25px rgba(255, 223, 0, 0.6);
-            letter-spacing: 1px;
+            text-shadow: 0 0 30px rgba(255, 223, 0, 0.8);
+            letter-spacing: 1.5px;
         }
 
-        .splash-fallback-title p {
-            font-size: 14px;
+        .splash-header-title p {
+            font-size: 15px;
             color: var(--neon-blue);
-            font-weight: 700;
-            text-shadow: 0 0 10px var(--neon-blue);
+            font-weight: 800;
+            text-shadow: 0 0 12px var(--neon-blue);
+        }
+
+        /* مجسم الجرة الذهبية 3D والفواكه والأجراس */
+        .splash-3d-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 20px 0 35px 0;
+            perspective: 1000px;
+        }
+
+        .side-elements {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 32px;
+            filter: drop-shadow(0 0 12px var(--gold));
+            animation: sideFloat 2s infinite alternate ease-in-out;
+        }
+
+        @keyframes sideFloat {
+            0% { transform: translateY(-8px) scale(0.95); }
+            100% { transform: translateY(8px) scale(1.05); }
+        }
+
+        .jar-3d-wrapper {
+            position: relative;
+            width: 130px;
+            height: 130px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform-style: preserve-3d;
+            animation: rotateJar3D 4s infinite ease-in-out alternate;
+        }
+
+        @keyframes rotateJar3D {
+            0% { transform: rotateY(-18deg) rotateX(10deg) scale(0.95); }
+            100% { transform: rotateY(18deg) rotateX(-5deg) scale(1.08); }
+        }
+
+        .jar-3d-icon {
+            font-size: 90px;
+            filter: drop-shadow(0 0 35px var(--gold)) drop-shadow(0 0 15px #ff8800);
+            position: relative;
+            z-index: 2;
+        }
+
+        .gold-spout-3d {
+            position: absolute;
+            top: -30px;
+            font-size: 28px;
+            z-index: 3;
+            animation: goldGush 0.8s infinite alternate ease-in-out;
+        }
+
+        @keyframes goldGush {
+            0% { transform: translateY(0) scale(0.8); opacity: 0.6; }
+            100% { transform: translateY(-20px) scale(1.3); opacity: 1; filter: drop-shadow(0 0 18px var(--gold)); }
         }
 
         .loader-container {
             width: 82%;
-            max-width: 330px;
-            height: 18px;
-            background: rgba(0, 10, 25, 0.88);
+            max-width: 320px;
+            height: 16px;
+            background: rgba(0, 10, 25, 0.9);
             border: 2px solid var(--neon-blue);
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 0 25px var(--neon-glow);
             position: relative;
-            z-index: 10;
         }
 
         .loader-bar {
@@ -223,7 +266,7 @@
         .slots-frame {
             display: flex;
             flex-direction: row;
-            direction: ltr; /* دوران وتوقف يبدأ دائماً من أقصى اليسار */
+            direction: rtl; /* احتساب وتوقف يبدأ من أقصى اليمين */
             background: rgba(1, 5, 12, 0.99);
             border: 3px solid var(--neon-blue);
             box-shadow: 0 0 45px var(--neon-glow), inset 0 0 25px var(--neon-glow);
@@ -261,7 +304,7 @@
             content: '';
             position: absolute;
             top: 0;
-            right: 0;
+            left: 0;
             width: 2px;
             height: 100%;
             background: var(--neon-blue);
@@ -283,8 +326,9 @@
             animation: fastSpinSmoothReverse 0.11s linear infinite;
         }
 
-        .reel-strip.bounce-stop {
-            animation: reelSmoothElasticStop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        /* تحسين التوقف التدريجي والمرن للبكرة */
+        .reel-strip.decelerate-stop {
+            animation: reelSlowdownAndStop 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
         @keyframes fastSpinSmoothReverse {
@@ -292,10 +336,10 @@
             100% { transform: translateY(-240px); filter: blur(3px); }
         }
 
-        @keyframes reelSmoothElasticStop {
-            0% { transform: translateY(-35px); }
-            60% { transform: translateY(10px); }
-            85% { transform: translateY(-3px); }
+        @keyframes reelSlowdownAndStop {
+            0% { transform: translateY(-160px); filter: blur(2px); }
+            60% { transform: translateY(-10px); filter: blur(0px); }
+            80% { transform: translateY(8px); }
             100% { transform: translateY(0); }
         }
 
@@ -667,13 +711,32 @@
 </head>
 <body>
 
-    <!-- الشاشة الافتتاحية مع معالجة حماية خطأ الصورة -->
+    <!-- الشاشة الافتتاحية المصممة بـ 3D للجرة والذهب والفواكه -->
     <div class="splash-screen" id="splashScreen">
-        <div class="splash-fallback-title">
+        <div class="splash-header-title">
             <h1>GOLDEN LERA</h1>
             <p>PRO MASTER 2026</p>
         </div>
-        <img src="13156.png" class="splash-img" alt="Golden Lera Splash" onerror="this.style.display='none'">
+
+        <div class="splash-3d-container">
+            <div class="side-elements">
+                <span>🔔</span>
+                <span>🍇</span>
+                <span>🍊</span>
+            </div>
+
+            <div class="jar-3d-wrapper">
+                <div class="gold-spout-3d">🪙✨💰</div>
+                <div class="jar-3d-icon">🏺</div>
+            </div>
+
+            <div class="side-elements">
+                <span>🍍</span>
+                <span>🍒</span>
+                <span>🔔</span>
+            </div>
+        </div>
+
         <div class="loader-container">
             <div class="loader-bar" id="loaderBar"></div>
         </div>
@@ -813,7 +876,7 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        const splashWaitTime = Math.floor(Math.random() * (12000 - 8000 + 1)) + 8000;
+        const splashWaitTime = Math.floor(Math.random() * (10000 - 6000 + 1)) + 6000;
         let loadProgress = 0;
         const intervalTime = splashWaitTime / 100;
 
@@ -919,7 +982,6 @@
                     osc.start(now + (i * 0.05)); osc.stop(now + (i * 0.05) + 0.35);
                 });
             }
-            // صوت العملات الذهبية المتطايرة والمعدنية
             else if (type === 'coins_flying') {
                 for (let i = 0; i < 12; i++) {
                     setTimeout(() => {
@@ -984,7 +1046,7 @@
         }
         loadUserData();
 
-        // بناء البكرات من اليسار إلى اليمين
+        // بناء البكرات
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -1158,7 +1220,7 @@
         }
 
         // =========================================================================
-        //  محاكي الأرباح: يتم احتساب الأرباح صراحةً وبشكل صارم من اليسار إلى اليمين فقط!
+        //  محرّك الأرباح: تم عكس اتجاه الفحص ليصبح حصراً من أقصى اليمين إلى اليسار (RTL)!
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
@@ -1168,8 +1230,8 @@
             checkSymbols.forEach(targetSym => {
                 let connectedCols = [];
 
-                // التكرار يبدأ دائماً وحصراً من البكرة الأولى على اليسار (c = 0)
-                for (let c = 0; c < reelsCount; c++) {
+                // التكرار يبدأ حصراً من العمود الأخير على اليمين (c = reelsCount - 1) نحو اليسار
+                for (let c = reelsCount - 1; c >= 0; c--) {
                     let colData = grid[c];
                     let matchingRowsInCol = [];
 
@@ -1179,17 +1241,16 @@
                         }
                     });
 
-                    // إذا توفر الرمز في هذه البكرة، يُسجل ويُكمل للفحص التالي
                     if (matchingRowsInCol.length > 0) {
                         connectedCols.push({ col: c, rows: matchingRowsInCol });
                     } else {
-                        // انقطاع الاتصال يلغي الربح للرمز فوراً (لا ربح من الوسط أو اليمين)
+                        // انقطاع الاتصال من جهة اليمين يلغي الربح فوراً
                         break;
                     }
                 }
 
-                // شرط صارم: يجب أن تبدأ السلسلة من العمود 0 (أقصى اليسار)
-                if (connectedCols.length >= 2 && connectedCols[0].col === 0) {
+                // شرط صارم: يجب أن تبدأ السلسلة المتصلة من العمود الأخير على اليمين (reelsCount - 1)
+                if (connectedCols.length >= 2 && connectedCols[0].col === reelsCount - 1) {
                     let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
                     if (targetSym === '7') mult *= 2;
 
@@ -1204,7 +1265,7 @@
         }
 
         // =========================================================================
-        //  بدء الدوران لجميع البكرات والتوقف التدريجي المباشر
+        //  بدء الدوران وتوقف البكرات بتتابع تدريجي مرن من اليمين
         // =========================================================================
         async function startSpin() {
             if (isSpinning) return;
@@ -1284,6 +1345,7 @@
             let initialDelay = speedLevel === 1 ? 500 : (speedLevel === 2 ? 300 : 120);
             let staggerStep = speedLevel === 1 ? 350 : (speedLevel === 2 ? 220 : 90);
 
+            // توقف تدريجي ممتاز يظهر تباطؤ الدوران
             for (let step = 0; step < reelsCount; step++) {
                 let reelIdx = step; 
                 let currentWait = forceStopRequested ? (step * 50) : (initialDelay + step * staggerStep);
@@ -1296,8 +1358,9 @@
                 let columnData = finalGrid[reelIdx];
                 populateStrip(strip, columnData);
 
-                strip.classList.add('bounce-stop');
-                setTimeout(() => strip.classList.remove('bounce-stop'), 350);
+                // تطبيق حركة التوقف التدريجية المنحنية
+                strip.classList.add('decelerate-stop');
+                setTimeout(() => strip.classList.remove('decelerate-stop'), 450);
 
                 let jarFoundInCol = false;
                 columnData.forEach((s, rowIdx) => {
@@ -1338,7 +1401,7 @@
         }
 
         // ==========================================
-        //  تطاير العملات السريع والكبير مع الصوت
+        //  عرض النتائج - الجرة تملأ البكرة فقط عند الربح
         // ==========================================
         async function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
@@ -1355,6 +1418,7 @@
 
                 applyShineToWinners(res.winning_coords || []);
 
+                // الجرة تملأ البكرة فقط في حال تحقق ربح فعلي!
                 let jarCols = findJarColumns(res.grid);
                 if (jarCols.length > 0) {
                     jarCols.forEach(colIdx => {
@@ -1362,10 +1426,9 @@
                     });
 
                     await new Promise(r => setTimeout(r, 550));
-                    triggerGoldRain();
-                } else {
-                    triggerGoldRain(); // إطلاق الليرات مع الصوت عند أي ربح
                 }
+                
+                triggerGoldRain();
 
                 let winMultiplier = winAmount / currentBet;
                 if (winMultiplier >= 10.0) {
@@ -1400,15 +1463,14 @@
             document.querySelectorAll('.reel-jar-expanded').forEach(el => el.remove());
         }
 
-        // تسريع الليرات، تكبير حجمها وإضافة الصوت المخصص
         function triggerGoldRain() {
             playProSound('coins_flying');
             confetti({
                 particleCount: 65,
                 spread: 100,
-                startVelocity: 55, // حركية سريعة ومندفعة
-                scalar: 2.3,        // حجم كبير جداً وممتاز للعملات
-                gravity: 1.15,      // هبوط سريع وممتع
+                startVelocity: 55,
+                scalar: 2.3,
+                gravity: 1.15,
                 ticks: 170,
                 origin: { y: 0.6 },
                 colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
@@ -1426,7 +1488,7 @@
                     angle: 60,
                     spread: 85,
                     startVelocity: 65,
-                    scalar: 2.5, // حجم ضخم ومميز الأثر
+                    scalar: 2.5,
                     gravity: 1.2,
                     origin: { x: 0 },
                     colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
