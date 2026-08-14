@@ -35,21 +35,21 @@ def init_db():
         )
     ''')
     
-    # الإعدادات الافتراضية
+    # الإعدادات الافتراضية المحدثة حسب طلبك
     default_settings = {
         "bonus_win_rate": "40",    # نسبة الربح عند شراء المكافأة
         "bonus_cap_1": "200",      # سقف ربح 1 جرة
         "bonus_cap_2": "500",      # سقف ربح 2 جرة
         "bonus_cap_3": "1000",     # سقف ربح 3 جرات
         
-        # 🎯 النسب المئوية للتحكم بالخوارزمية
-        "chance_loss": "50",       # نسبة الخسارة
-        "chance_win1": "20",       # نسبة ربح 1x (سعر الرهان)
-        "chance_win2": "10",       # نسبة ربح 2x
-        "chance_win5": "10",       # نسبة ربح 5x
-        "chance_win10": "6",       # نسبة ربح 10x
-        "chance_win20": "3",       # نسبة ربح 20x
-        "chance_win50": "1",       # نسبة ربح 50x (نادر جداً)
+        # 🎯 النسب المئوية الجديدة
+        "chance_loss": "70",       # نسبة الخسارة (70%)
+        "chance_win1": "15",       # نسبة ربح 1x - سعر الرهان (15%)
+        "chance_win2": "10",       # نسبة ربح 2x - ضعف الرهان (10%)
+        "chance_win5": "5",        # نسبة ربح 5x - 5 أضعاف الرهان (5%)
+        "chance_win10": "0",       # نسبة ربح 10x
+        "chance_win20": "0",       # نسبة ربح 20x
+        "chance_win50": "0",       # نسبة ربح 50x
         
         # 🛠️ وضع الصيانة (off = شغال / on = صيانة)
         "maintenance_mode": "off",
@@ -59,7 +59,8 @@ def init_db():
     }
     
     for k, v in default_settings.items():
-        cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (k, str(v)))
+        # استخدام REPLACE لتحديث القيم مباشرة في قاعدة البيانات الحالية
+        cursor.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (k, str(v)))
         
     conn.commit()
     conn.close()
@@ -200,13 +201,13 @@ def choose_tier(is_bonus_buy=False):
             return "loss"
         return random.choices(["win1", "win2", "win5", "win10", "win20", "win50"], weights=[30, 25, 20, 15, 7, 3])[0]
     else:
-        c_loss = float(get_setting("chance_loss", 50))
-        c_win1 = float(get_setting("chance_win1", 20))
+        c_loss = float(get_setting("chance_loss", 70))
+        c_win1 = float(get_setting("chance_win1", 15))
         c_win2 = float(get_setting("chance_win2", 10))
-        c_win5 = float(get_setting("chance_win5", 10))
-        c_win10 = float(get_setting("chance_win10", 6))
-        c_win20 = float(get_setting("chance_win20", 3))
-        c_win50 = float(get_setting("chance_win50", 1))
+        c_win5 = float(get_setting("chance_win5", 5))
+        c_win10 = float(get_setting("chance_win10", 0))
+        c_win20 = float(get_setting("chance_win20", 0))
+        c_win50 = float(get_setting("chance_win50", 0))
         
         tiers = ["loss", "win1", "win2", "win5", "win10", "win20", "win50"]
         weights = [c_loss, c_win1, c_win2, c_win5, c_win10, c_win20, c_win50]
