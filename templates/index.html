@@ -1321,6 +1321,7 @@
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
+            // شرط جرف الجرات: يتطلب وجود جرة في العمود 0 والعمود 1
             let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
             let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
 
@@ -1342,6 +1343,7 @@
                 totalWin += (bet * megaMultiplier);
             }
 
+            // خطوط الربح تبدأ جميعها من العمود رقم 0
             const paylines = [
                 [[0,0], [1,0], [2,0], [3,0], [4,0]],
                 [[0,1], [1,1], [2,1], [3,1], [4,1]],
@@ -1355,12 +1357,17 @@
             ];
 
             paylines.forEach(line => {
+                // التأكد الصارم من أن التقييم يبدأ حصراً من العمود رقم 0
                 let col0Coord = line[0];
+                if (col0Coord[0] !== 0) return;
+
                 let firstObj = grid[col0Coord[0]] ? grid[col0Coord[0]][col0Coord[1]] : null;
-                if (!firstObj) return;
+                // إذا لم يوجد عنصر/رمز في العمود 0، يتم التجاهل ولا يُحسب أي ربح
+                if (!firstObj || !firstObj.sym) return;
 
                 let targetSym = firstObj.sym;
 
+                // إذا كان الرمز في العمود 0 جرة (Wild)، يتم تحديد الرمز المطلوب من أول فاكهة تليها، مع شرط بدء المطابقة من 0
                 if (targetSym === '🏺') {
                     for (let i = 1; i < line.length; i++) {
                         let obj = grid[line[i][0]] ? grid[line[i][0]][line[i][1]] : null;
@@ -1375,12 +1382,14 @@
                 let currentLineCoords = [];
                 let jarMultProduct = 1;
 
+                // التقييم يبدأ دائماً من الموضع 0 (i = 0)
                 for (let i = 0; i < line.length; i++) {
                     let [c, r] = line[i];
                     let cellObj = grid[c] ? grid[c][r] : null;
 
                     if (!cellObj) break;
 
+                    // يجب أن يطابق الرمز المستهدف أو يكون جرة Wild بدءاً من الموضع 0
                     if (cellObj.sym === targetSym || cellObj.sym === '🏺') {
                         matchCount++;
                         currentLineCoords.push([c, r]);
@@ -1388,6 +1397,7 @@
                             jarMultProduct *= cellObj.mult;
                         }
                     } else {
+                        // انقطاع التتابع من جهة اليسار/الموضع 0 يُلغي استكمال الخط
                         break;
                     }
                 }
@@ -1505,7 +1515,6 @@
                     new_balance: currentBalance - (isBonusRound ? 0 : currentBet) + localWin.winAmount
                 };
             } else {
-                // الاعتماد الحصري والمباشر على نتائج السيرفر المربوطة بالبوت
                 let localEval = evaluateWildWinsLocally(serverResult.grid, currentBet);
                 serverResult.winning_coords = serverResult.winning_coords || localEval.winningCoords;
                 serverResult.is_harvest = serverResult.is_harvest !== undefined ? serverResult.is_harvest : localEval.isDoubleJarHarvest;
