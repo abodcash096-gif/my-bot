@@ -48,11 +48,6 @@ RAW_SERVER_URL = os.getenv("SERVER_URL", "https://my-bot-j658.onrender.com")
 extracted_urls = re.findall(r'https?://[^\s\)\]]+', RAW_SERVER_URL)
 SERVER_URL = extracted_urls[0].rstrip('/') if extracted_urls else "https://my-bot-j658.onrender.com"
 
-ALLOWED_GAMES = [
-    'wheel', 'aviator', 'mines', 'slots', 'chests', 
-    'dice', 'coinflip', 'cards', 'thimbles', 'roulette', 'goold_lera'
-]
-
 # ----------------------------------------------------
 # 2. إعداد قاعدة البيانات الموحدة (database.db)
 # ----------------------------------------------------
@@ -119,26 +114,6 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
-    cols = [
-        ("full_name", "TEXT"),
-        ("phone", "TEXT"),
-        ("balance", "REAL DEFAULT 100.0"),
-        ("referred_by", "INTEGER"),
-        ("referrals_count", "INTEGER DEFAULT 0"),
-        ("games_played", "INTEGER DEFAULT 0"),
-        ("consecutive_losses", "INTEGER DEFAULT 0"),
-        ("consecutive_wins", "INTEGER DEFAULT 0"),
-        ("is_verified", "INTEGER DEFAULT 0"),
-        ("terms_accepted", "INTEGER DEFAULT 0"),
-        ("is_banned", "INTEGER DEFAULT 0"),
-        ("captcha_answer", "INTEGER DEFAULT 0"),
-        ("step", "TEXT DEFAULT 'start'"),
-        ("custom_boost", "REAL DEFAULT 0.0")
-    ]
-    for col_name, col_type in cols:
-        try: cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
-        except: pass
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS logs (
@@ -169,19 +144,26 @@ def init_db():
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_withdraw', '1000')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('min_deposit', '50')")
     
-    # إعدادات خوارزمية الربح وشراء المكافأة المباشرة
+    # إعدادات خوارزمية الربح وشراء المكافأة
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('win_rate', '30')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_win_rate', '40')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_1', '200')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_2', '500')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bonus_cap_3', '1000')")
     
-    # خوارزميات درجات الربح الخمس المحدثة
+    # خوارزميات درجات الربح الخمس
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_loss', '50')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_normal', '30')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_medium', '12')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_high', '6')")
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('chance_huge', '2')")
+
+    # 🎯 إعدادات النمط المباشر والسقوف الصارمة
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('global_win_mode', 'auto')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('max_mult_normal', '5.0')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('max_mult_medium', '10.0')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('max_mult_high', '20.0')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('max_mult_huge', '50.0')")
 
     conn.commit()
     conn.close()
@@ -387,19 +369,34 @@ def admin_panel_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
+# 🎛️ لوحة الخوارزمية المحدثة مع زر النمط المباشر
 def algo_panel_keyboard():
     keyboard = [
+        [InlineKeyboardButton("⚡ النمط المباشر (تلقائي / قفل ربح)", callback_data="adm_global_mode_menu")],
         [InlineKeyboardButton("🎯 نسبة الربح العامة (Win Rate %)", callback_data="adm_set_win_rate")],
         [InlineKeyboardButton("🎁 نسبة ربح شراء المكافأة %", callback_data="adm_set_bonus_win_rate")],
         [InlineKeyboardButton("🏺 سقف أرباح 1 جرة (فئة 3)", callback_data="adm_set_bonus_cap_1")],
         [InlineKeyboardButton("🏺🏺 سقف أرباح 2 جرة (فئة 3)", callback_data="adm_set_bonus_cap_2")],
         [InlineKeyboardButton("🏺🏺🏺 سقف أرباح 3 جرات (فئة 3)", callback_data="adm_set_bonus_cap_3")],
         [InlineKeyboardButton("📉 نسبة الخسارة العامة %", callback_data="adm_set_ch_loss")],
-        [InlineKeyboardButton("🥉 نسبة الربح العادي %", callback_data="adm_set_ch_normal")],
-        [InlineKeyboardButton("🥈 نسبة الربح المتوسط %", callback_data="adm_set_ch_medium")],
-        [InlineKeyboardButton("🥇 نسبة الربح العالي %", callback_data="adm_set_ch_high")],
-        [InlineKeyboardButton("👑 نسبة الربح الضخم %", callback_data="adm_set_ch_huge")],
+        [InlineKeyboardButton("🥉 نسبة الربح العادي (حتى 5x) %", callback_data="adm_set_ch_normal")],
+        [InlineKeyboardButton("🥈 نسبة الربح المتوسط (حتى 10x) %", callback_data="adm_set_ch_medium")],
+        [InlineKeyboardButton("🥇 نسبة الربح العالي (حتى 20x) %", callback_data="adm_set_ch_high")],
+        [InlineKeyboardButton("👑 نسبة الربح الضخم (حتى 50x) %", callback_data="adm_set_ch_huge")],
         [InlineKeyboardButton("🔙 رجوع للإدارة", callback_data="open_admin_panel")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+# ⚙️ لوحة تحديد النمط المباشر للسيرفر
+def global_mode_keyboard():
+    keyboard = [
+        [InlineKeyboardButton("🔄 تلقائي (حسب نسب الخوارزمية)", callback_data="set_gmode_auto")],
+        [InlineKeyboardButton("❌ قفل على الخسارة (Loss)", callback_data="set_gmode_loss")],
+        [InlineKeyboardButton("🥉 قفل على ربح عادي (1x - 5x)", callback_data="set_gmode_normal")],
+        [InlineKeyboardButton("🥈 قفل على ربح متوسط (5x - 10x)", callback_data="set_gmode_medium")],
+        [InlineKeyboardButton("🥇 قفل على ربح عالي (10x - 20x)", callback_data="set_gmode_high")],
+        [InlineKeyboardButton("👑 قفل على ربح ضخم (20x - 50x)", callback_data="set_gmode_huge")],
+        [InlineKeyboardButton("🔙 رجوع لخوارزمية الربح", callback_data="adm_algo_menu")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -572,7 +569,6 @@ async def handle_photo_messages(update: Update, context: ContextTypes.DEFAULT_TY
         conn.close()
         return
 
-    # معالجة إرسال صورة إيصال التحويل عند طلب الشحن
     if u and u["step"] == "deposit_step_tx":
         photo_file_id = update.message.photo[-1].file_id
         amt = context.user_data.get("dep_amount", 0.0)
@@ -645,7 +641,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             await update.message.reply_text("❌ إجابة خاطئة! يرجى كتابة الرقم المطلوب بدقة.")
         return
 
-    # معالجة الشحن (المبلغ ثم رقم العملية أو الصورة)
     if step == "deposit_step_amount":
         try:
             amt = float(text)
@@ -694,7 +689,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             f"💰 **المبلغ المطلوب:** `{amt}` NSP", reply_markup=kb)
         return
 
-    # معالجة إعدادات الخوارزمية وسقوف المكافآت من الإدارة
     if step == "adm_set_win_rate":
         try:
             val = int(text)
@@ -815,7 +809,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             f"💰 **المبلغ:** `{amt}` NSP", reply_markup=kb)
         return
 
-    # معالجة إدخال كود الهدية مع قيد 24 ساعة وإشعار الأدمن
     if step == "input_gift_code":
         last_log = conn.execute(
             "SELECT timestamp FROM logs WHERE user_id = ? AND action LIKE 'استخدام كود هدية%' ORDER BY id DESC LIMIT 1",
@@ -863,7 +856,6 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
         conn.commit()
         conn.close()
 
-        # إرسال إشعار للإدارة باستخدام الكود
         admin_gift_msg = (
             f"🎁 **إشعار استخدام كود هدية!**\n\n"
             f"👤 **المستخدم:** {user.full_name} (`{user.id}`)\n"
@@ -1238,7 +1230,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
         return
 
-    # خيار شحن الرصيد لدى العميل
     if data == "btn_deposit":
         min_dep = conn.execute("SELECT value FROM settings WHERE key='min_deposit'").fetchone()["value"]
         kb = InlineKeyboardMarkup([
@@ -1370,6 +1361,73 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.edit_text("⚙️ **لوحة التحكم الإدارية:**", parse_mode="Markdown", reply_markup=admin_panel_keyboard())
             return
 
+        # 🎛️ عرض لوحة التحكم بالخوارزمية المحدثة
+        if data == "adm_algo_menu":
+            settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
+            conn.close()
+
+            mode_map = {
+                "auto": "🔄 تلقائي (حسب نسب الاحتمالات)",
+                "loss": "❌ قفل خاسر دائماً (Loss Mode)",
+                "normal": "🥉 قفل ربح عادي (حتى 5x)",
+                "medium": "🥈 قفل ربح متوسط (حتى 10x)",
+                "high": "🥇 قفل ربح عالي (حتى 20x)",
+                "huge": "👑 قفل ربح ضخم (حتى 50x)"
+            }
+            current_mode = mode_map.get(settings.get('global_win_mode', 'auto'), "🔄 تلقائي")
+
+            msg = (
+                "🎛️ **لوحة تحكم خوارزميات الربح والمكافآت المحدثة:**\n\n"
+                f"⚡ **النمط المباشر المفعّل:** `{current_mode}`\n"
+                f"-----------------------------------\n"
+                f"🎯 نسبة الربح العامة: `{settings.get('win_rate', 30)}%`\n"
+                f"🎁 نسبة ربح شراء المكافأة: `{settings.get('bonus_win_rate', 40)}%`\n"
+                f"🏺 سقف 1 جرة (فئة 3): `{settings.get('bonus_cap_1', 200)}` NSP\n"
+                f"🏺🏺 سقف 2 جرة (فئة 3): `{settings.get('bonus_cap_2', 500)}` NSP\n"
+                f"🏺🏺🏺 سقف 3 جرات (فئة 3): `{settings.get('bonus_cap_3', 1000)}` NSP\n"
+                f"-----------------------------------\n"
+                f"📉 نسبة الخسارة: `{settings.get('chance_loss', 50)}%`\n"
+                f"🥉 نسبة الربح العادي (حتى 5x): `{settings.get('chance_normal', 30)}%`\n"
+                f"🥈 نسبة الربح المتوسط (حتى 10x): `{settings.get('chance_medium', 12)}%`\n"
+                f"🥇 نسبة الربح العالي (حتى 20x): `{settings.get('chance_high', 6)}%`\n"
+                f"👑 نسبة الربح الضخم (حتى 50x): `{settings.get('chance_huge', 2)}%`\n\n"
+                "اختر الخيار المراد تعديله من الأزرار أدناه:"
+            )
+            await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=algo_panel_keyboard())
+            return
+
+        # ⚡ القائمة الفرعية لتغيير النمط المباشر
+        if data == "adm_global_mode_menu":
+            conn.close()
+            await query.message.edit_text(
+                "⚡ **التحكم المباشر بنمط السيرفر:**\n\n"
+                "يمكنك قفل جميع أدوار السيرفر فورياً على نمط ربح أو خسارة محدد، أو تركه يعمل تلقائياً حسب نسب الخوارزمية.",
+                parse_mode="Markdown",
+                reply_markup=global_mode_keyboard()
+            )
+            return
+
+        # 🔄 حفظ وتفعيل النمط المباشر الجديد
+        if data.startswith("set_gmode_"):
+            new_mode = data.replace("set_gmode_", "")
+            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('global_win_mode', ?)", (new_mode,))
+            conn.commit()
+            conn.close()
+
+            names = {
+                "auto": "تلقائي (حسب نسب الخوارزمية)",
+                "loss": "خسارة دائمة",
+                "normal": "ربح عادي (حتى 5x)",
+                "medium": "ربح متوسط (حتى 10x)",
+                "high": "ربح عالي (حتى 20x)",
+                "huge": "ربح ضخم (حتى 50x)"
+            }
+            await query.message.edit_text(
+                f"✅ تم تغيير النمط المباشر للعب بنجاح إلى: **{names.get(new_mode, new_mode)}**",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع لخوارزمية الربح", callback_data="adm_algo_menu")]])
+            )
+            return
+
         if data == "adm_dep_methods":
             dep_accs = conn.execute("SELECT * FROM deposit_methods").fetchall()
             kb = [[InlineKeyboardButton("➕ إضافة حساب شحن جديد", callback_data="adm_add_dep_acc")]]
@@ -1463,27 +1521,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.commit()
             conn.close()
             await query.message.edit_text(f"✍️ **أدخل نص الرد على العميل (`{target_id}`):**")
-            return
-            
-        if data == "adm_algo_menu":
-            settings = dict(conn.execute("SELECT key, value FROM settings").fetchall())
-            conn.close()
-            msg = (
-                "🎛️ **لوحة تحكم خوارزميات الربح والمكافآت المحدثة:**\n\n"
-                f"🎯 نسبة الربح العامة: `{settings.get('win_rate', 30)}%`\n"
-                f"🎁 نسبة ربح شراء المكافأة: `{settings.get('bonus_win_rate', 40)}%`\n"
-                f"🏺 سقف 1 جرة (فئة 3): `{settings.get('bonus_cap_1', 200)}` NSP\n"
-                f"🏺🏺 سقف 2 جرة (فئة 3): `{settings.get('bonus_cap_2', 500)}` NSP\n"
-                f"🏺🏺🏺 سقف 3 جرات (فئة 3): `{settings.get('bonus_cap_3', 1000)}` NSP\n"
-                f"-----------------------------------\n"
-                f"📉 نسبة الخسارة: `{settings.get('chance_loss', 50)}%`\n"
-                f"🥉 نسبة الربح العادي: `{settings.get('chance_normal', 30)}%`\n"
-                f"🥈 نسبة الربح المتوسط: `{settings.get('chance_medium', 12)}%`\n"
-                f"🥇 نسبة الربح العالي: `{settings.get('chance_high', 6)}%`\n"
-                f"👑 نسبة الربح الضخم: `{settings.get('chance_huge', 2)}%`\n\n"
-                "اختر النسبة أو السقف المراد تعديله من الأزرار أدناه:"
-            )
-            await query.message.edit_text(msg, parse_mode="Markdown", reply_markup=algo_panel_keyboard())
             return
 
         algo_steps = [
