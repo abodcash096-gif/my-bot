@@ -36,6 +36,7 @@
             flex-direction: column;
             justify-content: space-between;
             overflow-x: hidden;
+            position: relative;
         }
 
         /* --- 1. واجهة الدخول الزرقاء النيون --- */
@@ -202,7 +203,7 @@
             box-shadow: 0 0 15px var(--gold);
         }
 
-        /* --- 3. إطار البكرات أسفل زر "تحديث" مباشرة --- */
+        /* --- 3. إطار البكرات --- */
         .game-container {
             position: relative;
             width: 95%;
@@ -214,7 +215,7 @@
         .slots-frame {
             display: flex;
             flex-direction: row;
-            direction: ltr; /* اتجاه البكرات ينطلق من اليسار أسفل "تحديث" تماماً */
+            direction: ltr;
             background: rgba(1, 5, 12, 0.99);
             border: 3px solid var(--neon-blue);
             box-shadow: 0 0 45px var(--neon-glow), inset 0 0 25px var(--neon-glow);
@@ -654,6 +655,29 @@
             border-color: var(--gold);
             transform: scale(1.02);
         }
+
+        /* --- 4. حركة تطاير العملات الفائقة السرعة دون تباطؤ --- */
+        @keyframes ultraFastCoinFly {
+            0% {
+                transform: translate(0, 105vh) rotate(0deg) scale(0.6);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--dx), -25vh) rotate(1440deg) scale(1.6);
+                opacity: 1;
+            }
+        }
+
+        .ultra-gold-coin {
+            position: fixed;
+            bottom: 0;
+            z-index: 9999;
+            pointer-events: none;
+            font-size: 42px;
+            filter: drop-shadow(0 0 15px #ffdf00) drop-shadow(0 0 25px #ff8800);
+            animation: ultraFastCoinFly var(--duration) linear forwards;
+            will-change: transform;
+        }
     </style>
 </head>
 <body>
@@ -698,7 +722,7 @@
         🔥 مكافأة جرات مفعلة: متبقي 5 ضربات
     </div>
 
-    <!-- 3. إطار اللعبة والبكرات (العمود الأول يقع أسفل كلمة تحديث تماماً) -->
+    <!-- 3. إطار اللعبة والبكرات (الاحتساب ينطلق من أقصى اليمين نحو اليسار) -->
     <div class="game-container">
         <div class="jar-banner" id="jarBanner"><span id="jarWinRating">ربح كبير! 🔥</span><br><span id="jarMultText" style="font-size: 28px; color: var(--gold);">5x</span></div>
         <div class="slots-frame" id="slotsFrame"></div>
@@ -911,20 +935,20 @@
                 });
             }
             else if (type === 'coins_flying') {
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 12; i++) {
                     setTimeout(() => {
                         if (!audioCtx) return;
                         let nowTime = audioCtx.currentTime;
                         let osc = audioCtx.createOscillator();
                         let gain = audioCtx.createGain();
                         osc.type = 'sine';
-                        let freq = 1700 + Math.random() * 1100;
+                        let freq = 1800 + Math.random() * 1200;
                         osc.frequency.setValueAtTime(freq, nowTime);
-                        gain.gain.setValueAtTime(0.15, nowTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, nowTime + 0.05);
+                        gain.gain.setValueAtTime(0.18, nowTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, nowTime + 0.04);
                         osc.connect(gain); gain.connect(audioCtx.destination);
-                        osc.start(nowTime); osc.stop(nowTime + 0.05);
-                    }, i * 25);
+                        osc.start(nowTime); osc.stop(nowTime + 0.04);
+                    }, i * 20);
                 }
             }
         }
@@ -974,7 +998,7 @@
         }
         loadUserData();
 
-        // بناء البكرات (البكرة 0 تقع تماماً أسفل زر "تحديث" على أقصى اليسار)
+        // بناء البكرات
         for (let i = 0; i < reelsCount; i++) {
             const reel = document.createElement('div');
             reel.className = 'reel';
@@ -1148,18 +1172,18 @@
         }
 
         // =========================================================================
-        //  خوارزمية احتساب الأرباح (تعتمد حصرياً على الانطلاق من البكرة أسفل كلمة تحديث)
+        //  خوارزمية احتساب الأرباح (معكوسة: تنطلق حصرياً من أقصى اليمين العمود 4 نحو اليسار)
         // =========================================================================
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // 1. فحص ميزة جرف الجرات الضخم: وجود جرة في البكرة 0 (أسفل كلمة تحديث) والبكرة 1
-            let jarInCol0 = grid[0].some(s => s && s.sym === '🏺');
-            let jarInCol1 = grid[1].some(s => s && s.sym === '🏺');
+            // 1. فحص ميزة جرف الجرات الضخم: وجود جرة في العمودين الأخيرين من الجهة الأخرى (العمود 4 والعمود 3)
+            let jarInCol4 = grid[4].some(s => s && s.sym === '🏺');
+            let jarInCol3 = grid[3].some(s => s && s.sym === '🏺');
 
-            if (jarInCol0 && jarInCol1) {
+            if (jarInCol4 && jarInCol3) {
                 isDoubleJarHarvest = true;
                 let harvestPoints = 0;
                 const symValues = { '7': 15, '🔔': 10, '🍇': 8, '🍍': 6, '🍊': 5, '🍋': 4, '🍒': 3, '🏺': 12 };
@@ -1176,14 +1200,14 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // 2. فحص الأرباح العادية المتصلة: تجبر السلسلة على البدء من العمود 0 (أسفل "تحديث") حصراً
+            // 2. فحص الأرباح العادية المتصلة: تنطلق حتماً من أقصى اليمين (العمود 4) باتجاه اليسار
             const checkSymbols = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '7'];
 
             checkSymbols.forEach(targetSym => {
                 let connectedCols = [];
 
-                // نبدأ الفحص حتماً من العمود 0 (أسفل كلمة تحديث)
-                for (let c = 0; c < reelsCount; c++) {
+                // نبدأ الفحص حتماً من أقصى الجهة الأخرى (العمود 4) تنازلياً لليزار (3، 2، 1، 0)
+                for (let c = reelsCount - 1; c >= 0; c--) {
                     let colData = grid[c];
                     let matchingRowsInCol = [];
 
@@ -1193,16 +1217,16 @@
                         }
                     });
 
-                    // إذا وُجد تطابق في هذا العمود يضاف للسلسلة، وإذا انقطع الفحص تتوقف الحلقة فورا
+                    // إذا وُجد تطابق في هذا العمود يضاف للسلسلة، وإذا انقطع الفحص تتوقف الحلقة فوراً
                     if (matchingRowsInCol.length > 0) {
                         connectedCols.push({ col: c, rows: matchingRowsInCol });
                     } else {
-                        break; // الانقطاع يلغي أي مجموعات تظهر بعدها في جهة اليمين
+                        break; // الانقطاع يلغي السلسلة بالكامل
                     }
                 }
 
-                // شرط الجزم: لن يُحسب الربح إلا إذا وُجد تطابق في عمودين على الأقل وكانت البداية من العمود 0 (أسفل تحديث)
-                if (connectedCols.length >= 2 && connectedCols[0].col === 0) {
+                // شرط الجزم: لن يُحسب الربح إلا إذا بدأت السلسلة من العمود 4 (أقصى اليمين) واتصلت بعمودين على الأقل
+                if (connectedCols.length >= 2 && connectedCols[0].col === reelsCount - 1) {
                     let mult = (connectedCols.length === 2) ? 1.5 : (connectedCols.length === 3 ? 4 : (connectedCols.length === 4 ? 10 : 25));
                     if (targetSym === '7') mult *= 2;
 
@@ -1217,7 +1241,7 @@
         }
 
         // =========================================================================
-        //  بدء التدوير وتتابع التوقف من جهة "تحديث"
+        //  بدء التدوير وتتابع التوقف
         // =========================================================================
         async function startSpin() {
             if (isSpinning) return;
@@ -1304,7 +1328,7 @@
             let initialDelay = speedLevel === 1 ? 400 : (speedLevel === 2 ? 220 : 100);
             let staggerStep = speedLevel === 1 ? 280 : (speedLevel === 2 ? 180 : 80);
 
-            // توقف البكرات بالتتابع بدءاً من البكرة 0 (أسفل زر تحديث على اليسار) واتجاهاً لليمين
+            // توقف البكرات بالتتابع
             for (let step = 0; step < reelsCount; step++) {
                 let reelIdx = step;
                 let currentWait = forceStopRequested ? (step * 40) : (initialDelay + step * staggerStep);
@@ -1359,7 +1383,7 @@
         }
 
         // ==========================================
-        //  عرض النتائج والمؤثرات
+        //  عرض النتائج والمؤثرات المطورة للعملات
         // ==========================================
         async function displaySpinResults(res) {
             let winAmount = parseFloat(res.win_amount);
@@ -1389,16 +1413,56 @@
                     await new Promise(r => setTimeout(r, 400));
                 }
                 
-                triggerGoldRain();
+                triggerUltraFastGoldShower(35);
 
                 let winMultiplier = winAmount / currentBet;
                 if (winMultiplier >= 10.0 || res.is_harvest) {
-                    triggerFullscreenGoldShower();
+                    triggerUltraFastGoldShower(80);
                     showKingWinModal(winAmount, winMultiplier);
                 }
             } else {
                 document.getElementById('lineInfo').innerText = 'حظ أوفر في المحاولة القادمة';
             }
+        }
+
+        // =========================================================================
+        //  محرّك تطاير العملات المطور مع سرعة فائقة ودون تباطؤ
+        // =========================================================================
+        function triggerUltraFastGoldShower(count) {
+            playProSound('coins_flying');
+
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const coin = document.createElement('div');
+                    coin.className = 'ultra-gold-coin';
+                    coin.innerText = Math.random() < 0.55 ? '🪙' : '💰';
+                    
+                    const startX = Math.random() * 92 + 4; // موقع البدء أفقيًا
+                    const dx = (Math.random() - 0.5) * 260 + 'px'; // انحراف خطي ناعم
+                    const duration = (0.25 + Math.random() * 0.2) + 's'; // سرعة خطية قياسية دون أي تباطؤ!
+
+                    coin.style.left = startX + 'vw';
+                    coin.style.setProperty('--dx', dx);
+                    coin.style.setProperty('--duration', duration);
+
+                    document.body.appendChild(coin);
+
+                    // حذف العنصر فور اكتمال الحركة الخاطفة
+                    setTimeout(() => { coin.remove(); }, 500);
+                }, i * 15);
+            }
+
+            // إطلاق كونفيتي إضافي عالي السرعة
+            confetti({
+                particleCount: count,
+                spread: 120,
+                startVelocity: 85,
+                scalar: 2.2,
+                gravity: 1.8,
+                ticks: 80,
+                origin: { y: 0.85 },
+                colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
+            });
         }
 
         function findJarColumns(grid) {
@@ -1422,53 +1486,6 @@
 
         function removeExpandedJars() {
             document.querySelectorAll('.reel-jar-expanded').forEach(el => el.remove());
-        }
-
-        function triggerGoldRain() {
-            playProSound('coins_flying');
-            confetti({
-                particleCount: 75,
-                spread: 110,
-                startVelocity: 70,
-                scalar: 2.0,
-                gravity: 1.4,
-                ticks: 90,
-                origin: { y: 0.6 },
-                colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
-            });
-        }
-
-        function triggerFullscreenGoldShower() {
-            playProSound('coins_flying');
-            var duration = 1.2 * 1000;
-            var end = Date.now() + duration;
-
-            (function frame() {
-                confetti({
-                    particleCount: 22,
-                    angle: 60,
-                    spread: 90,
-                    startVelocity: 75,
-                    scalar: 2.2,
-                    gravity: 1.4,
-                    origin: { x: 0 },
-                    colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
-                });
-                confetti({
-                    particleCount: 22,
-                    angle: 120,
-                    spread: 90,
-                    startVelocity: 75,
-                    scalar: 2.2,
-                    gravity: 1.4,
-                    origin: { x: 1 },
-                    colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
-                });
-
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
-            }());
         }
 
         function showKingWinModal(winAmount, multiplier) {
