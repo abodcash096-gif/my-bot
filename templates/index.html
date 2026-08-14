@@ -909,7 +909,17 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        const splashWaitTime = Math.floor(Math.random() * (3000 - 2000 + 1)) + 2000;
+        // إخفاء موثوق وسلس لشاشة الدخول
+        function dismissSplashScreen() {
+            const splash = document.getElementById('splashScreen');
+            if (splash && splash.style.display !== 'none') {
+                splash.style.transition = 'opacity 0.5s ease';
+                splash.style.opacity = '0';
+                setTimeout(() => { splash.style.display = 'none'; }, 500);
+            }
+        }
+
+        const splashWaitTime = Math.floor(Math.random() * (2800 - 2000 + 1)) + 2000;
         let loadProgress = 0;
         const intervalTime = splashWaitTime / 100;
 
@@ -920,15 +930,13 @@
             
             if (loadProgress >= 100) {
                 clearInterval(loaderInterval);
-                const splash = document.getElementById('splashScreen');
-                if (splash) {
-                    splash.style.transition = 'opacity 0.5s ease';
-                    splash.style.opacity = '0';
-                    setTimeout(() => { splash.style.display = 'none'; }, 500);
-                }
+                dismissSplashScreen();
                 initAudio();
             }
         }, intervalTime);
+
+        // صمام أمان قياسي لإخفاء شاشة التحميل مهما كانت الظروف
+        setTimeout(() => { dismissSplashScreen(); }, 3200);
 
         const betLevels = {
             1: [3, 6, 9, 15, 50],
@@ -1098,8 +1106,6 @@
             }
         }
         loadUserData();
-        setTimeout(() => { document.getElementById('splashScreen').style.display = 'none'; }, 2000);
-            
 
         function generateInitialList(count) {
             const commonItems = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔'];
@@ -1323,11 +1329,11 @@
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // شرط جرف الجرات: يتطلب وجود جرة في العمود 4 والعمود 3 (بدءاً من اليمين)
-            let jarInCol4 = grid[4] && grid[4].some(s => s && s.sym === '🏺');
-            let jarInCol3 = grid[3] && grid[3].some(s => s && s.sym === '🏺');
+            // شرط جرف الجرات: يتطلب وجود جرة في العمود 0 والعمود 1 (بدءاً من أقصى اليسار)
+            let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
+            let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
 
-            if (jarInCol4 && jarInCol3) {
+            if (jarInCol0 && jarInCol1) {
                 isDoubleJarHarvest = true;
                 let harvestPoints = 0;
                 const symValues = { '7': 20, '🔔': 10, '🍇': 8, '🍍': 6, '🍊': 5, '🍋': 4, '🍒': 3, '🏺': 15 };
@@ -1345,31 +1351,28 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // خطوط الربح مصممة حصراً لتبدأ من العمود رقم 4 وتتجه نحو اليسار (4 -> 3 -> 2 -> 1 -> 0)
+            // خطوط الربح مصممة حصراً لتبدأ من العمود رقم 0 وتتجه نحو اليمين (0 -> 1 -> 2 -> 3 -> 4)
             const paylines = [
-                [[4,0], [3,0], [2,0], [1,0], [0,0]],
-                [[4,1], [3,1], [2,1], [1,1], [0,1]],
-                [[4,2], [3,2], [2,2], [1,2], [0,2]],
-                [[4,0], [3,1], [2,2], [1,1], [0,0]],
-                [[4,2], [3,1], [2,0], [1,1], [0,2]],
-                [[4,2], [3,2], [2,2], [1,1], [0,0]],
-                [[4,0], [3,0], [2,0], [1,1], [0,2]],
-                [[4,1], [3,0], [2,0], [1,0], [0,1]],
-                [[4,1], [3,2], [2,2], [1,2], [0,1]]
+                [[0,0], [1,0], [2,0], [3,0], [4,0]],
+                [[0,1], [1,1], [2,1], [3,1], [4,1]],
+                [[0,2], [1,2], [2,2], [3,2], [4,2]],
+                [[0,0], [1,1], [2,2], [3,1], [4,0]],
+                [[0,2], [1,1], [2,0], [3,1], [4,2]],
+                [[0,2], [1,2], [2,2], [3,1], [4,0]],
+                [[0,0], [1,0], [2,0], [3,1], [4,2]],
+                [[0,1], [1,0], [2,0], [3,0], [4,1]],
+                [[0,1], [1,2], [2,2], [3,2], [4,1]]
             ];
 
             paylines.forEach(line => {
-                // التأكد الصارم من أن التقييم يبدأ حصراً من العمود رقم 4 (أقصى اليمين)
-                let col4Coord = line[0];
-                if (col4Coord[0] !== 4) return;
+                let col0Coord = line[0];
+                if (col0Coord[0] !== 0) return;
 
-                let firstObj = grid[col4Coord[0]] ? grid[col4Coord[0]][col4Coord[1]] : null;
-                // إذا لم يوجد عنصر/رمز في العمود 4، يتم التجاهل ولا يُحسب أي ربح
+                let firstObj = grid[col0Coord[0]] ? grid[col0Coord[0]][col0Coord[1]] : null;
                 if (!firstObj || !firstObj.sym) return;
 
                 let targetSym = firstObj.sym;
 
-                // إذا كان الرمز في العمود 4 جرة (Wild)، يتم تحديد الرمز المطلوب من أول فاكهة تليها باتجاه اليسار
                 if (targetSym === '🏺') {
                     for (let i = 1; i < line.length; i++) {
                         let obj = grid[line[i][0]] ? grid[line[i][0]][line[i][1]] : null;
@@ -1384,14 +1387,12 @@
                 let currentLineCoords = [];
                 let jarMultProduct = 1;
 
-                // التقييم يبدأ دائماً من الموضع 4 (العمود الأخير جهة اليمين)
                 for (let i = 0; i < line.length; i++) {
                     let [c, r] = line[i];
                     let cellObj = grid[c] ? grid[c][r] : null;
 
                     if (!cellObj) break;
 
-                    // يجب أن يطابق الرمز المستهدف أو يكون جرة Wild بدءاً من الموضع 4
                     if (cellObj.sym === targetSym || cellObj.sym === '🏺') {
                         matchCount++;
                         currentLineCoords.push([c, r]);
@@ -1399,7 +1400,6 @@
                             jarMultProduct *= cellObj.mult;
                         }
                     } else {
-                        // انقطاع التتابع من جهة اليمين (الموضع 4) يُلغي استكمال الخط
                         break;
                     }
                 }
@@ -1743,126 +1743,19 @@
 
         function clearShineEffects() {
             document.querySelectorAll('.symbol').forEach(s => {
-                s.classList.remove(function evaluateWildWinsLocally(grid, bet) {
-    let totalWin = 0;
-    let winningCoords = [];
-    let isDoubleJarHarvest = false;
-
-    // شرط جرف الجرات: يتطلب وجود جرة في العمود 0 والعمود 1 (بدءاً من أقصى اليسار)
-    let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
-    let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
-
-    if (jarInCol0 && jarInCol1) {
-        isDoubleJarHarvest = true;
-        let harvestPoints = 0;
-        const symValues = { '7': 20, '🔔': 10, '🍇': 8, '🍍': 6, '🍊': 5, '🍋': 4, '🍒': 3, '🏺': 15 };
-
-        for (let c = 0; c < reelsCount; c++) {
-            if (grid[c]) {
-                grid[c].forEach((item, rIdx) => {
-                    let val = symValues[item.sym] || 4;
-                    harvestPoints += val;
-                    winningCoords.push([c, rIdx]);
-                });
-            }
-        }
-        let megaMultiplier = Math.max(harvestPoints, 60);
-        totalWin += (bet * megaMultiplier);
-    }
-
-    // خطوط الربح مصممة حصراً لتبدأ من العمود رقم 0 وتتجه نحو اليمين (0 -> 1 -> 2 -> 3 -> 4)
-    const paylines = [
-        [[0,0], [1,0], [2,0], [3,0], [4,0]],
-        [[0,1], [1,1], [2,1], [3,1], [4,1]],
-        [[0,2], [1,2], [2,2], [3,2], [4,2]],
-        [[0,0], [1,1], [2,2], [3,1], [4,0]],
-        [[0,2], [1,1], [2,0], [3,1], [4,2]],
-        [[0,2], [1,2], [2,2], [3,1], [4,0]],
-        [[0,0], [1,0], [2,0], [3,1], [4,2]],
-        [[0,1], [1,0], [2,0], [3,0], [4,1]],
-        [[0,1], [1,2], [2,2], [3,2], [4,1]]
-    ];
-
-    paylines.forEach(line => {
-        // التأكد الصارم من أن التقييم يبدأ حصراً من العمود رقم 0 (أقصى اليسار)
-        let col0Coord = line[0];
-        if (col0Coord[0] !== 0) return;
-
-        let firstObj = grid[col0Coord[0]] ? grid[col0Coord[0]][col0Coord[1]] : null;
-        // إذا لم يوجد عنصر/رمز في العمود 0، يتم التجاهل ولا يُحسب أي ربح
-        if (!firstObj || !firstObj.sym) return;
-
-        let targetSym = firstObj.sym;
-
-        // إذا كان الرمز في العمود 0 جرة (Wild)، يتم تحديد الرمز المطلوب من أول فاكهة تليها باتجاه اليمين
-        if (targetSym === '🏺') {
-            for (let i = 1; i < line.length; i++) {
-                let obj = grid[line[i][0]] ? grid[line[i][0]][line[i][1]] : null;
-                if (obj && obj.sym !== '🏺') {
-                    targetSym = obj.sym;
-                    break;
-                }
-            }
+                s.classList.remove('win-pop-blue', 'jar-stopped');
+            });
         }
 
-        let matchCount = 0;
-        let currentLineCoords = [];
-        let jarMultProduct = 1;
-
-        // التقييم يبدأ دائماً من الموضع 0 (العمود الأول جهة اليسار)
-        for (let i = 0; i < line.length; i++) {
-            let [c, r] = line[i];
-            let cellObj = grid[c] ? grid[c][r] : null;
-
-            if (!cellObj) break;
-
-            // يجب أن يطابق الرمز المستهدف أو يكون جرة Wild بدءاً من الموضع 0
-            if (cellObj.sym === targetSym || cellObj.sym === '🏺') {
-                matchCount++;
-                currentLineCoords.push([c, r]);
-                if (cellObj.sym === '🏺' && cellObj.mult > 1) {
-                    jarMultProduct *= cellObj.mult;
-                }
-            } else {
-                // انقطاع التتابع من جهة اليسار (الموضع 0) يُلغي استكمال الخط
-                break;
-            }
+        function showModal(title, desc) {
+            document.getElementById('modal-status').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            document.getElementById('msg-modal').style.display = 'flex';
         }
 
-        let multiplier = 0;
-
-        if (targetSym === '7') {
-            if (matchCount === 2) multiplier = 3;
-            else if (matchCount === 3) multiplier = 15;
-            else if (matchCount === 4) multiplier = 60;
-            else if (matchCount === 5) multiplier = 300;
-        } 
-        else if (['🍇', '🍊', '🍍', '🍋', '🍒', '🔔', '🏺'].includes(targetSym)) {
-            if (matchCount === 3) {
-                multiplier = (targetSym === '🔔' || targetSym === '🍇') ? 4 : 2;
-            } else if (matchCount === 4) {
-                multiplier = (targetSym === '🔔' || targetSym === '🍇') ? 12 : 6;
-            } else if (matchCount === 5) {
-                multiplier = (targetSym === '🔔' || targetSym === '🍇') ? 40 : 20;
-            }
+        function closeModal() {
+            document.getElementById('msg-modal').style.display = 'none';
         }
-
-        if (multiplier > 0) {
-            totalWin += (bet * multiplier * jarMultProduct);
-            currentLineCoords.forEach(coord => winningCoords.push(coord));
-        }
-    });
-
-    let uniqueWinningCoords = [];
-    let coordSet = new Set();
-    winningCoords.forEach(c => {
-        let key = `${c[0]}-${c[1]}`;
-        if (!coordSet.has(key)) {
-            coordSet.add(key);
-            uniqueWinningCoords.push(c);
-        }
-    });
-
-    return { winAmount: totalWin, winningCoords: uniqueWinningCoords, isDoubleJarHarvest: isDoubleJarHarvest };
-}
-
+    </script>
+</body>
+</html>
