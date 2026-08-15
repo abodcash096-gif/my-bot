@@ -909,7 +909,12 @@
         const tg = window.Telegram?.WebApp;
         if (tg) { tg.expand(); tg.ready(); }
 
-        // إخفاء موثوق وسلس لشاشة الدخول
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
         function dismissSplashScreen() {
             const splash = document.getElementById('splashScreen');
             if (splash && splash.style.display !== 'none') {
@@ -935,7 +940,6 @@
             }
         }, intervalTime);
 
-        // صمام أمان قياسي لإخفاء شاشة التحميل مهما كانت الظروف
         setTimeout(() => { dismissSplashScreen(); }, 3200);
 
         const betLevels = {
@@ -960,12 +964,6 @@
         const reelsCount = 5;
         const reelStrips = [];
         const slotsFrame = document.getElementById('slotsFrame');
-
-        let audioCtx = null;
-        function initAudio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-        }
 
         function playProSound(type) {
             initAudio();
@@ -1095,10 +1093,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId, name: name })
                 });
-                let data = await response.json();
-                if (data.success) {
-                    currentBalance = parseFloat(data.balance);
-                    document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+                if (response.ok) {
+                    let data = await response.json();
+                    if (data.success) {
+                        currentBalance = parseFloat(data.balance);
+                        document.getElementById('u-balance').innerText = currentBalance.toFixed(2);
+                    }
                 }
             } catch (e) {
                 console.warn("نموذج افتراضي دون اتصال بالخادم:", e);
@@ -1324,14 +1324,15 @@
             else startSpin();
         }
 
+        /* --- دالة احتساب الأرباح المصححة حصرياً لتبدأ من العمود 0 (أقصى اليسار) --- */
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // شرط جرف الجرات المعدل: يتطلب وجود جرة في العمود 4 والعمود 3 (بدءاً من أقصى اليمين)
-            let jarInCol0 = grid[4] && grid[4].some(s => s && s.sym === '🏺');
-            let jarInCol1 = grid[3] && grid[3].some(s => s && s.sym === '🏺');
+            // 1. جرف الجرات: يتطلب وجود جرة في العمود 0 والعمود 1 (أقصى اليسار)
+            let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
+            let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
 
             if (jarInCol0 && jarInCol1) {
                 isDoubleJarHarvest = true;
@@ -1351,28 +1352,29 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // خطوط الربح مصممة حصراً لتبدأ من العمود رقم 4 (أقصى اليمين) وتتجه نحو اليسار (4 -> 3 -> 2 -> 1 -> 0)
+            // 2. خطوط الربح تبدأ حصراً من العمود 0 (اليسار) نحو العمود 4 (اليمين)
             const paylines = [
-                [[4,0], [3,0], [2,0], [1,0], [0,0]],
-                [[4,1], [3,1], [2,1], [1,1], [0,1]],
-                [[4,2], [3,2], [2,2], [1,2], [0,2]],
-                [[4,0], [3,1], [2,2], [1,1], [0,0]],
-                [[4,2], [3,1], [2,0], [1,1], [0,2]],
-                [[4,2], [3,2], [2,2], [1,1], [0,0]],
-                [[4,0], [3,0], [2,0], [1,1], [0,2]],
-                [[4,1], [3,0], [2,0], [1,0], [0,1]],
-                [[4,1], [3,2], [2,2], [1,2], [0,1]]
+                [[0,0], [1,0], [2,0], [3,0], [4,0]],
+                [[0,1], [1,1], [2,1], [3,1], [4,1]],
+                [[0,2], [1,2], [2,2], [3,2], [4,2]],
+                [[0,0], [1,1], [2,2], [3,1], [4,0]],
+                [[0,2], [1,1], [2,0], [3,1], [4,2]],
+                [[0,2], [1,2], [2,2], [3,1], [4,0]],
+                [[0,0], [1,0], [2,0], [3,1], [4,2]],
+                [[0,1], [1,0], [2,0], [3,0], [4,1]],
+                [[0,1], [1,2], [2,2], [3,2], [4,1]]
             ];
 
             paylines.forEach(line => {
-                let col4Coord = line[0];
-                if (col4Coord[0] !== 4) return;
+                let col0Coord = line[0];
+                if (col0Coord[0] !== 0) return; // التأكد المطلق من بدء الخط من العمود 0
 
-                let firstObj = grid[col4Coord[0]] ? grid[col4Coord[0]][col4Coord[1]] : null;
+                let firstObj = grid[col0Coord[0]] ? grid[col0Coord[0]][col0Coord[1]] : null;
                 if (!firstObj || !firstObj.sym) return;
 
                 let targetSym = firstObj.sym;
 
+                // إذا كان الرمز الأول جرة، نبحث عن أول رمز غير جرة ليكون المستهدف
                 if (targetSym === '🏺') {
                     for (let i = 1; i < line.length; i++) {
                         let obj = grid[line[i][0]] ? grid[line[i][0]][line[i][1]] : null;
@@ -1387,6 +1389,7 @@
                 let currentLineCoords = [];
                 let jarMultProduct = 1;
 
+                // التحقق التتابعي من العمود 0 وإلى اليمين
                 for (let i = 0; i < line.length; i++) {
                     let [c, r] = line[i];
                     let cellObj = grid[c] ? grid[c][r] : null;
@@ -1400,6 +1403,7 @@
                             jarMultProduct *= cellObj.mult;
                         }
                     } else {
+                        // انقطاع التتابع من اليسار -> لا ربح
                         break;
                     }
                 }
@@ -1495,9 +1499,11 @@
                         buy_bonus_jars: requestedJars
                     })
                 });
-                serverResult = await response.json();
+                if (response.ok) {
+                    serverResult = await response.json();
+                }
             } catch (err) {
-                console.warn("السيرفر غير متصل، يتم العمل بوضع المحاكاة:", err);
+                console.warn("السيرفر غير متصل، يتم العمل بوضع المحاكاة المحلية:", err);
             }
 
             if (!serverResult || !serverResult.success) {
@@ -1678,16 +1684,18 @@
                 }, i * 15);
             }
 
-            confetti({
-                particleCount: count,
-                spread: 120,
-                startVelocity: 85,
-                scalar: 2.2,
-                gravity: 1.8,
-                ticks: 80,
-                origin: { y: 0.85 },
-                colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
-            });
+            if (typeof confetti !== 'undefined') {
+                confetti({
+                    particleCount: count,
+                    spread: 120,
+                    startVelocity: 85,
+                    scalar: 2.2,
+                    gravity: 1.8,
+                    ticks: 80,
+                    origin: { y: 0.85 },
+                    colors: ['#ffdf00', '#ffa500', '#ffffff', '#ffd700']
+                });
+            }
         }
 
         function showKingWinModal(winAmount, multiplier) {
