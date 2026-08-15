@@ -1107,7 +1107,8 @@
         }
         loadUserData();
 
-        function generateInitialList(count) {
+        // التعديل: حصر مضاعف 5x في الجرة بشرط شراء المكافأة فقط
+        function generateInitialList(count, allow5x = false) {
             const commonItems = ['🍇', '🍊', '🍍', '🍋', '🍒', '🔔'];
             let list = [];
             for (let i = 0; i < count; i++) {
@@ -1118,10 +1119,16 @@
                 if (rand < 0.04) { 
                     sym = '🏺';
                     let mRand = Math.random();
-                    if (mRand < 0.45) mult = 1;
-                    else if (mRand < 0.70) mult = 2;
-                    else if (mRand < 0.88) mult = 3;
-                    else mult = 5;
+                    if (allow5x) {
+                        if (mRand < 0.45) mult = 1;
+                        else if (mRand < 0.70) mult = 2;
+                        else if (mRand < 0.88) mult = 3;
+                        else mult = 5; // مضاعف 5x يظهر فقط عند تفعيل allow5x
+                    } else {
+                        if (mRand < 0.50) mult = 1;
+                        else if (mRand < 0.80) mult = 2;
+                        else mult = 3;
+                    }
                 } else if (rand < 0.09) {
                     sym = '7';
                 } else {
@@ -1324,17 +1331,17 @@
             else startSpin();
         }
 
-        /* --- دالة احتساب الأرباح المصححة حصرياً لتبدأ من العمود 0 (أقصى اليسار) --- */
+        /* --- دالة احتساب الأرباح المصححة تبدأ حصرياً من العمود 4 (أقصى اليمين) اتجاهاً لليسار --- */
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // 1. جرف الجرات: يتطلب وجود جرة في العمود 0 والعمود 1 (أقصى اليسار)
-            let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
-            let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
+            // 1. جرف الجرات: يتطلب وجود جرة في العمود 4 والعمود 3 (أقصى اليمين)
+            let jarInCol4 = grid[4] && grid[4].some(s => s && s.sym === '🏺');
+            let jarInCol3 = grid[3] && grid[3].some(s => s && s.sym === '🏺');
 
-            if (jarInCol0 && jarInCol1) {
+            if (jarInCol4 && jarInCol3) {
                 isDoubleJarHarvest = true;
                 let harvestPoints = 0;
                 const symValues = { '7': 20, '🔔': 10, '🍇': 8, '🍍': 6, '🍊': 5, '🍋': 4, '🍒': 3, '🏺': 15 };
@@ -1352,29 +1359,29 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // 2. خطوط الربح تبدأ حصراً من العمود 0 (اليسار) نحو العمود 4 (اليمين)
+            // 2. خطوط الربح تبدأ حصراً من العمود 4 (اليمين) نحو العمود 0 (اليسار)
             const paylines = [
-                [[0,0], [1,0], [2,0], [3,0], [4,0]],
-                [[0,1], [1,1], [2,1], [3,1], [4,1]],
-                [[0,2], [1,2], [2,2], [3,2], [4,2]],
-                [[0,0], [1,1], [2,2], [3,1], [4,0]],
-                [[0,2], [1,1], [2,0], [3,1], [4,2]],
-                [[0,2], [1,2], [2,2], [3,1], [4,0]],
-                [[0,0], [1,0], [2,0], [3,1], [4,2]],
-                [[0,1], [1,0], [2,0], [3,0], [4,1]],
-                [[0,1], [1,2], [2,2], [3,2], [4,1]]
+                [[4,0], [3,0], [2,0], [1,0], [0,0]],
+                [[4,1], [3,1], [2,1], [1,1], [0,1]],
+                [[4,2], [3,2], [2,2], [1,2], [0,2]],
+                [[4,0], [3,1], [2,2], [1,1], [0,0]],
+                [[4,2], [3,1], [2,0], [1,1], [0,2]],
+                [[4,2], [3,2], [2,2], [1,1], [0,0]],
+                [[4,0], [3,0], [2,0], [1,1], [0,2]],
+                [[4,1], [3,0], [2,0], [1,0], [0,1]],
+                [[4,1], [3,2], [2,2], [1,2], [0,1]]
             ];
 
             paylines.forEach(line => {
-                let col0Coord = line[0];
-                if (col0Coord[0] !== 0) return; // التأكد المطلق من بدء الخط من العمود 0
+                let col4Coord = line[0];
+                if (col4Coord[0] !== 4) return; // التأكد المطلق من بدء الخط من العمود 4
 
-                let firstObj = grid[col0Coord[0]] ? grid[col0Coord[0]][col0Coord[1]] : null;
+                let firstObj = grid[col4Coord[0]] ? grid[col4Coord[0]][col4Coord[1]] : null;
                 if (!firstObj || !firstObj.sym) return;
 
                 let targetSym = firstObj.sym;
 
-                // إذا كان الرمز الأول جرة، نبحث عن أول رمز غير جرة ليكون المستهدف
+                // إذا كان الرمز الأول في العمود 4 جرة، نبحث عن أول رمز غير جرة نحو اليسار ليكون رمز الربح المستهدف (Wild)
                 if (targetSym === '🏺') {
                     for (let i = 1; i < line.length; i++) {
                         let obj = grid[line[i][0]] ? grid[line[i][0]][line[i][1]] : null;
@@ -1389,13 +1396,14 @@
                 let currentLineCoords = [];
                 let jarMultProduct = 1;
 
-                // التحقق التتابعي من العمود 0 وإلى اليمين
+                // التحقق التتابعي بدءاً من العمود 4 وإلى اليسار
                 for (let i = 0; i < line.length; i++) {
                     let [c, r] = line[i];
                     let cellObj = grid[c] ? grid[c][r] : null;
 
                     if (!cellObj) break;
 
+                    // الجرة '🏺' تعمل كـ Wild يكمل السلسلة أو يربطها
                     if (cellObj.sym === targetSym || cellObj.sym === '🏺') {
                         matchCount++;
                         currentLineCoords.push([c, r]);
@@ -1403,15 +1411,16 @@
                             jarMultProduct *= cellObj.mult;
                         }
                     } else {
-                        // انقطاع التتابع من اليسار -> لا ربح
+                        // انقطاع التتابع من اليمين -> لا يتم احتساب أي ربح
                         break;
                     }
                 }
 
                 let multiplier = 0;
 
+                // احتساب الأرباح (السبعتان 77 تربح من تكرارين)
                 if (targetSym === '7') {
-                    if (matchCount === 2) multiplier = 3;
+                    if (matchCount === 2) multiplier = 3;       // سبعتان متتاليتان تبدأ من العمود 4
                     else if (matchCount === 3) multiplier = 15;
                     else if (matchCount === 4) multiplier = 60;
                     else if (matchCount === 5) multiplier = 300;
@@ -1474,17 +1483,17 @@
                 if (isSpinning) playProSound('spin_tick');
             }, 55);
 
+            let isBonusRound = !!(activeBonus && activeBonus.remaining > 0);
+
             reelStrips.forEach(strip => {
-                populateStrip(strip, generateInitialList(9));
+                populateStrip(strip, generateInitialList(9, isBonusRound));
                 strip.classList.add('spinning');
             });
 
             let requestedJars = 0;
-            let isBonusRound = false;
             if (activeBonus && activeBonus.remaining > 0) {
                 requestedJars = activeBonus.jars;
                 activeBonus.remaining--;
-                isBonusRound = true;
                 updateBonusBadgeUI();
             }
 
@@ -1509,7 +1518,7 @@
             if (!serverResult || !serverResult.success) {
                 let fallbackGrid = [];
                 for (let c = 0; c < reelsCount; c++) {
-                    fallbackGrid.push(generateInitialList(3));
+                    fallbackGrid.push(generateInitialList(3, isBonusRound));
                 }
                 
                 let localWin = evaluateWildWinsLocally(fallbackGrid, currentBet);
