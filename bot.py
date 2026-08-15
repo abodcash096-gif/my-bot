@@ -104,6 +104,31 @@ def init_db():
             custom_boost REAL DEFAULT 0.0
         )
     ''')
+
+    # --- معالجة الحقول المفقودة تلقائياً لمنع أخطاء OperationalError ---
+    columns_to_check = [
+        ("full_name", "TEXT"),
+        ("phone", "TEXT"),
+        ("balance", "REAL DEFAULT 100.0"),
+        ("referred_by", "INTEGER"),
+        ("referrals_count", "INTEGER DEFAULT 0"),
+        ("games_played", "INTEGER DEFAULT 0"),
+        ("consecutive_losses", "INTEGER DEFAULT 0"),
+        ("consecutive_wins", "INTEGER DEFAULT 0"),
+        ("is_verified", "INTEGER DEFAULT 0"),
+        ("terms_accepted", "INTEGER DEFAULT 0"),
+        ("is_banned", "INTEGER DEFAULT 0"),
+        ("captcha_answer", "INTEGER DEFAULT 0"),
+        ("step", "TEXT DEFAULT 'start'"),
+        ("custom_boost", "REAL DEFAULT 0.0")
+    ]
+    
+    for col_name, col_type in columns_to_check:
+        try:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+        except sqlite3.OperationalError:
+            pass  # العمود موجود مسبقاً
+
     cursor.execute('CREATE TABLE IF NOT EXISTS admins (user_id INTEGER PRIMARY KEY)')
     cursor.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
     cursor.execute('CREATE TABLE IF NOT EXISTS gift_codes (code TEXT PRIMARY KEY, amount REAL, uses_left INTEGER)')
@@ -565,6 +590,7 @@ async def handle_text_messages(update: Update, context: ContextTypes.DEFAULT_TYP
             parse_mode="Markdown"
         )
         return
+
 
     conn = get_db()
     u = conn.execute("SELECT * FROM users WHERE user_id = ?", (user.id,)).fetchone()
