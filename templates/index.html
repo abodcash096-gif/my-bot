@@ -1331,17 +1331,17 @@
             else startSpin();
         }
 
-        /* --- دالة احتساب الأرباح المصححة تبدأ حصرياً من العمود 4 (أقصى اليمين) اتجاهاً لليسار --- */
+        /* --- دالة احتساب الأرباح المصححة تبدأ حصرياً من العمود الأول (العمود 0 - أقصى اليسار) اتجاهاً لليمين --- */
         function evaluateWildWinsLocally(grid, bet) {
             let totalWin = 0;
             let winningCoords = [];
             let isDoubleJarHarvest = false;
 
-            // 1. جرف الجرات: يتطلب وجود جرة في العمود 4 والعمود 3 (أقصى اليمين)
-            let jarInCol4 = grid[4] && grid[4].some(s => s && s.sym === '🏺');
-            let jarInCol3 = grid[3] && grid[3].some(s => s && s.sym === '🏺');
+            // 1. جرف الجرات: يتطلب وجود جرة في العمود الأول (العمود 0) والعمود الثاني (العمود 1)
+            let jarInCol0 = grid[0] && grid[0].some(s => s && s.sym === '🏺');
+            let jarInCol1 = grid[1] && grid[1].some(s => s && s.sym === '🏺');
 
-            if (jarInCol4 && jarInCol3) {
+            if (jarInCol0 && jarInCol1) {
                 isDoubleJarHarvest = true;
                 let harvestPoints = 0;
                 const symValues = { '7': 20, '🔔': 10, '🍇': 8, '🍍': 6, '🍊': 5, '🍋': 4, '🍒': 3, '🏺': 15 };
@@ -1359,29 +1359,29 @@
                 totalWin += (bet * megaMultiplier);
             }
 
-            // 2. خطوط الربح تبدأ حصراً من العمود 4 (اليمين) نحو العمود 0 (اليسار)
+            // 2. خطوط الربح تبدأ حصراً من العمود 0 (العمود الأول الذي يتوقف) نحو العمود 4 (اليمين)
             const paylines = [
-                [[4,0], [3,0], [2,0], [1,0], [0,0]],
-                [[4,1], [3,1], [2,1], [1,1], [0,1]],
-                [[4,2], [3,2], [2,2], [1,2], [0,2]],
-                [[4,0], [3,1], [2,2], [1,1], [0,0]],
-                [[4,2], [3,1], [2,0], [1,1], [0,2]],
-                [[4,2], [3,2], [2,2], [1,1], [0,0]],
-                [[4,0], [3,0], [2,0], [1,1], [0,2]],
-                [[4,1], [3,0], [2,0], [1,0], [0,1]],
-                [[4,1], [3,2], [2,2], [1,2], [0,1]]
+                [[0,0], [1,0], [2,0], [3,0], [4,0]],
+                [[0,1], [1,1], [2,1], [3,1], [4,1]],
+                [[0,2], [1,2], [2,2], [3,2], [4,2]],
+                [[0,0], [1,1], [2,2], [3,1], [4,0]],
+                [[0,2], [1,1], [2,0], [3,1], [4,2]],
+                [[0,2], [1,2], [2,2], [3,1], [4,0]],
+                [[0,0], [1,0], [2,0], [3,1], [4,2]],
+                [[0,1], [1,0], [2,0], [3,0], [4,1]],
+                [[0,1], [1,2], [2,2], [3,2], [4,1]]
             ];
 
             paylines.forEach(line => {
-                let col4Coord = line[0];
-                if (col4Coord[0] !== 4) return; // التأكد المطلق من بدء الخط من العمود 4
+                let col0Coord = line[0];
+                if (col0Coord[0] !== 0) return; // التأكد المطلق من بدء الخط من العمود 0 (العمود الأول)
 
-                let firstObj = grid[col4Coord[0]] ? grid[col4Coord[0]][col4Coord[1]] : null;
+                let firstObj = grid[col0Coord[0]] ? grid[col0Coord[0]][col0Coord[1]] : null;
                 if (!firstObj || !firstObj.sym) return;
 
                 let targetSym = firstObj.sym;
 
-                // إذا كان الرمز الأول في العمود 4 جرة، نبحث عن أول رمز غير جرة نحو اليسار ليكون رمز الربح المستهدف (Wild)
+                // إذا كان الرمز الأول في العمود 0 جرة، نبحث عن أول رمز غير جرة نحو اليمين ليكون رمز الربح المستهدف (Wild)
                 if (targetSym === '🏺') {
                     for (let i = 1; i < line.length; i++) {
                         let obj = grid[line[i][0]] ? grid[line[i][0]][line[i][1]] : null;
@@ -1396,7 +1396,7 @@
                 let currentLineCoords = [];
                 let jarMultProduct = 1;
 
-                // التحقق التتابعي بدءاً من العمود 4 وإلى اليسار
+                // التحقق التتابعي بدءاً من العمود 0 وإلى اليمين
                 for (let i = 0; i < line.length; i++) {
                     let [c, r] = line[i];
                     let cellObj = grid[c] ? grid[c][r] : null;
@@ -1411,7 +1411,7 @@
                             jarMultProduct *= cellObj.mult;
                         }
                     } else {
-                        // انقطاع التتابع من اليمين -> لا يتم احتساب أي ربح
+                        // انقطاع التتابع من اليسار (العمود الأول) -> لا يتم احتساب أي ربح
                         break;
                     }
                 }
@@ -1420,7 +1420,7 @@
 
                 // احتساب الأرباح (السبعتان 77 تربح من تكرارين)
                 if (targetSym === '7') {
-                    if (matchCount === 2) multiplier = 3;       // سبعتان متتاليتان تبدأ من العمود 4
+                    if (matchCount === 2) multiplier = 3;       // سبعتان متتاليتان تبدأ من العمود 0
                     else if (matchCount === 3) multiplier = 15;
                     else if (matchCount === 4) multiplier = 60;
                     else if (matchCount === 5) multiplier = 300;
